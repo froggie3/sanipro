@@ -6,7 +6,7 @@ class Tokens:
     SPACE = " "
 
 
-class PromptBase:
+class Prompt:
     def __init__(self, name=None, strength=None) -> None:
         if name is None:
             name = []
@@ -29,10 +29,13 @@ class PromptBase:
     def length(self) -> int:
         return len(self.name)
 
+    def __repr__(self) -> str:
+        return f"{__class__.__name__}(name='{self.name}', strength={self.strength})"
 
-class PromptInteractive(PromptBase):
+
+class PromptInteractive(Prompt):
     def __init__(self, name=None, strength=None):
-        PromptBase.__init__(self, name, strength)
+        Prompt.__init__(self, name, strength)
         self._delimiter = ":"
 
     def __str__(self) -> str:
@@ -40,26 +43,16 @@ class PromptInteractive(PromptBase):
             return f"({self.name}{self._delimiter}{self.strength})"
         return self.name
 
-    def __repr__(self) -> str:
-        return f"{__class__.__name__}(name='{self.name}', strength={self.strength})"
 
-
-class PromptNonInteractive(PromptBase):
+class PromptNonInteractive(Prompt):
     def __init__(self, name=None, strength=None):
-        PromptBase.__init__(self, name, strength)
+        Prompt.__init__(self, name, strength)
         self._delimiter = "\t"
 
     def __str__(self) -> str:
         if self.strength != "1.0":
             return f"{self.name}{self._delimiter}{self.strength}"
         return self.name
-
-    def __repr__(self) -> str:
-        return f"{__class__.__name__}(name='{self.name}', strength={self.strength})"
-
-
-class PromptInterface:
-    pass
 
 
 class PromptList(list):
