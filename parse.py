@@ -24,9 +24,14 @@ def main():
     atexit.register(readline.write_history_file, histfile)
 
     while True:
-        sentence = lib.parser_v2.Sentence(
-            input(">>> ")
-        )
+        try:
+            sentence = lib.parser_v2.Sentence(
+                input(">>> ")
+            )
+        except (KeyboardInterrupt, EOFError):
+            print()
+            return
+
         tokens = lib.parser_v2.parse(sentence)
         # tokens.sort(key=lambda x: x.strength)
         logger.info(f"{tokens}".format(tokens))
