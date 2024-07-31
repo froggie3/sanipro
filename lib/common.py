@@ -7,13 +7,10 @@ class Tokens:
 
 
 class Prompt:
-    def __init__(self, name=None, strength=None) -> None:
-        if name is None:
-            name = []
-        if strength is None:
-            strength = []
+    def __init__(self, name=[], strength=[]) -> None:
         self._name = name
         self._strength = strength
+        self._delimiter = None
 
     @property
     def name(self) -> str:
@@ -22,7 +19,6 @@ class Prompt:
     @property
     def strength(self) -> str:
         result = "".join(self._strength) if self._strength else "1.0"
-        # return float()
         return result
 
     @property
@@ -32,27 +28,25 @@ class Prompt:
     def __repr__(self) -> str:
         return f"{__class__.__name__}(name='{self.name}', strength={self.strength})"
 
-
-class PromptInteractive(Prompt):
-    def __init__(self, name=None, strength=None):
-        Prompt.__init__(self, name, strength)
-        self._delimiter = ":"
-
     def __str__(self) -> str:
+        if self._delimiter is None:
+            raise NotImplementedError
+
         if self.strength != "1.0":
             return f"({self.name}{self._delimiter}{self.strength})"
         return self.name
 
 
+class PromptInteractive(Prompt):
+    def __init__(self, name=[], strength=[]):
+        Prompt.__init__(self, name, strength)
+        self._delimiter = ":"
+
+
 class PromptNonInteractive(Prompt):
-    def __init__(self, name=None, strength=None):
+    def __init__(self, name=[], strength=[]):
         Prompt.__init__(self, name, strength)
         self._delimiter = "\t"
-
-    def __str__(self) -> str:
-        if self.strength != "1.0":
-            return f"{self.name}{self._delimiter}{self.strength}"
-        return self.name
 
 
 class PromptList(list):
@@ -64,7 +58,7 @@ class PromptList(list):
 class Sentence:
     def __init__(self, sentence: str) -> None:
         self.index = 0
-        # 簡単のために最後が ', ' で終わるようにする
+        # for simplicity's of implementation, end sentence with a comma
         added_char = Tokens.COMMA if sentence[-1] != Tokens.COMMA else ""
         self.sentence = sentence + added_char
 
@@ -81,7 +75,6 @@ class Sentence:
 
 
 def read_char(stack, char) -> None:
-    """char から stack に一文字追加"""
     stack.append(char)
 
 
