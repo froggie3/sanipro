@@ -1,7 +1,14 @@
 #!/usr/bin/env python3
 
-from .common import Tokens, Prompt, PromptList, Sentence, read_char
 import logging
+
+from .common import (
+    PromptList,
+    Sentence,
+    Tokens,
+    read_char,
+    PromptClass,
+)
 
 logger = logging.getLogger()
 
@@ -26,27 +33,33 @@ def extract_token(sentence: Sentence):
             read_char(character_stack, character)
 
 
-def parse(sentence: Sentence) -> PromptList:
+def parse_line(token_combined: str, Class: PromptClass):
     """
     カッコの中身は反応しない .split() メソッドのような動作
     (emphasis:1.2) <- strip で左辺と右辺を分割、
     3 つ以上の要素になったら最後のコロンで区切られた右側を強さとして採択
     """
-    result = PromptList()
+    token = token_combined.strip().split(Tokens.COLON)
+    length_token = len(token)
 
-    for token_conbined in extract_token(sentence):
-        token = token_conbined.strip().split(Tokens.COLON)
-        length_token = len(token)
-        cursor = Prompt() 
+    prompt = Class()
 
-        if length_token == 1:
-            cursor._name, = token
-        elif length_token == 2:
-            cursor._name, cursor._strength = token
-        else:
-            *ret, cursor._strength = token
-            cursor._name = Tokens.COLON.join(ret)
+    if length_token == 1:
+        prompt._name, = token
+    elif length_token == 2:
+        prompt._name, prompt._strength = token
+    else:
+        *ret, prompt._strength = token
+        prompt._name = Tokens.COLON.join(ret)
 
-        result.append(cursor)
+    return prompt
 
-    return result
+
+def parse(sentence: Sentence, Class: PromptClass) -> PromptList:
+    prompts = PromptList()
+
+    for element in extract_token(sentence):
+        prompt = parse_line(element, Class)
+        prompts.append(prompt)
+
+    return prompts

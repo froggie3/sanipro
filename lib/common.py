@@ -6,7 +6,7 @@ class Tokens:
     SPACE = " "
 
 
-class Prompt:
+class PromptBase:
     def __init__(self, name=None, strength=None) -> None:
         if name is None:
             name = []
@@ -32,20 +32,41 @@ class Prompt:
     def __repr__(self) -> str:
         return f"{__class__.__name__}(name='{self.name}', strength={self.strength})"
 
+
+class PromptInteractive(PromptBase):
+    def __init__(self, name=None, strength=None):
+        PromptBase.__init__(self, name, strength)
+        self._delimiter = ":"
+
     def __str__(self) -> str:
         if self.strength != "1.0":
-            return f"({self.name}:{self.strength})"
+            return f"({self.name}{self._delimiter}{self.strength})"
         return self.name
+
+
+class PromptNonInteractive(PromptBase):
+    def __init__(self, name=None, strength=None):
+        PromptBase.__init__(self, name, strength)
+        self._delimiter = "\t"
+
+    def __str__(self) -> str:
+        if self.strength != "1.0":
+            return f"{self.name}{self._delimiter}{self.strength}"
+        return self.name
+
+
+class PromptInterface:
+    pass
 
 
 class PromptList(list):
     def __str__(self) -> str:
-        result = ", ".join([str(token) for token in self])
+        result = "\n".join([str(token) for token in self])
         return result
 
 
 class Sentence:
-    def __init__(self, sentence: str):
+    def __init__(self, sentence: str) -> None:
         self.index = 0
         # 簡単のために最後が ', ' で終わるようにする
         added_char = Tokens.COMMA if sentence[-1] != Tokens.COMMA else ""
@@ -66,3 +87,6 @@ class Sentence:
 def read_char(stack, char) -> None:
     """char から stack に一文字追加"""
     stack.append(char)
+
+
+PromptClass = type[PromptInteractive | PromptNonInteractive]
