@@ -1,8 +1,6 @@
-#!/usr/bin/env python3
-
 import logging
 
-from .common import (
+from common import (
     PromptList,
     Sentence,
     Tokens,
@@ -12,8 +10,18 @@ from .common import (
 
 logger = logging.getLogger()
 
+
 def extract_token(sentence: Sentence):
-    """カッコを外して word:1.2 のような組を得る"""
+    """
+    split `sentence` at commas and remove parentheses.
+
+    >>> list(extract_token('1girl,'))
+    ['1girl']
+    >>> list(extract_token('(brown hair:1.2),'))
+    ['brown hair:1.2']
+    >>> list(extract_token('1girl, (brown hair:1.2), school uniform, smile,'))
+    ['1girl', 'brown hair:1.2', 'school uniform', 'smile']
+    """
     stack = []
     character_stack = []
 
@@ -26,7 +34,7 @@ def extract_token(sentence: Sentence):
             if stack:
                 read_char(character_stack, character)
                 continue
-            element = "".join(character_stack)
+            element = "".join(character_stack).strip()
             character_stack = []
             yield element
         else:
@@ -35,11 +43,22 @@ def extract_token(sentence: Sentence):
 
 def parse_line(token_combined: str, Class: PromptClass):
     """
-    カッコの中身は反応しない .split() メソッドのような動作
-    (emphasis:1.2) <- strip で左辺と右辺を分割、
-    3 つ以上の要素になったら最後のコロンで区切られた右側を強さとして採択
+    split `token_combined` into left and right sides with `:`
+    when there are three or more elements, 
+    the right side separated by the last colon is adopted as the strength.
+
+    >>> from common import (PromptInteractive, PromptNonInteractive)
+
+    >>> parse_line('brown hair:1.2', PromptInteractive)
+    PromptInteractive(name='brown hair', strength=1.2)
+
+    >>> parse_line('1girl', PromptInteractive)
+    PromptInteractive(name='1girl', strength=1.0)
+
+    >>> parse_line('brown:hair:1.2', PromptInteractive)
+    PromptInteractive(name='brown:hair', strength=1.2)
     """
-    token = token_combined.strip().split(Tokens.COLON)
+    token = token_combined.split(Tokens.COLON)
     length_token = len(token)
 
     prompt = Class()
@@ -63,3 +82,8 @@ def parse(sentence: Sentence, Class: PromptClass) -> PromptList:
         prompts.append(prompt)
 
     return prompts
+
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()

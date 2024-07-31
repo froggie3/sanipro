@@ -29,9 +29,6 @@ class PromptBase:
     def length(self) -> int:
         return len(self.name)
 
-    def __repr__(self) -> str:
-        return f"{__class__.__name__}(name='{self.name}', strength={self.strength})"
-
 
 class PromptInteractive(PromptBase):
     def __init__(self, name=None, strength=None):
@@ -43,6 +40,9 @@ class PromptInteractive(PromptBase):
             return f"({self.name}{self._delimiter}{self.strength})"
         return self.name
 
+    def __repr__(self) -> str:
+        return f"{__class__.__name__}(name='{self.name}', strength={self.strength})"
+
 
 class PromptNonInteractive(PromptBase):
     def __init__(self, name=None, strength=None):
@@ -53,6 +53,9 @@ class PromptNonInteractive(PromptBase):
         if self.strength != "1.0":
             return f"{self.name}{self._delimiter}{self.strength}"
         return self.name
+
+    def __repr__(self) -> str:
+        return f"{__class__.__name__}(name='{self.name}', strength={self.strength})"
 
 
 class PromptInterface:
