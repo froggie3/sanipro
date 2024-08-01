@@ -58,7 +58,7 @@ class PromptList(list):
 class Sentence:
     def __init__(self, sentence: str) -> None:
         self.index = 0
-        # for simplicity's of implementation, end sentence with a comma
+        # for simplicity of implementation, end sentence with a comma
         added_char = Tokens.COMMA if sentence[-1] != Tokens.COMMA else ""
         self.sentence = sentence + added_char
 
