@@ -6,8 +6,8 @@ import atexit
 import logging
 import readline
 
-import lib.common
-import lib.parser_v2
+from lib.parser_v2 import parse
+from lib.common import (Sentence, PromptInteractive, PromptNonInteractive)
 
 logger = logging.getLogger()
 logger.addHandler(logging.StreamHandler(sys.stdout))
@@ -31,28 +31,22 @@ def main():
     if "-i" in sys.argv:
         while True:
             try:
-                sentence = lib.parser_v2.Sentence(input(">>> "))
+                sentence = Sentence(input(">>> "))
             except (KeyboardInterrupt, EOFError):
                 print()
                 return
 
-            tokens = lib.parser_v2.parse(
-                sentence,
-                lib.common.PromptInteractive
-            )
+            tokens = parse(sentence, PromptInteractive)
             # tokens.sort(key=lambda x: x.strength)
             logger.info(f"{tokens}".format(tokens))
     else:
         try:
-            sentence = lib.parser_v2.Sentence(input())
+            sentence = Sentence(input())
         except (KeyboardInterrupt, EOFError):
             print()
             return
 
-        tokens = lib.parser_v2.parse(
-            sentence,
-            lib.common.PromptNonInteractive
-        )
+        tokens = parse(sentence, PromptNonInteractive)
         logger.info(f"{tokens}".format(tokens))
 
 
