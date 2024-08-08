@@ -32,15 +32,16 @@ class Prompt:
         if self._delimiter is None:
             raise NotImplementedError
 
-        if self.strength != "1.0":
-            return f"({self.name}{self._delimiter}{self.strength})"
-        return self.name
-
 
 class PromptInteractive(Prompt):
     def __init__(self, name=[], strength=[]):
         Prompt.__init__(self, name, strength)
         self._delimiter = ":"
+
+    def __str__(self) -> str:
+        if self.strength != "1.0":
+            return "({}{}{})".format(self.name, self._delimiter, self.strength)
+        return self.name
 
 
 class PromptNonInteractive(Prompt):
@@ -48,18 +49,20 @@ class PromptNonInteractive(Prompt):
         Prompt.__init__(self, name, strength)
         self._delimiter = "\t"
 
+    def __str__(self) -> str:
+        return "{}{}{}".format(self.strength, self._delimiter, self.name)
+
 
 class PromptList(list):
-    def __str__(self) -> str:
-        result = ", ".join([str(token) for token in self])
-        return result
+    pass
 
 
 class Sentence(str):
-    def __init__(self, sentence: str) -> None:
-        # for simplicity of implementation, end sentence with a comma
-        added_char = Tokens.COMMA if sentence[-1] != Tokens.COMMA else ""
-        self = sentence + added_char
+    def __new__(cls, sentence: str):
+        # for simplicity of implementation
+        if not sentence.endswith(Tokens.COMMA):
+            sentence += Tokens.COMMA
+        return super().__new__(cls, sentence)
 
 
 def read_char(stack, char) -> None:

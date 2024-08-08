@@ -59,17 +59,16 @@ def parse_line(token_combined: str, Class: PromptClass):
     Prompt(name='brown:hair', strength=1.2)
     """
     token = token_combined.split(Tokens.COLON)
-    length_token = len(token)
-
     prompt = Class()
 
-    if length_token == 1:
-        prompt._name, = token
-    elif length_token == 2:
-        prompt._name, prompt._strength = token
-    else:
-        *ret, prompt._strength = token
-        prompt._name = Tokens.COLON.join(ret)
+    match (len(token)):
+        case 1:
+            prompt._name, = token
+        case 2:
+            prompt._name, prompt._strength = token
+        case _:
+            *ret, prompt._strength = token
+            prompt._name = Tokens.COLON.join(ret)
 
     return prompt
 

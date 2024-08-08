@@ -46,7 +46,7 @@ def main():
                 sys.exit(1)
 
             tokens = parse(sentence, PromptInteractive)
-            logger.info(f"{tokens}".format(tokens))
+            logger.info("{}".format(", ".join([str(token) for token in tokens])))
     else:
         try:
             sentence = Sentence(input())
@@ -55,7 +55,7 @@ def main():
             sys.exit(1)
 
         tokens = parse(sentence, PromptNonInteractive)
-        logger.info(f"{tokens}".format(tokens))
+        logger.info("{}".format("\n".join([str(token) for token in tokens])))
 
 
 if __name__ == '__main__':
