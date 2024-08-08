@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 
 import argparse
-import os
-import sys
 import atexit
 import logging
+import os
 import readline
+import sys
 
+from lib.common import PromptInteractive, PromptNonInteractive, Sentence
 from lib.parser_v2 import parse
-from lib.common import (Sentence, PromptInteractive, PromptNonInteractive)
 
 logger = logging.getLogger()
 logger.addHandler(logging.StreamHandler(sys.stdout))
@@ -46,7 +46,7 @@ def main():
                 sys.exit(1)
 
             tokens = parse(sentence, PromptInteractive)
-            logger.info("{}".format(", ".join([str(token) for token in tokens])))
+            logger.info("{}".format(", ".join(tokens)))
     else:
         try:
             sentence = Sentence(input())
@@ -55,7 +55,7 @@ def main():
             sys.exit(1)
 
         tokens = parse(sentence, PromptNonInteractive)
-        logger.info("{}".format("\n".join([str(token) for token in tokens])))
+        logger.info("{}".format("\n".join(tokens)))
 
 
 if __name__ == '__main__':

@@ -1,12 +1,7 @@
 import logging
+from typing import Union
 
-from lib.common import (
-    PromptList,
-    Sentence,
-    Tokens,
-    read_char,
-    PromptClass,
-)
+from lib.common import Prompt, PromptInteractive, PromptNonInteractive, Sentence, Tokens, read_char
 
 logger = logging.getLogger()
 
@@ -42,7 +37,7 @@ def extract_token(sentence: Sentence):
                 read_char(character_stack, character)
 
 
-def parse_line(token_combined: str, Class: PromptClass):
+def parse_line(token_combined: str, factory: Prompt) -> Prompt:
     """
     split `token_combined` into left and right sides with `:`
     when there are three or more elements, 
@@ -60,8 +55,11 @@ def parse_line(token_combined: str, Class: PromptClass):
     Prompt(name='brown:hair', strength=1.2)
     """
     token = token_combined.split(Tokens.COLON)
-    prompt = Class()
 
+    if not callable(factory):
+        raise Exception
+
+    prompt = factory()
     match (len(token)):
         case 1:
             prompt._name, = token
@@ -70,16 +68,16 @@ def parse_line(token_combined: str, Class: PromptClass):
         case _:
             *ret, prompt._strength = token
             prompt._name = Tokens.COLON.join(ret)
-
     return prompt
 
 
-def parse(sentence: Sentence, Class: PromptClass) -> PromptList:
-    prompts = PromptList()
+def parse(sentence: Sentence, factory: Prompt):
+    prompts = list()
 
     for element in extract_token(sentence):
-        prompt = parse_line(element, Class)
-        prompts.append(prompt)
+        prompt = parse_line(element, factory)
+        if isinstance(prompt, Prompt):
+            prompts.append(str(prompt))
 
     return prompts
 

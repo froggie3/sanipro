@@ -52,10 +52,6 @@ class PromptNonInteractive(Prompt):
         return "{}{}{}".format(self.strength, self._delimiter, self.name)
 
 
-class PromptList(list):
-    pass
-
-
 class Sentence(str):
     def __new__(cls, sentence: str):
         # for simplicity of implementation
@@ -66,6 +62,3 @@ class Sentence(str):
 
 def read_char(stack, char) -> None:
     stack.append(char)
-
-
-PromptClass = type[PromptInteractive | PromptNonInteractive]
