@@ -43,7 +43,7 @@ def main():
                 sentence = Sentence(input(">>> "))
             except (KeyboardInterrupt, EOFError):
                 print()
-                return
+                sys.exit(1)
 
             tokens = parse(sentence, PromptInteractive)
             logger.info(f"{tokens}".format(tokens))
@@ -52,7 +52,7 @@ def main():
             sentence = Sentence(input())
         except (KeyboardInterrupt, EOFError):
             print()
-            return
+            sys.exit(1)
 
         tokens = parse(sentence, PromptNonInteractive)
         logger.info(f"{tokens}".format(tokens))
