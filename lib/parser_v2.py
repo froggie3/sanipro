@@ -26,19 +26,20 @@ def extract_token(sentence: Sentence):
     character_stack = []
 
     for character in sentence:
-        if character == Tokens.PARENSIS_LEFT:
-            stack.append(character)
-        elif character == Tokens.PARENSIS_RIGHT:
-            stack.pop()
-        elif character == Tokens.COMMA:
-            if stack:
+        match(character):
+            case Tokens.PARENSIS_LEFT:
+                stack.append(character)
+            case Tokens.PARENSIS_RIGHT:
+                stack.pop()
+            case Tokens.COMMA:
+                if stack:
+                    read_char(character_stack, character)
+                    continue
+                element = "".join(character_stack).strip()
+                character_stack = []
+                yield element
+            case _:
                 read_char(character_stack, character)
-                continue
-            element = "".join(character_stack).strip()
-            character_stack = []
-            yield element
-        else:
-            read_char(character_stack, character)
 
 
 def parse_line(token_combined: str, Class: PromptClass):

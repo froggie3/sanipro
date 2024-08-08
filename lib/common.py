@@ -29,8 +29,7 @@ class Prompt:
         return f"{__class__.__name__}(name='{self.name}', strength={self.strength})"
 
     def __str__(self) -> str:
-        if self._delimiter is None:
-            raise NotImplementedError
+        raise NotImplementedError
 
 
 class PromptInteractive(Prompt):
