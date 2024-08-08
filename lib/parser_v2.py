@@ -1,6 +1,6 @@
 import logging
 
-from common import (
+from lib.common import (
     PromptList,
     Sentence,
     Tokens,

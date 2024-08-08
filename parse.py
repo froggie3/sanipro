@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import argparse
 import os
 import sys
 import atexit
@@ -12,7 +13,15 @@ from lib.common import (Sentence, PromptInteractive, PromptNonInteractive)
 logger = logging.getLogger()
 logger.addHandler(logging.StreamHandler(sys.stdout))
 
-if "-v" in sys.argv:
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-v", "--verbose", type=bool,
+                    help="displays extra amount of logs for debugging")
+parser.add_argument("-i", "--interactive", type=bool,
+                    help="enables interactive input eternally")
+args = parser.parse_args()
+
+if args.verbose:
     logger.level = logging.DEBUG
 else:
     logger.level = logging.INFO
@@ -28,7 +37,7 @@ def main():
 
     atexit.register(readline.write_history_file, histfile)
 
-    if "-i" in sys.argv:
+    if args.interactive:
         while True:
             try:
                 sentence = Sentence(input(">>> "))
