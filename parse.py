@@ -15,9 +15,9 @@ logger.addHandler(logging.StreamHandler(sys.stdout))
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-v", "--verbose", type=bool,
+parser.add_argument("-v", "--verbose", action="store_true",
                     help="displays extra amount of logs for debugging")
-parser.add_argument("-i", "--interactive", type=bool,
+parser.add_argument("-i", "--interactive", action="store_true",
                     help="enables interactive input eternally")
 args = parser.parse_args()
 
