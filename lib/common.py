@@ -51,27 +51,15 @@ class PromptNonInteractive(Prompt):
 
 class PromptList(list):
     def __str__(self) -> str:
-        result = "\n".join([str(token) for token in self])
+        result = ", ".join([str(token) for token in self])
         return result
 
 
-class Sentence:
+class Sentence(str):
     def __init__(self, sentence: str) -> None:
-        self.index = 0
         # for simplicity of implementation, end sentence with a comma
         added_char = Tokens.COMMA if sentence[-1] != Tokens.COMMA else ""
-        self.sentence = sentence + added_char
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        if self.index < len(self.sentence):
-            result = self.sentence[self.index]
-            self.index += 1
-            return result
-        else:
-            raise StopIteration
+        self = sentence + added_char
 
 
 def read_char(stack, char) -> None:
