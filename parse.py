@@ -46,7 +46,6 @@ def main():
                 return
 
             tokens = parse(sentence, PromptInteractive)
-            # tokens.sort(key=lambda x: x.strength)
             logger.info(f"{tokens}".format(tokens))
     else:
         try:
