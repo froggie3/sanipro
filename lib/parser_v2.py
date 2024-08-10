@@ -1,7 +1,7 @@
 import logging
-from typing import Union
+from typing import Type, Union
 
-from lib.common import Prompt, PromptInteractive, PromptNonInteractive, Sentence, Tokens, read_char
+from lib.common import Prompt, PromptInterface, Sentence, Tokens, read_char
 
 logger = logging.getLogger()
 
@@ -37,7 +37,7 @@ def extract_token(sentence: Sentence):
                 read_char(character_stack, character)
 
 
-def parse_line(token_combined: str, factory: Prompt) -> Prompt:
+def parse_line(token_combined: str, factory: Type[PromptInterface]) -> PromptInterface:
     """
     split `token_combined` into left and right sides with `:`
     when there are three or more elements, 
@@ -56,22 +56,19 @@ def parse_line(token_combined: str, factory: Prompt) -> Prompt:
     """
     token = token_combined.split(Tokens.COLON)
 
-    if not callable(factory):
-        raise Exception
-
     prompt = factory()
     match (len(token)):
         case 1:
-            prompt._name, = token
+            prompt.name, = token
         case 2:
-            prompt._name, prompt._strength = token
+            prompt.name, prompt.strength = token
         case _:
-            *ret, prompt._strength = token
-            prompt._name = Tokens.COLON.join(ret)
+            *ret, prompt.strength = token
+            prompt.name = Tokens.COLON.join(ret)
     return prompt
 
 
-def parse(sentence: Sentence, factory: Prompt):
+def parse(sentence: Sentence, factory: Type[PromptInterface]):
     prompts = list()
 
     for element in extract_token(sentence):
