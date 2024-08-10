@@ -7,28 +7,33 @@ import os
 import readline
 import sys
 
-from lib.common import PromptInteractive, PromptNonInteractive, Sentence
+from lib.common import (PromptInteractive, PromptInterface,
+                        PromptNonInteractive, Sentence)
 from lib.parser_v2 import parse
 
-logger = logging.getLogger()
-logger.addHandler(logging.StreamHandler(sys.stdout))
+
+def run_once(rs: str, ps: str, prpt: type[PromptInterface]) -> None:
+    sentence = Sentence(input(ps))
+    tokens = parse(sentence, prpt)
+    lines = []
+    for x in tokens:
+        lines.append(str(x))
+    print(rs.join(lines))
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-v", "--verbose", action="store_true",
-                    help="displays extra amount of logs for debugging")
-parser.add_argument("-i", "--interactive", action="store_true",
-                    help="enables interactive input eternally")
-args = parser.parse_args()
-
-if args.verbose:
-    logger.level = logging.DEBUG
-else:
-    logger.level = logging.INFO
+def run(args, rs=", ", ps=">>>") -> None:
+    if args.interactive:
+        while True:
+            run_once(rs, ps, PromptInteractive)
+    else:
+        rs = "\n"
+        ps = ""
+        run_once(rs, ps, PromptNonInteractive)
 
 
 def main():
     histfile = os.path.join(os.path.expanduser("~"), ".python_history")
+
     try:
         readline.read_history_file(histfile)
         readline.set_history_length(1000)
@@ -37,25 +42,26 @@ def main():
 
     atexit.register(readline.write_history_file, histfile)
 
-    if args.interactive:
-        while True:
-            try:
-                sentence = Sentence(input(">>> "))
-            except (KeyboardInterrupt, EOFError):
-                print()
-                sys.exit(1)
+    logger = logging.getLogger()
+    logger.addHandler(logging.StreamHandler(sys.stdout))
 
-            tokens = parse(sentence, PromptInteractive)
-            logger.info("{}".format(", ".join(tokens)))
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-v", "--verbose", action="store_true",
+                        help="displays extra amount of logs for debugging")
+    parser.add_argument("-i", "--interactive", action="store_true",
+                        help="enables interactive input eternally")
+    args = parser.parse_args()
+
+    if args.verbose:
+        logger.level = logging.DEBUG
     else:
-        try:
-            sentence = Sentence(input())
-        except (KeyboardInterrupt, EOFError):
-            print()
-            sys.exit(1)
+        logger.level = logging.INFO
 
-        tokens = parse(sentence, PromptNonInteractive)
-        logger.info("{}".format("\n".join(tokens)))
+    try:
+        run(args)
+    except (KeyboardInterrupt, EOFError):
+        print()
+        sys.exit(1)
 
 
 if __name__ == '__main__':

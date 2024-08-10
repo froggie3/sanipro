@@ -1,12 +1,12 @@
 import logging
-from typing import Type, Union
+from typing import Generator, Type
 
 from lib.common import Prompt, PromptInterface, Sentence, Tokens, read_char
 
 logger = logging.getLogger()
 
 
-def extract_token(sentence: Sentence):
+def extract_token(sentence: Sentence) -> Generator[str, None, None]:
     """
     split `sentence` at commas and remove parentheses.
 
@@ -56,19 +56,20 @@ def parse_line(token_combined: str, factory: Type[PromptInterface]) -> PromptInt
     """
     token = token_combined.split(Tokens.COLON)
 
-    prompt = factory()
     match (len(token)):
         case 1:
-            prompt.name, = token
+            name, *_ = token
+            return factory(name, "1.0")
         case 2:
-            prompt.name, prompt.strength = token
+            name, strength, *_ = token
+            return factory(name, strength)
         case _:
-            *ret, prompt.strength = token
-            prompt.name = Tokens.COLON.join(ret)
-    return prompt
+            *ret, strength = token
+            name = Tokens.COLON.join(ret)
+            return factory(name, strength)
 
 
-def parse(sentence: Sentence, factory: Type[PromptInterface]):
+def parse(sentence: Sentence, factory: Type[PromptInterface]) -> list[PromptInterface]:
     prompts = list()
 
     for element in extract_token(sentence):

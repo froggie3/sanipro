@@ -11,17 +11,12 @@ class Tokens:
 
 class PromptInterface(ABC):
     @abstractmethod
-    def __init__(self, name: list = [], strength: list = []) -> None:
+    def __init__(self, name: str, strength: str) -> None:
         pass
 
     @property
     @abstractmethod
     def name(self) -> str:
-        pass
-
-    @name.setter
-    @abstractmethod
-    def name(self, x: str) -> None:
         pass
 
     @property
@@ -34,11 +29,6 @@ class PromptInterface(ABC):
     def length(self) -> int:
         pass
 
-    @strength.setter
-    @abstractmethod
-    def strength(self, x: str) -> None:
-        pass
-
     @abstractmethod
     def __repr__(self) -> str:
         pass
@@ -49,27 +39,18 @@ class PromptInterface(ABC):
 
 
 class Prompt(PromptInterface):
-    def __init__(self, name: list, strength: list) -> None:
+    def __init__(self, name: str, strength: str) -> None:
         self._name = name
         self._strength = strength
         self._delimiter = None
 
     @property
     def name(self):
-        return "".join(self._name).strip()
-
-    @name.setter
-    def name(self, x):
-        self._name = x
+        return self._name
 
     @property
     def strength(self):
-        result = "".join(self._strength) if self._strength else "1.0"
-        return result
-
-    @strength.setter
-    def strength(self, x):
-        self._strength = x
+        return self._strength
 
     @property
     def length(self):
@@ -80,7 +61,7 @@ class Prompt(PromptInterface):
 
 
 class PromptInteractive(Prompt):
-    def __init__(self, name: list, strength: list):
+    def __init__(self, name: str, strength: str):
         Prompt.__init__(self, name, strength)
         self._delimiter = ":"
 
@@ -91,7 +72,7 @@ class PromptInteractive(Prompt):
 
 
 class PromptNonInteractive(Prompt):
-    def __init__(self, name: list, strength: list):
+    def __init__(self, name: str, strength: str):
         Prompt.__init__(self, name, strength)
         self._delimiter = "\t"
 
