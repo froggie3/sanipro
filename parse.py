@@ -21,7 +21,7 @@ def run_once(rs: str, ps: str, prpt: type[PromptInterface]) -> None:
     print(rs.join(lines))
 
 
-def run(args, rs=", ", ps=">>>") -> None:
+def run(args, rs=", ", ps=">>> ") -> None:
     if args.interactive:
         while True:
             run_once(rs, ps, PromptInteractive)
