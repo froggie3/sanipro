@@ -25,10 +25,10 @@ def run_once(args, rs: str, ps: str, prpt: type[PromptInterface]) -> None:
             {'func': sort, 'kwargs': {'reverse': True}})
     if args.exclude:
         func_config.append(
-            {'func': exclude, 'kwargs': {'excluded_words': args.exclude}})
+            {'func': exclude, 'kwargs': {'excludes': args.exclude}})
     if args.mask:
         func_config.append(
-            {'func': mask, 'kwargs': {'excluded_words': args.mask}})
+            {'func': mask, 'kwargs': {'excludes': args.mask}})
 
     tokens = apply(tokens, func_config)
 

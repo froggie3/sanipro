@@ -48,7 +48,7 @@ def parse_line(token_combined: str, factory: Type[PromptInterface]) -> PromptInt
     when there are three or more elements, 
     the right side separated by the last colon is adopted as the strength.
 
-    >>> from common import (PromptInteractive, PromptNonInteractive)
+    >>> from lib.common import PromptInteractive, PromptNonInteractive
 
     >>> parse_line('brown hair:1.2', PromptInteractive)
     Prompt(name='brown hair', strength=1.2)
@@ -74,10 +74,16 @@ def parse_line(token_combined: str, factory: Type[PromptInterface]) -> PromptInt
             return factory(name, strength)
 
 
-def mask(prompts: list[PromptInterface], excluded_words: list[str]) -> list[PromptInterface]:
+def mask(prompts: list[PromptInterface], excludes: list[str]) -> list[PromptInterface]:
+    """
+    >>> from lib.common import PromptInteractive
+    >>> p = mask([PromptInteractive('white hair', 1.2), PromptInteractive('thighhighs', 1.0)], ['white'])
+    >>> [x.name for x in p]
+    ['%%%', 'thighhighs']
+    """
     filtered_prompts = []
     for prompt in prompts:
-        for excluded in excluded_words:
+        for excluded in excludes:
             if excluded in prompt.name:
                 filtered_prompts.append(prompt.replace("%%%"))
                 break
@@ -87,10 +93,16 @@ def mask(prompts: list[PromptInterface], excluded_words: list[str]) -> list[Prom
     return filtered_prompts
 
 
-def exclude(prompts: list[PromptInterface], excluded_words: list[str]) -> list[PromptInterface]:
+def exclude(prompts: list[PromptInterface], excludes: list[str]) -> list[PromptInterface]:
+    """
+    >>> from lib.common import PromptInteractive
+    >>> p = exclude([PromptInteractive('white hair', 1.2), PromptInteractive('thighhighs', 1.0)], ['white'])
+    >>> [x.name for x in p]
+    ['thighhighs']
+    """
     filtered_prompts = []
     for prompt in prompts:
-        for excluded in excluded_words:
+        for excluded in excludes:
             if excluded not in prompt.name:
                 filtered_prompts.append(prompt)
                 break
@@ -101,6 +113,12 @@ def exclude(prompts: list[PromptInterface], excluded_words: list[str]) -> list[P
 
 
 def sort(prompts: list[PromptInterface], reverse=False) -> list[PromptInterface]:
+    """
+    >>> from lib.common import PromptInteractive
+    >>> p = sort([PromptInteractive('white hair', 1.2), PromptInteractive('white hair', 1.0)])
+    >>> [(x.name, x.strength) for x in p]
+    [('white hair', 1.0), ('white hair', 1.2)]
+    """
     u = {}
     for prompt in prompts:
         if isinstance(prompt, Prompt):
@@ -133,8 +151,3 @@ def parse(sentence: Sentence, factory: Type[PromptInterface]) -> list[PromptInte
             prompts.append(prompt)
 
     return prompts
-
-
-if __name__ == "__main__":
-    import doctest
-    doctest.testmod()
