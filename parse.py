@@ -9,12 +9,21 @@ import sys
 
 from lib.common import (PromptInteractive, PromptInterface,
                         PromptNonInteractive, Sentence)
-from lib.parser_v2 import parse
+from lib.parser_v2 import apply, parse, sort
 
 
-def run_once(rs: str, ps: str, prpt: type[PromptInterface]) -> None:
+def run_once(args, rs: str, ps: str, prpt: type[PromptInterface]) -> None:
     sentence = Sentence(input(ps))
     tokens = parse(sentence, prpt)
+
+    func_config = []
+    if args.sort:
+        func_config.append({'func': sort, 'kwargs': {'reverse': False}})
+    elif args.sort_reverse:
+        func_config.append({'func': sort, 'kwargs': {'reverse': True}})
+
+    tokens = apply(tokens, func_config)
+
     lines = []
     for x in tokens:
         lines.append(str(x))
@@ -24,11 +33,11 @@ def run_once(rs: str, ps: str, prpt: type[PromptInterface]) -> None:
 def run(args, rs=", ", ps=">>> ") -> None:
     if args.interactive:
         while True:
-            run_once(rs, ps, PromptInteractive)
+            run_once(args, rs, ps, PromptInteractive)
     else:
         rs = "\n"
         ps = ""
-        run_once(rs, ps, PromptNonInteractive)
+        run_once(args, rs, ps, PromptNonInteractive)
 
 
 def main():
@@ -50,6 +59,11 @@ def main():
                         help="displays extra amount of logs for debugging")
     parser.add_argument("-i", "--interactive", action="store_true",
                         help="enables interactive input eternally")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("-s", "--sort", action="store_true",
+                        help="reorder duplicate tokens with their strength to make them consecutive")
+    group.add_argument("--sort-reverse", action="store_true",
+                        help="the same as above but with reversed order")
     args = parser.parse_args()
 
     if args.verbose:

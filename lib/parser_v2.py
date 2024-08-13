@@ -6,7 +6,7 @@ from lib.common import Prompt, PromptInterface, Sentence, Tokens, read_char
 logger = logging.getLogger()
 
 
-class FunctionWithKwargs(TypedDict):
+class FuncConfig(TypedDict):
     func: Callable[[list[PromptInterface], ...], list[PromptInterface]]
     kwargs: dict[str, Any]
 
@@ -92,9 +92,9 @@ def sort(prompts: list[PromptInterface], reverse=False) -> list[PromptInterface]
     return prompts
 
 
-def apply(prompts: list[str], funcs_with_kwargs: list[FunctionWithKwargs]) -> list[str]:
-    for func_dict in funcs_with_kwargs:
-        prompts = func_dict['func'](prompts, **func_dict['kwargs'])
+def apply(prompts: list[PromptInterface], funcs: list[FuncConfig]) -> list[PromptInterface]:
+    for func in funcs:
+        prompts = func['func'](prompts, **func['kwargs'])
     return prompts
 
 
@@ -105,12 +105,6 @@ def parse(sentence: Sentence, factory: Type[PromptInterface]) -> list[PromptInte
         prompt = parse_line(element, factory)
         if isinstance(prompt, Prompt):
             prompts.append(prompt)
-
-    funcs_with_kwargs = [
-        {'func': sort, 'kwargs': {'reverse': True}},
-    ]
-
-    prompts = apply(prompts, funcs_with_kwargs)
 
     return prompts
 
