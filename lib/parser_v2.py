@@ -75,7 +75,7 @@ def parse(sentence: Sentence, factory: Type[PromptInterface]) -> list[PromptInte
     for element in extract_token(sentence):
         prompt = parse_line(element, factory)
         if isinstance(prompt, Prompt):
-            prompts.append(str(prompt))
+            prompts.append(prompt)
 
     return prompts
 
