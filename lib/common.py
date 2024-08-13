@@ -30,6 +30,10 @@ class PromptInterface(ABC):
         pass
 
     @abstractmethod
+    def replace(self, replace: str) -> 'PromptInterface':
+        pass
+
+    @abstractmethod
     def __repr__(self) -> str:
         pass
 
@@ -55,6 +59,9 @@ class Prompt(PromptInterface):
     @property
     def length(self):
         return len(self.name)
+
+    def replace(self, replace="***"):
+        return type(self)(replace, self._strength)
 
     def __repr__(self):
         return f"{__class__.__name__}(name='{self.name}', strength={self.strength})"

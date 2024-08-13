@@ -9,7 +9,7 @@ import sys
 
 from lib.common import (PromptInteractive, PromptInterface,
                         PromptNonInteractive, Sentence)
-from lib.parser_v2 import apply, parse, sort
+from lib.parser_v2 import apply, exclude, mask, parse, sort
 
 
 def run_once(args, rs: str, ps: str, prpt: type[PromptInterface]) -> None:
@@ -18,9 +18,17 @@ def run_once(args, rs: str, ps: str, prpt: type[PromptInterface]) -> None:
 
     func_config = []
     if args.sort:
-        func_config.append({'func': sort, 'kwargs': {'reverse': False}})
+        func_config.append(
+            {'func': sort, 'kwargs': {'reverse': False}})
     elif args.sort_reverse:
-        func_config.append({'func': sort, 'kwargs': {'reverse': True}})
+        func_config.append(
+            {'func': sort, 'kwargs': {'reverse': True}})
+    if args.exclude:
+        func_config.append(
+            {'func': exclude, 'kwargs': {'excluded_words': args.exclude}})
+    if args.mask:
+        func_config.append(
+            {'func': mask, 'kwargs': {'excluded_words': args.mask}})
 
     tokens = apply(tokens, func_config)
 
@@ -59,11 +67,17 @@ def main():
                         help="displays extra amount of logs for debugging")
     parser.add_argument("-i", "--interactive", action="store_true",
                         help="enables interactive input eternally")
+    parser.add_argument("-e", "--exclude", nargs='*',
+                        help="exclude words specified")
+    parser.add_argument("-m", "--mask", nargs='*',
+                        help="mask words specified rather than removing them")
+
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-s", "--sort", action="store_true",
-                        help="reorder duplicate tokens with their strength to make them consecutive")
+                       help="reorder duplicate tokens with their strength to make them consecutive")
     group.add_argument("--sort-reverse", action="store_true",
-                        help="the same as above but with reversed order")
+                       help="the same as above but with reversed order")
+
     args = parser.parse_args()
 
     if args.verbose:
@@ -71,6 +85,7 @@ def main():
     else:
         logger.level = logging.INFO
 
+    logger.debug(args)
     try:
         run(args)
     except (KeyboardInterrupt, EOFError):

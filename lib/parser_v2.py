@@ -74,6 +74,32 @@ def parse_line(token_combined: str, factory: Type[PromptInterface]) -> PromptInt
             return factory(name, strength)
 
 
+def mask(prompts: list[PromptInterface], excluded_words: list[str]) -> list[PromptInterface]:
+    filtered_prompts = []
+    for prompt in prompts:
+        for excluded in excluded_words:
+            if excluded in prompt.name:
+                filtered_prompts.append(prompt.replace("%%%"))
+                break
+        else:
+            filtered_prompts.append(prompt)
+
+    return filtered_prompts
+
+
+def exclude(prompts: list[PromptInterface], excluded_words: list[str]) -> list[PromptInterface]:
+    filtered_prompts = []
+    for prompt in prompts:
+        for excluded in excluded_words:
+            if excluded not in prompt.name:
+                filtered_prompts.append(prompt)
+                break
+        else:
+            continue
+
+    return filtered_prompts
+
+
 def sort(prompts: list[PromptInterface], reverse=False) -> list[PromptInterface]:
     u = {}
     for prompt in prompts:
