@@ -1,9 +1,14 @@
 import logging
-from typing import Generator, Type
+from typing import Any, Callable, Generator, Type, TypedDict
 
 from lib.common import Prompt, PromptInterface, Sentence, Tokens, read_char
 
 logger = logging.getLogger()
+
+
+class FunctionWithKwargs(TypedDict):
+    func: Callable[[list[PromptInterface], ...], list[PromptInterface]]
+    kwargs: dict[str, Any]
 
 
 def extract_token(sentence: Sentence) -> Generator[str, None, None]:
@@ -69,6 +74,30 @@ def parse_line(token_combined: str, factory: Type[PromptInterface]) -> PromptInt
             return factory(name, strength)
 
 
+def sort(prompts: list[PromptInterface], reverse=False) -> list[PromptInterface]:
+    u = {}
+    for prompt in prompts:
+        if isinstance(prompt, Prompt):
+            if prompt.name in u:
+                u[prompt.name].append(prompt)
+            else:
+                u[prompt.name] = [prompt]
+
+    prompts = list()
+    for k, v in u.items():
+        v.sort(key=lambda x: x.strength, reverse=reverse)
+        for item in v:
+            prompts.append(item)
+
+    return prompts
+
+
+def apply(prompts: list[str], funcs_with_kwargs: list[FunctionWithKwargs]) -> list[str]:
+    for func_dict in funcs_with_kwargs:
+        prompts = func_dict['func'](prompts, **func_dict['kwargs'])
+    return prompts
+
+
 def parse(sentence: Sentence, factory: Type[PromptInterface]) -> list[PromptInterface]:
     prompts = list()
 
@@ -76,6 +105,12 @@ def parse(sentence: Sentence, factory: Type[PromptInterface]) -> list[PromptInte
         prompt = parse_line(element, factory)
         if isinstance(prompt, Prompt):
             prompts.append(prompt)
+
+    funcs_with_kwargs = [
+        {'func': sort, 'kwargs': {'reverse': True}},
+    ]
+
+    prompts = apply(prompts, funcs_with_kwargs)
 
     return prompts
 
