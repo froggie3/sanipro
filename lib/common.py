@@ -64,7 +64,8 @@ class Prompt(PromptInterface):
         return type(self)(replace, self._strength)
 
     def __repr__(self):
-        return f"{__class__.__name__}(name='{self.name}', strength={self.strength})"
+        items = (f"{k}={v!r}" for k, v in self.__dict__.items())
+        return "{}({})".format(type(self).__name__, ", ".join(items))
 
 
 class PromptInteractive(Prompt):

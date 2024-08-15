@@ -51,13 +51,13 @@ def parse_line(token_combined: str, factory: Type[PromptInterface]) -> PromptInt
     >>> from lib.common import PromptInteractive, PromptNonInteractive
 
     >>> parse_line('brown hair:1.2', PromptInteractive)
-    Prompt(name='brown hair', strength=1.2)
+    PromptInteractive(_name='brown hair', _strength='1.2', _delimiter=':')
 
     >>> parse_line('1girl', PromptInteractive)
-    Prompt(name='1girl', strength=1.0)
+    PromptInteractive(_name='1girl', _strength='1.0', _delimiter=':')
 
     >>> parse_line('brown:hair:1.2', PromptInteractive)
-    Prompt(name='brown:hair', strength=1.2)
+    PromptInteractive(_name='brown:hair', _strength='1.2', _delimiter=':')
     """
     token = token_combined.split(Tokens.COLON)
 
