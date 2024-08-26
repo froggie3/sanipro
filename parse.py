@@ -9,14 +9,14 @@ import sys
 
 from lib.common import (PromptInteractive, PromptInterface,
                         PromptNonInteractive, Sentence)
-from lib.parser_v2 import apply, exclude, mask, parse, sort
+from lib.parser_v2 import apply, exclude, mask, parse, sort, FuncConfig
 
 
 def run_once(args, rs: str, ps: str, prpt: type[PromptInterface]) -> None:
     sentence = Sentence(input(ps))
     tokens = parse(sentence, prpt)
 
-    func_config = []
+    func_config: list[FuncConfig] = []
     if args.sort:
         func_config.append(
             {'func': sort, 'kwargs': {'reverse': False}})

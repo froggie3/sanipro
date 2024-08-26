@@ -1,13 +1,13 @@
 import logging
 from typing import Any, Callable, Generator, Type, TypedDict
 
-from lib.common import Prompt, PromptInterface, Sentence, Tokens, read_char
+from lib.common import PromptInterface, Sentence, Tokens, read_char
 
 logger = logging.getLogger()
 
 
 class FuncConfig(TypedDict):
-    func: Callable[[list[PromptInterface], ...], list[PromptInterface]]
+    func: Callable[...]
     kwargs: dict[str, Any]
 
 
@@ -119,15 +119,14 @@ def sort(prompts: list[PromptInterface], reverse=False) -> list[PromptInterface]
     >>> [(x.name, x.strength) for x in p]
     [('white hair', 1.0), ('white hair', 1.2)]
     """
-    u = {}
+    u: dict[str, list[PromptInterface]] = {}
     for prompt in prompts:
-        if isinstance(prompt, Prompt):
-            if prompt.name in u:
-                u[prompt.name].append(prompt)
-            else:
-                u[prompt.name] = [prompt]
+        if prompt.name in u:
+            u[prompt.name].append(prompt)
+        else:
+            u[prompt.name] = [prompt]
 
-    prompts = list()
+    prompts = [] 
     for k, v in u.items():
         v.sort(key=lambda x: x.strength, reverse=reverse)
         for item in v:
@@ -147,7 +146,6 @@ def parse(sentence: Sentence, factory: Type[PromptInterface]) -> list[PromptInte
 
     for element in extract_token(sentence):
         prompt = parse_line(element, factory)
-        if isinstance(prompt, Prompt):
-            prompts.append(prompt)
+        prompts.append(prompt)
 
     return prompts
