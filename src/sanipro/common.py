@@ -30,7 +30,7 @@ class PromptInterface(ABC):
         pass
 
     @abstractmethod
-    def replace(self, replace: str) -> 'PromptInterface':
+    def replace(self, replace: str) -> "PromptInterface":
         pass
 
     @abstractmethod

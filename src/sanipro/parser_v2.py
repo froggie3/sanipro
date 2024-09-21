@@ -1,13 +1,14 @@
 import logging
 from typing import Any, Callable, Generator, Type, TypedDict
 
-from lib.common import PromptInterface, Sentence, Tokens, read_char
+from .common import PromptInterface, Sentence, Tokens, read_char
 
 logger = logging.getLogger()
 
 
 class FuncConfig(TypedDict):
-    func: Callable[...]
+    # func: Callable[...]
+    func: Callable
     kwargs: dict[str, Any]
 
 
@@ -26,7 +27,7 @@ def extract_token(sentence: Sentence) -> Generator[str, None, None]:
     character_stack = []
 
     for character in sentence:
-        match(character):
+        match (character):
             case Tokens.PARENSIS_LEFT:
                 stack.append(character)
             case Tokens.PARENSIS_RIGHT:
@@ -45,7 +46,7 @@ def extract_token(sentence: Sentence) -> Generator[str, None, None]:
 def parse_line(token_combined: str, factory: Type[PromptInterface]) -> PromptInterface:
     """
     split `token_combined` into left and right sides with `:`
-    when there are three or more elements, 
+    when there are three or more elements,
     the right side separated by the last colon is adopted as the strength.
 
     >>> from lib.common import PromptInteractive, PromptNonInteractive
@@ -93,7 +94,9 @@ def mask(prompts: list[PromptInterface], excludes: list[str]) -> list[PromptInte
     return filtered_prompts
 
 
-def exclude(prompts: list[PromptInterface], excludes: list[str]) -> list[PromptInterface]:
+def exclude(
+    prompts: list[PromptInterface], excludes: list[str]
+) -> list[PromptInterface]:
     """
     >>> from lib.common import PromptInteractive
     >>> p = exclude([PromptInteractive('white hair', 1.2), PromptInteractive('thighhighs', 1.0)], ['white'])
@@ -126,7 +129,7 @@ def sort(prompts: list[PromptInterface], reverse=False) -> list[PromptInterface]
         else:
             u[prompt.name] = [prompt]
 
-    prompts = [] 
+    prompts = []
     for k, v in u.items():
         v.sort(key=lambda x: x.strength, reverse=reverse)
         for item in v:
@@ -135,9 +138,11 @@ def sort(prompts: list[PromptInterface], reverse=False) -> list[PromptInterface]
     return prompts
 
 
-def apply(prompts: list[PromptInterface], funcs: list[FuncConfig]) -> list[PromptInterface]:
+def apply(
+    prompts: list[PromptInterface], funcs: list[FuncConfig]
+) -> list[PromptInterface]:
     for func in funcs:
-        prompts = func['func'](prompts, **func['kwargs'])
+        prompts = func["func"](prompts, **func["kwargs"])
     return prompts
 
 

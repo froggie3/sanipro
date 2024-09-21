@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import argparse
 import atexit
 import logging
@@ -7,9 +5,8 @@ import os
 import readline
 import sys
 
-from lib.common import (PromptInteractive, PromptInterface,
-                        PromptNonInteractive, Sentence)
-from lib.parser_v2 import apply, exclude, mask, parse, sort, FuncConfig
+from .common import PromptInteractive, PromptInterface, PromptNonInteractive, Sentence
+from .parser_v2 import FuncConfig, apply, exclude, mask, parse, sort
 
 
 def run_once(args, rs: str, ps: str, prpt: type[PromptInterface]) -> None:
@@ -18,17 +15,13 @@ def run_once(args, rs: str, ps: str, prpt: type[PromptInterface]) -> None:
 
     func_config: list[FuncConfig] = []
     if args.sort:
-        func_config.append(
-            {'func': sort, 'kwargs': {'reverse': False}})
+        func_config.append({"func": sort, "kwargs": {"reverse": False}})
     elif args.sort_reverse:
-        func_config.append(
-            {'func': sort, 'kwargs': {'reverse': True}})
+        func_config.append({"func": sort, "kwargs": {"reverse": True}})
     if args.exclude:
-        func_config.append(
-            {'func': exclude, 'kwargs': {'excludes': args.exclude}})
+        func_config.append({"func": exclude, "kwargs": {"excludes": args.exclude}})
     if args.mask:
-        func_config.append(
-            {'func': mask, 'kwargs': {'excludes': args.mask}})
+        func_config.append({"func": mask, "kwargs": {"excludes": args.mask}})
 
     tokens = apply(tokens, func_config)
 
@@ -48,7 +41,7 @@ def run(args, rs=", ", ps=">>> ") -> None:
         run_once(args, rs, ps, PromptNonInteractive)
 
 
-def main():
+def app():
     histfile = os.path.join(os.path.expanduser("~"), ".python_history")
 
     try:
@@ -63,20 +56,35 @@ def main():
     logger.addHandler(logging.StreamHandler(sys.stdout))
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-v", "--verbose", action="store_true",
-                        help="displays extra amount of logs for debugging")
-    parser.add_argument("-i", "--interactive", action="store_true",
-                        help="enables interactive input eternally")
-    parser.add_argument("-e", "--exclude", nargs='*',
-                        help="exclude words specified")
-    parser.add_argument("-m", "--mask", nargs='*',
-                        help="mask words specified rather than removing them")
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="displays extra amount of logs for debugging",
+    )
+    parser.add_argument(
+        "-i",
+        "--interactive",
+        action="store_true",
+        help="enables interactive input eternally",
+    )
+    parser.add_argument("-e", "--exclude", nargs="*", help="exclude words specified")
+    parser.add_argument(
+        "-m", "--mask", nargs="*", help="mask words specified rather than removing them"
+    )
 
     group = parser.add_mutually_exclusive_group()
-    group.add_argument("-s", "--sort", action="store_true",
-                       help="reorder duplicate tokens with their strength to make them consecutive")
-    group.add_argument("--sort-reverse", action="store_true",
-                       help="the same as above but with reversed order")
+    group.add_argument(
+        "-s",
+        "--sort",
+        action="store_true",
+        help="reorder duplicate tokens with their strength to make them consecutive",
+    )
+    group.add_argument(
+        "--sort-reverse",
+        action="store_true",
+        help="the same as above but with reversed order",
+    )
 
     args = parser.parse_args()
 
@@ -91,7 +99,3 @@ def main():
     except (KeyboardInterrupt, EOFError):
         print()
         sys.exit(1)
-
-
-if __name__ == '__main__':
-    main()

@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "sanipro"
+version = "0.1.0"
+description = "Sanitizes prompts."
+authors = ["Yokkin"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+[tool.poetry.scripts]
+sanipro = "sanipro.cli:app"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
