@@ -115,25 +115,57 @@ def exclude(
     return filtered_prompts
 
 
-def sort(prompts: list[PromptInterface], reverse=False) -> list[PromptInterface]:
-    """
-    >>> from lib.common import PromptInteractive
-    >>> p = sort([PromptInteractive('white hair', 1.2), PromptInteractive('white hair', 1.0)])
-    >>> [(x.name, x.strength) for x in p]
-    [('white hair', 1.0), ('white hair', 1.2)]
-    """
+def collect_same_prompt(prompts: list[PromptInterface]):
     u: dict[str, list[PromptInterface]] = {}
     for prompt in prompts:
         if prompt.name in u:
             u[prompt.name].append(prompt)
         else:
             u[prompt.name] = [prompt]
+    return u
+
+
+def sort(prompts: list[PromptInterface], reverse=False) -> list[PromptInterface]:
+    """
+    >>> from lib.common import PromptInteractive
+    >>> p = sort([PromptInteractive('white hair', 1.2), PromptInteractive('white hair', 1.0)])
+    >>> [(x.name, x.strength) for x in p]
+    [('white hair', 1.0), ('white hair', 1.2)]
+
+    >>> from lib.common import PromptInteractive
+    >>> p = sort([PromptInteractive('white hair', 1.2), PromptInteractive('white hair', 1.0)], True)
+    >>> [(x.name, x.strength) for x in p]
+    [('white hair', 1.2), ('white hair', 1.0)]
+    """
+    u = collect_same_prompt(prompts)
 
     prompts = []
     for k, v in u.items():
         v.sort(key=lambda x: x.strength, reverse=reverse)
         for item in v:
             prompts.append(item)
+
+    return prompts
+
+
+def unique(prompts: list[PromptInterface], reverse=False) -> list[PromptInterface]:
+    """
+    >>> from lib.common import PromptInteractive
+    >>> p = unique([PromptInteractive('white hair', 1.2), PromptInteractive('white hair', 1.0)])
+    >>> [(x.name, x.strength) for x in p]
+    [('white hair', 1.0)]
+
+    >>> from lib.common import PromptInteractive
+    >>> p = unique([PromptInteractive('white hair', 1.2), PromptInteractive('white hair', 1.0)], True)
+    >>> [(x.name, x.strength) for x in p]
+    [('white hair', 1.2)]
+    """
+    u = collect_same_prompt(prompts)
+
+    prompts = []
+    for k, v in u.items():
+        v.sort(key=lambda x: x.strength, reverse=reverse)
+        prompts.append(v.pop(0))
 
     return prompts
 
@@ -154,3 +186,8 @@ def parse(sentence: Sentence, factory: Type[PromptInterface]) -> list[PromptInte
         prompts.append(prompt)
 
     return prompts
+
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()

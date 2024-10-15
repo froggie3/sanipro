@@ -6,7 +6,7 @@ import readline
 import sys
 
 from .common import PromptInteractive, PromptInterface, PromptNonInteractive, Sentence
-from .parser_v2 import FuncConfig, apply, exclude, mask, parse, sort
+from .parser_v2 import FuncConfig, apply, exclude, mask, parse, sort, unique
 
 
 def run_once(args, rs: str, ps: str, prpt: type[PromptInterface]) -> None:
@@ -18,6 +18,10 @@ def run_once(args, rs: str, ps: str, prpt: type[PromptInterface]) -> None:
         func_config.append({"func": sort, "kwargs": {"reverse": False}})
     elif args.sort_reverse:
         func_config.append({"func": sort, "kwargs": {"reverse": True}})
+    if args.unique:
+        func_config.append({"func": unique, "kwargs": {"reverse": False}})
+    if args.unique_reverse:
+        func_config.append({"func": unique, "kwargs": {"reverse": True}})
     if args.exclude:
         func_config.append({"func": exclude, "kwargs": {"excludes": args.exclude}})
     if args.mask:
@@ -82,6 +86,17 @@ def app():
     )
     group.add_argument(
         "--sort-reverse",
+        action="store_true",
+        help="the same as above but with reversed order",
+    )
+    group.add_argument(
+        "-u",
+        "--unique",
+        action="store_true",
+        help="reorder duplicate tokens with their strength to make them unique",
+    )
+    group.add_argument(
+        "--unique-reverse",
         action="store_true",
         help="the same as above but with reversed order",
     )
