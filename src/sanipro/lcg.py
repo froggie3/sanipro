@@ -35,13 +35,11 @@ class LCG:
 
         solved_num = 0
         length = len(iterable)
-        check_arr = [True] * length
         iterator = utils.capped(lcg.random(), length)
 
         for one, two in utils.batched(iterator, 2):
             if solved_num < length:
                 iterable[one], iterable[two] = iterable[two], iterable[one]
-                check_arr[one], check_arr[two] = False, False
                 solved_num += 1
             else:
                 break
