@@ -1,4 +1,6 @@
+import functools
 import logging
+from typing import Callable
 
 from .abc import PromptInterface
 
@@ -55,6 +57,21 @@ def collect_same_prompt(prompts: list[PromptInterface]):
         else:
             u[prompt.name] = [prompt]
     return u
+
+
+def sort_all(
+    prompts: list[PromptInterface], sorted_partial: functools.partial, reverse=False
+) -> list[PromptInterface]:
+    """
+    sort all the prompts by an algolithm.
+    """
+    return sorted_partial(prompts, reverse=reverse)
+
+
+def random(prompts: list[PromptInterface]) -> list[PromptInterface]:
+    from .lcg import LCG
+
+    return LCG.shuffle(prompts)
 
 
 def sort(prompts: list[PromptInterface], reverse=False) -> list[PromptInterface]:

@@ -7,42 +7,62 @@ import sys
 
 from .abc import PromptInterface
 from .common import Delimiter, FuncConfig, SentenceBuilder
-from .filters import exclude, mask, sort, unique
+from .filters import exclude, mask, random, sort, sort_all, unique
 from .parser import PromptInteractive, PromptNonInteractive
-
 
 logger = logging.getLogger()
 
 logger.addHandler(logging.StreamHandler(sys.stdout))
 
 
+class SortedFactory:
+    available = (
+        "lexicographical",
+        "length",
+        "strength",
+    )
+
+    @classmethod
+    def sort_lexicographically(cls, prompt: PromptInterface) -> str:
+        return prompt.name
+
+    @classmethod
+    def sort_by_length(cls, prompt: PromptInterface) -> int:
+        return prompt.length
+
+    @classmethod
+    def sort_by_strength(cls, prompt: PromptInterface) -> str:
+        return prompt.strength
+
+    @classmethod
+    def apply_from(cls, sort_law_name: str):
+        import functools
+
+        funcs = (
+            cls.sort_lexicographically,
+            cls.sort_by_length,
+            cls.sort_by_strength,
+        )
+        f = None
+
+        for func_name, func in zip(cls.available, funcs):
+            if func_name.startswith(sort_law_name):
+                f = functools.partial(sorted, key=func)
+                break
+        else:
+            raise Exception(f"no matched sort law for '{sort_law_name}'")
+        return f
+
+
 def run_once(
-    args, builder: SentenceBuilder, ps1: str, prpt: type[PromptInterface]
+    builder: SentenceBuilder,
+    ps1: str,
+    prpt: type[PromptInterface],
 ) -> None:
     sentence = input(ps1)
     tokens = builder.parse(sentence, prpt)
 
-    func_config: list[FuncConfig] = []
-    if args.sort:
-        func_config.append(FuncConfig(func=sort, kwargs={"reverse": False}))
-    elif args.sort_reverse:
-        func_config.append(FuncConfig(func=sort, kwargs={"reverse": True}))
-    if args.unique:
-        func_config.append(FuncConfig(func=unique, kwargs={"reverse": False}))
-    if args.unique_reverse:
-        func_config.append(FuncConfig(func=unique, kwargs={"reverse": True}))
-    if args.exclude:
-        func_config.append(FuncConfig(func=exclude, kwargs={"excludes": args.exclude}))
-    if args.mask:
-        func_config.append(
-            FuncConfig(
-                func=mask,
-                kwargs={"excludes": args.mask, "replace_to": args.mask_replace_to},
-            )
-        )
-
-    logger.debug(func_config)
-    builder.apply(tokens, func_config)
+    builder.apply(tokens)
 
     result = str(builder)
     print(result)
@@ -50,15 +70,54 @@ def run_once(
 
 def run(args) -> None:
     builder = Delimiter.create_builder(args.input_delimiter, args.output_delimiter)
-    logger.debug(builder)
     ps1 = args.ps1
+
+    if args.random:
+        builder.append_hook(FuncConfig(func=random, kwargs={}))
+    if args.sort_all:
+        builder.append_hook(
+            FuncConfig(
+                func=sort_all,
+                kwargs={
+                    "sorted_partial": SortedFactory.apply_from(args.sort_all),
+                    "reverse": False,
+                },
+            )
+        )
+    elif args.sort_all_reverse:
+        builder.append_hook(
+            FuncConfig(
+                func=sort_all,
+                kwargs={
+                    "sorted_partial": SortedFactory.apply_from(args.sort_all),
+                    "reverse": True,
+                },
+            )
+        )
+    if args.sort:
+        builder.append_hook(FuncConfig(func=sort, kwargs={"reverse": False}))
+    elif args.sort_reverse:
+        builder.append_hook(FuncConfig(func=sort, kwargs={"reverse": True}))
+    if args.unique:
+        builder.append_hook(FuncConfig(func=unique, kwargs={"reverse": False}))
+    elif args.unique_reverse:
+        builder.append_hook(FuncConfig(func=unique, kwargs={"reverse": True}))
+    if args.exclude:
+        builder.append_hook(FuncConfig(func=exclude, kwargs={"excludes": args.exclude}))
+    if args.mask:
+        builder.append_hook(
+            FuncConfig(
+                func=mask,
+                kwargs={"excludes": args.mask, "replace_to": args.mask_replace_to},
+            )
+        )
 
     if args.interactive:
         while True:
-            run_once(args, builder, ps1, PromptInteractive)
+            run_once(builder, ps1, PromptInteractive)
     else:
         ps1 = ""
-        run_once(args, builder, ps1, PromptNonInteractive)
+        run_once(builder, ps1, PromptNonInteractive)
 
 
 def app():
@@ -114,6 +173,22 @@ def app():
 
     group_sort = parser.add_mutually_exclusive_group()
     group_sort.add_argument(
+        "-r",
+        "--random",
+        action="store_true",
+        help="BE RANDOM!",
+    )
+    group_sort.add_argument(
+        "--sort-all",
+        metavar="sort_law_name",
+        help="reorder all the prompt (avaliable: 'lexicographical', 'length', 'strength')",
+    )
+    group_sort.add_argument(
+        "--sort-all-reverse",
+        metavar="sort_law_name",
+        help="the same as above but with reversed order",
+    )
+    group_sort.add_argument(
         "-s",
         "--sort",
         action="store_true",
@@ -146,6 +221,9 @@ def app():
     logger.debug(args)
     try:
         run(args)
-    except (KeyboardInterrupt, EOFError):
+    except (KeyboardInterrupt, EOFError) as e:
         print()
+        sys.exit(1)
+    except Exception as e:
+        logger.error(f"error: {e}")
         sys.exit(1)

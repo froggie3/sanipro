@@ -25,6 +25,7 @@ class Delimiter(NamedTuple):
 class SentenceBuilder:
     def __init__(self, delimiter: Delimiter):
         self.pre_funcs = []
+        self.funcs: list[FuncConfig] = []
         self.tokens = []
         self.delimiter = delimiter
 
@@ -35,9 +36,9 @@ class SentenceBuilder:
                 sentence += delimiter.sep_input
             return sentence
 
-        self.add_hook(add_last)
+        self.append_pre_hook(add_last)
 
-    def __str__(self):
+    def __str__(self) -> str:
         lines = []
         delim = self.delimiter.sep_output
         for token in self.tokens:
@@ -46,9 +47,11 @@ class SentenceBuilder:
         return delim.join(lines)
 
     def apply(
-        self, prompts: list[PromptInterface], funcs: list[FuncConfig]
+        self, prompts: list[PromptInterface], funcs: list[FuncConfig] = []
     ) -> "SentenceBuilder":
-        for func in funcs:
+        # marge!
+        self.funcs = [*set([*self.funcs, *funcs])]
+        for func in self.funcs:
             prompts = func["func"](prompts, **func["kwargs"])
         self.tokens = prompts
         return self
@@ -69,8 +72,11 @@ class SentenceBuilder:
 
         return prompts
 
-    def add_hook(self, func):
+    def append_pre_hook(self, func) -> None:
         self.pre_funcs.append(func)
+
+    def append_hook(self, func) -> None:
+        self.funcs.append(func)
 
 
 if __name__ == "__main__":
