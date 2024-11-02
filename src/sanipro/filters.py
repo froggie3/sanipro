@@ -1,11 +1,13 @@
 import logging
 
-from .common import PromptInterface
+from .abc import PromptInterface
 
 logger = logging.getLogger()
 
 
-def mask(prompts: list[PromptInterface], excludes: list[str]) -> list[PromptInterface]:
+def mask(
+    prompts: list[PromptInterface], excludes: list[str], replace_to: str
+) -> list[PromptInterface]:
     """
     >>> from lib.common import PromptInteractive
     >>> p = mask([PromptInteractive('white hair', 1.2), PromptInteractive('thighhighs', 1.0)], ['white'])
@@ -16,7 +18,7 @@ def mask(prompts: list[PromptInterface], excludes: list[str]) -> list[PromptInte
     for prompt in prompts:
         for excluded in excludes:
             if excluded in prompt.name:
-                filtered_prompts.append(prompt.replace("%%%"))
+                filtered_prompts.append(prompt.replace(replace_to))
                 break
         else:
             filtered_prompts.append(prompt)
@@ -98,3 +100,9 @@ def unique(prompts: list[PromptInterface], reverse=False) -> list[PromptInterfac
         prompts.append(v.pop(0))
 
     return prompts
+
+
+if __name__ == "__main__":
+    import doctest
+
+    doctest.testmod()

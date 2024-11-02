@@ -1,23 +1,66 @@
 import logging
-from typing import Any, Callable, Generator, NamedTuple, Type, TypedDict
+from typing import Generator, Type
 
-from .common import PromptInterface, Tokens
+from .abc import PromptInterface
 
 logger = logging.getLogger()
 
 
-class FuncConfig(TypedDict):
-    # func: Callable[...]
-    func: Callable
-    kwargs: dict[str, Any]
+class Prompt(PromptInterface):
+    def __init__(self, name: str, strength: str) -> None:
+        self._name = name
+        self._strength = strength
+        self._delimiter = None
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def strength(self):
+        return self._strength
+
+    @property
+    def length(self):
+        return len(self.name)
+
+    def replace(self, replace: str):
+        return type(self)(replace, self._strength)
+
+    def __repr__(self):
+        items = (f"{k}={v!r}" for k, v in self.__dict__.items())
+        return "{}({})".format(type(self).__name__, Tokens.COMMA.join(items))
 
 
-def consume(stack: list, char: str) -> None:
-    """Consumes characters and add them to the stack"""
-    stack.append(char)
+class PromptInteractive(Prompt):
+    def __init__(self, name: str, strength: str):
+        Prompt.__init__(self, name, strength)
+        self._delimiter = ":"
+
+    def __str__(self):
+        if self.strength != "1.0":
+            return "({}{}{})".format(self.name, self._delimiter, self.strength)
+        return self.name
 
 
-def extract_token(sentence: str, delim=Tokens.COMMA) -> Generator[str, None, None]:
+class PromptNonInteractive(Prompt):
+    def __init__(self, name: str, strength: str):
+        Prompt.__init__(self, name, strength)
+        self._delimiter = "\t"
+
+    def __str__(self):
+        return "{}{}{}".format(self.strength, self._delimiter, self.name)
+
+
+class Tokens:
+    PARENSIS_LEFT = "("
+    PARENSIS_RIGHT = ")"
+    COLON = ":"
+    COMMA = ","
+    SPACE = " "
+
+
+def extract_token(sentence: str, delim) -> Generator[str, None, None]:
     """
     split `sentence` at commas and remove parentheses.
 
@@ -28,10 +71,16 @@ def extract_token(sentence: str, delim=Tokens.COMMA) -> Generator[str, None, Non
     >>> list(extract_token('1girl, (brown hair:1.2), school uniform, smile,'))
     ['1girl', 'brown hair:1.2', 'school uniform', 'smile']
     """
+
     stack = []
     character_stack = []
 
+    def consume(stack: list, char: str) -> None:
+        """Consumes characters and add them to the stack"""
+        stack.append(char)
+
     for character in sentence:
+        logger.debug(f"{character=}, {delim=}")
         if character == Tokens.PARENSIS_LEFT:
             stack.append(character)
         elif character == Tokens.PARENSIS_RIGHT:
@@ -77,65 +126,6 @@ def parse_line(token_combined: str, factory: Type[PromptInterface]) -> PromptInt
             *ret, strength = token
             name = Tokens.COLON.join(ret)
             return factory(name, strength)
-
-
-class Delimiter(NamedTuple):
-    sep_input: str
-    sep_output: str
-
-    @classmethod
-    def create_builder(cls, input: str, output: str) -> "SentenceBuilder":
-        return SentenceBuilder(cls(input, output))
-
-
-class SentenceBuilder:
-    def __init__(self, delimiter: Delimiter):
-        self.pre_funcs = []
-        self.tokens = []
-        self.delimiter = delimiter
-
-        def add_last(sentence: str):
-            """Add the delimiter character to the last part of the sentence,
-            this is useful for simplicity of implementation"""
-            if not sentence.endswith((delimiter.sep_input)):
-                sentence += delimiter.sep_input
-            return sentence
-
-        self.add_hook(add_last)
-
-    def __str__(self):
-        lines = []
-        delim = self.delimiter.sep_output
-        for token in self.tokens:
-            lines.append(str(token))
-
-        return delim.join(lines)
-
-    def apply(
-        self, prompts: list[PromptInterface], funcs: list[FuncConfig]
-    ) -> "SentenceBuilder":
-        for func in funcs:
-            prompts = func["func"](prompts, **func["kwargs"])
-        self.tokens = prompts
-        return self
-
-    def parse(
-        self, sentence: str, factory: Type[PromptInterface]
-    ) -> list[PromptInterface]:
-        prompts = []
-
-        # executes hooks bound
-        for hook in self.pre_funcs:
-            sentence = hook(sentence)
-
-        for element in extract_token(sentence, self.delimiter.sep_input):
-            prompt = parse_line(element, factory)
-            prompts.append(prompt)
-
-        return prompts
-
-    def add_hook(self, func):
-        self.pre_funcs.append(func)
 
 
 if __name__ == "__main__":

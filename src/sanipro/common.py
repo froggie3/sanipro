@@ -1,88 +1,79 @@
-from abc import ABC, abstractmethod
+import logging
+from typing import Any, Callable, NamedTuple, Type, TypedDict
+
+from . import parser
+from .abc import PromptInterface
+
+logger = logging.getLogger()
 
 
-class Tokens:
-    PARENSIS_LEFT = "("
-    PARENSIS_RIGHT = ")"
-    COLON = ":"
-    COMMA = ","
-    SPACE = " "
+class FuncConfig(TypedDict):
+    # func: Callable[...]
+    func: Callable
+    kwargs: dict[str, Any]
 
 
-class PromptInterface(ABC):
-    @abstractmethod
-    def __init__(self, name: str, strength: str) -> None:
-        pass
+class Delimiter(NamedTuple):
+    sep_input: str
+    sep_output: str
 
-    @property
-    @abstractmethod
-    def name(self) -> str:
-        pass
-
-    @property
-    @abstractmethod
-    def strength(self) -> str:
-        pass
-
-    @property
-    @abstractmethod
-    def length(self) -> int:
-        pass
-
-    @abstractmethod
-    def replace(self, replace: str) -> "PromptInterface":
-        pass
-
-    @abstractmethod
-    def __repr__(self) -> str:
-        pass
-
-    @abstractmethod
-    def __str__(self) -> str:
-        pass
+    @classmethod
+    def create_builder(cls, input: str, output: str) -> "SentenceBuilder":
+        return SentenceBuilder(cls(input, output))
 
 
-class Prompt(PromptInterface):
-    def __init__(self, name: str, strength: str) -> None:
-        self._name = name
-        self._strength = strength
-        self._delimiter = None
+class SentenceBuilder:
+    def __init__(self, delimiter: Delimiter):
+        self.pre_funcs = []
+        self.tokens = []
+        self.delimiter = delimiter
 
-    @property
-    def name(self):
-        return self._name
+        def add_last(sentence: str) -> str:
+            """Add the delimiter character to the last part of the sentence,
+            this is useful for simplicity of implementation"""
+            if not sentence.endswith((delimiter.sep_input)):
+                sentence += delimiter.sep_input
+            return sentence
 
-    @property
-    def strength(self):
-        return self._strength
-
-    @property
-    def length(self):
-        return len(self.name)
-
-    def replace(self, replace="***"):
-        return type(self)(replace, self._strength)
-
-    def __repr__(self):
-        items = (f"{k}={v!r}" for k, v in self.__dict__.items())
-        return "{}({})".format(type(self).__name__, Tokens.COMMA.join(items))
-
-
-class PromptInteractive(Prompt):
-    def __init__(self, name: str, strength: str):
-        Prompt.__init__(self, name, strength)
-        self._delimiter = ":"
+        self.add_hook(add_last)
 
     def __str__(self):
-        if self.strength != "1.0":
-            return "({}{}{})".format(self.name, self._delimiter, self.strength)
-        return self.name
+        lines = []
+        delim = self.delimiter.sep_output
+        for token in self.tokens:
+            lines.append(str(token))
+
+        return delim.join(lines)
+
+    def apply(
+        self, prompts: list[PromptInterface], funcs: list[FuncConfig]
+    ) -> "SentenceBuilder":
+        for func in funcs:
+            prompts = func["func"](prompts, **func["kwargs"])
+        self.tokens = prompts
+        return self
+
+    def parse(
+        self, sentence: str, factory: Type[PromptInterface]
+    ) -> list[PromptInterface]:
+        prompts = []
+
+        # executes hooks bound
+        for hook in self.pre_funcs:
+            sentence = hook(sentence)
+
+        for element in parser.extract_token(sentence, self.delimiter.sep_input):
+            logger.debug(f"{element=}")
+            prompt = parser.parse_line(element, factory)
+            prompts.append(prompt)
+
+        return prompts
+
+    def add_hook(self, func):
+        self.pre_funcs.append(func)
 
 
-class PromptNonInteractive(Prompt):
-    def __init__(self, name: str, strength: str):
-        Prompt.__init__(self, name, strength)
-        self._delimiter = "\t"
+if __name__ == "__main__":
+    import doctest
 
-    def __str__(self):
-        return "{}{}{}".format(self.strength, self._delimiter, self.name)
+    doctest.testmod()

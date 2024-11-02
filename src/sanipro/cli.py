@@ -5,22 +5,15 @@ import os
 import readline
 import sys
 
-from .common import (
-    PromptInteractive,
-    PromptInterface,
-    PromptNonInteractive,
-)
-from .parser_v2 import (
-    FuncConfig,
-    SentenceBuilder,
-    Delimiter,
-)
-from .filters import (
-    exclude,
-    mask,
-    sort,
-    unique,
-)
+from .abc import PromptInterface
+from .common import Delimiter, FuncConfig, SentenceBuilder
+from .filters import exclude, mask, sort, unique
+from .parser import PromptInteractive, PromptNonInteractive
+
+
+logger = logging.getLogger()
+
+logger.addHandler(logging.StreamHandler(sys.stdout))
 
 
 def run_once(
@@ -31,18 +24,24 @@ def run_once(
 
     func_config: list[FuncConfig] = []
     if args.sort:
-        func_config.append({"func": sort, "kwargs": {"reverse": False}})
+        func_config.append(FuncConfig(func=sort, kwargs={"reverse": False}))
     elif args.sort_reverse:
-        func_config.append({"func": sort, "kwargs": {"reverse": True}})
+        func_config.append(FuncConfig(func=sort, kwargs={"reverse": True}))
     if args.unique:
-        func_config.append({"func": unique, "kwargs": {"reverse": False}})
+        func_config.append(FuncConfig(func=unique, kwargs={"reverse": False}))
     if args.unique_reverse:
-        func_config.append({"func": unique, "kwargs": {"reverse": True}})
+        func_config.append(FuncConfig(func=unique, kwargs={"reverse": True}))
     if args.exclude:
-        func_config.append({"func": exclude, "kwargs": {"excludes": args.exclude}})
+        func_config.append(FuncConfig(func=exclude, kwargs={"excludes": args.exclude}))
     if args.mask:
-        func_config.append({"func": mask, "kwargs": {"excludes": args.mask}})
+        func_config.append(
+            FuncConfig(
+                func=mask,
+                kwargs={"excludes": args.mask, "replace_to": args.mask_replace_to},
+            )
+        )
 
+    logger.debug(func_config)
     builder.apply(tokens, func_config)
 
     result = str(builder)
@@ -51,6 +50,7 @@ def run_once(
 
 def run(args) -> None:
     builder = Delimiter.create_builder(args.input_delimiter, args.output_delimiter)
+    logger.debug(builder)
     ps1 = args.ps1
 
     if args.interactive:
@@ -72,9 +72,6 @@ def app():
 
     atexit.register(readline.write_history_file, histfile)
 
-    logger = logging.getLogger()
-    logger.addHandler(logging.StreamHandler(sys.stdout))
-
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-v",
@@ -85,7 +82,7 @@ def app():
     parser.add_argument(
         "-d",
         "--input-delimiter",
-        default=", ",
+        default=",",
         help="specifies the delimiter for the original prompts",
     )
     parser.add_argument(
@@ -105,29 +102,35 @@ def app():
         help="enables interactive input eternally",
     )
     parser.add_argument("-e", "--exclude", nargs="*", help="exclude words specified")
+
     parser.add_argument(
         "-m", "--mask", nargs="*", help="mask words specified rather than removing them"
     )
+    parser.add_argument(
+        "--mask-replace-to",
+        default=r"%%%",
+        help="in combination with --mask, specifies the new string replaced to",
+    )
 
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument(
+    group_sort = parser.add_mutually_exclusive_group()
+    group_sort.add_argument(
         "-s",
         "--sort",
         action="store_true",
         help="reorder duplicate tokens with their strength to make them consecutive",
     )
-    group.add_argument(
+    group_sort.add_argument(
         "--sort-reverse",
         action="store_true",
         help="the same as above but with reversed order",
     )
-    group.add_argument(
+    group_sort.add_argument(
         "-u",
         "--unique",
         action="store_true",
         help="reorder duplicate tokens with their strength to make them unique",
     )
-    group.add_argument(
+    group_sort.add_argument(
         "--unique-reverse",
         action="store_true",
         help="the same as above but with reversed order",
