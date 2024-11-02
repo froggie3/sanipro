@@ -1,7 +1,7 @@
 import logging
-from typing import Any, Callable, Generator, Type, TypedDict
+from typing import Any, Callable, Generator, NamedTuple, Type, TypedDict
 
-from .common import PromptInterface, Sentence, Tokens, read_char
+from .common import PromptInterface, Tokens
 
 logger = logging.getLogger()
 
@@ -12,7 +12,12 @@ class FuncConfig(TypedDict):
     kwargs: dict[str, Any]
 
 
-def extract_token(sentence: Sentence) -> Generator[str, None, None]:
+def consume(stack: list, char: str) -> None:
+    """Consumes characters and add them to the stack"""
+    stack.append(char)
+
+
+def extract_token(sentence: str, delim=Tokens.COMMA) -> Generator[str, None, None]:
     """
     split `sentence` at commas and remove parentheses.
 
@@ -27,20 +32,19 @@ def extract_token(sentence: Sentence) -> Generator[str, None, None]:
     character_stack = []
 
     for character in sentence:
-        match (character):
-            case Tokens.PARENSIS_LEFT:
-                stack.append(character)
-            case Tokens.PARENSIS_RIGHT:
-                stack.pop()
-            case Tokens.COMMA:
-                if stack:
-                    read_char(character_stack, character)
-                    continue
-                element = "".join(character_stack).strip()
-                character_stack = []
-                yield element
-            case _:
-                read_char(character_stack, character)
+        if character == Tokens.PARENSIS_LEFT:
+            stack.append(character)
+        elif character == Tokens.PARENSIS_RIGHT:
+            stack.pop()
+        elif character == delim:
+            if stack:
+                consume(character_stack, character)
+                continue
+            element = "".join(character_stack).strip()
+            character_stack.clear()
+            yield element
+        else:
+            consume(character_stack, character)
 
 
 def parse_line(token_combined: str, factory: Type[PromptInterface]) -> PromptInterface:
@@ -75,119 +79,66 @@ def parse_line(token_combined: str, factory: Type[PromptInterface]) -> PromptInt
             return factory(name, strength)
 
 
-def mask(prompts: list[PromptInterface], excludes: list[str]) -> list[PromptInterface]:
-    """
-    >>> from lib.common import PromptInteractive
-    >>> p = mask([PromptInteractive('white hair', 1.2), PromptInteractive('thighhighs', 1.0)], ['white'])
-    >>> [x.name for x in p]
-    ['%%%', 'thighhighs']
-    """
-    filtered_prompts = []
-    for prompt in prompts:
-        for excluded in excludes:
-            if excluded in prompt.name:
-                filtered_prompts.append(prompt.replace("%%%"))
-                break
-        else:
-            filtered_prompts.append(prompt)
+class Delimiter(NamedTuple):
+    sep_input: str
+    sep_output: str
 
-    return filtered_prompts
+    @classmethod
+    def create_builder(cls, input: str, output: str) -> "SentenceBuilder":
+        return SentenceBuilder(cls(input, output))
 
 
-def exclude(
-    prompts: list[PromptInterface], excludes: list[str]
-) -> list[PromptInterface]:
-    """
-    >>> from lib.common import PromptInteractive
-    >>> p = exclude([PromptInteractive('white hair', 1.2), PromptInteractive('thighhighs', 1.0)], ['white'])
-    >>> [x.name for x in p]
-    ['thighhighs']
-    """
-    filtered_prompts = []
-    for prompt in prompts:
-        for excluded in excludes:
-            if excluded not in prompt.name:
-                filtered_prompts.append(prompt)
-                break
-        else:
-            continue
+class SentenceBuilder:
+    def __init__(self, delimiter: Delimiter):
+        self.pre_funcs = []
+        self.tokens = []
+        self.delimiter = delimiter
 
-    return filtered_prompts
+        def add_last(sentence: str):
+            """Add the delimiter character to the last part of the sentence,
+            this is useful for simplicity of implementation"""
+            if not sentence.endswith((delimiter.sep_input)):
+                sentence += delimiter.sep_input
+            return sentence
 
+        self.add_hook(add_last)
 
-def collect_same_prompt(prompts: list[PromptInterface]):
-    u: dict[str, list[PromptInterface]] = {}
-    for prompt in prompts:
-        if prompt.name in u:
-            u[prompt.name].append(prompt)
-        else:
-            u[prompt.name] = [prompt]
-    return u
+    def __str__(self):
+        lines = []
+        delim = self.delimiter.sep_output
+        for token in self.tokens:
+            lines.append(str(token))
 
+        return delim.join(lines)
 
-def sort(prompts: list[PromptInterface], reverse=False) -> list[PromptInterface]:
-    """
-    >>> from lib.common import PromptInteractive
-    >>> p = sort([PromptInteractive('white hair', 1.2), PromptInteractive('white hair', 1.0)])
-    >>> [(x.name, x.strength) for x in p]
-    [('white hair', 1.0), ('white hair', 1.2)]
+    def apply(
+        self, prompts: list[PromptInterface], funcs: list[FuncConfig]
+    ) -> "SentenceBuilder":
+        for func in funcs:
+            prompts = func["func"](prompts, **func["kwargs"])
+        self.tokens = prompts
+        return self
 
-    >>> from lib.common import PromptInteractive
-    >>> p = sort([PromptInteractive('white hair', 1.2), PromptInteractive('white hair', 1.0)], True)
-    >>> [(x.name, x.strength) for x in p]
-    [('white hair', 1.2), ('white hair', 1.0)]
-    """
-    u = collect_same_prompt(prompts)
+    def parse(
+        self, sentence: str, factory: Type[PromptInterface]
+    ) -> list[PromptInterface]:
+        prompts = []
 
-    prompts = []
-    for k, v in u.items():
-        v.sort(key=lambda x: x.strength, reverse=reverse)
-        for item in v:
-            prompts.append(item)
+        # executes hooks bound
+        for hook in self.pre_funcs:
+            sentence = hook(sentence)
 
-    return prompts
+        for element in extract_token(sentence, self.delimiter.sep_input):
+            prompt = parse_line(element, factory)
+            prompts.append(prompt)
 
+        return prompts
 
-def unique(prompts: list[PromptInterface], reverse=False) -> list[PromptInterface]:
-    """
-    >>> from lib.common import PromptInteractive
-    >>> p = unique([PromptInteractive('white hair', 1.2), PromptInteractive('white hair', 1.0)])
-    >>> [(x.name, x.strength) for x in p]
-    [('white hair', 1.0)]
-
-    >>> from lib.common import PromptInteractive
-    >>> p = unique([PromptInteractive('white hair', 1.2), PromptInteractive('white hair', 1.0)], True)
-    >>> [(x.name, x.strength) for x in p]
-    [('white hair', 1.2)]
-    """
-    u = collect_same_prompt(prompts)
-
-    prompts = []
-    for k, v in u.items():
-        v.sort(key=lambda x: x.strength, reverse=reverse)
-        prompts.append(v.pop(0))
-
-    return prompts
-
-
-def apply(
-    prompts: list[PromptInterface], funcs: list[FuncConfig]
-) -> list[PromptInterface]:
-    for func in funcs:
-        prompts = func["func"](prompts, **func["kwargs"])
-    return prompts
-
-
-def parse(sentence: Sentence, factory: Type[PromptInterface]) -> list[PromptInterface]:
-    prompts = list()
-
-    for element in extract_token(sentence):
-        prompt = parse_line(element, factory)
-        prompts.append(prompt)
-
-    return prompts
+    def add_hook(self, func):
+        self.pre_funcs.append(func)
 
 
 if __name__ == "__main__":
     import doctest
+
     doctest.testmod()

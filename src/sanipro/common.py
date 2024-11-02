@@ -65,7 +65,7 @@ class Prompt(PromptInterface):
 
     def __repr__(self):
         items = (f"{k}={v!r}" for k, v in self.__dict__.items())
-        return "{}({})".format(type(self).__name__, ", ".join(items))
+        return "{}({})".format(type(self).__name__, Tokens.COMMA.join(items))
 
 
 class PromptInteractive(Prompt):
@@ -86,15 +86,3 @@ class PromptNonInteractive(Prompt):
 
     def __str__(self):
         return "{}{}{}".format(self.strength, self._delimiter, self.name)
-
-
-class Sentence(str):
-    def __new__(cls, sentence: str):
-        # for simplicity of implementation
-        if not sentence.endswith(Tokens.COMMA):
-            sentence += Tokens.COMMA
-        return super().__new__(cls, sentence)
-
-
-def read_char(stack, char) -> None:
-    stack.append(char)
