@@ -1,5 +1,10 @@
+import logging
 import time
 import typing
+
+from . import utils
+
+logger = logging.getLogger()
 
 
 class LCG:
@@ -26,25 +31,22 @@ class LCG:
     @classmethod
     def shuffle(cls, iterable):
         seed = int(time.time() * 100)
-        lcg = cls(seed, shift=20)
+        lcg = cls(seed, shift=16)
 
         solved_num = 0
         length = len(iterable)
         check_arr = [True] * length
+        iterator = utils.capped(lcg.random(), length)
 
-        new_list = []
-
-        for idx in lcg.random():
+        for one, two in utils.batched(iterator, 2):
             if solved_num < length:
-                idx %= length
-                if check_arr[idx]:
-                    check_arr[idx] = False
-                    new_list.append(iterable[idx])
-                    solved_num += 1
+                iterable[one], iterable[two] = iterable[two], iterable[one]
+                check_arr[one], check_arr[two] = False, False
+                solved_num += 1
             else:
                 break
 
-        return new_list
+        return iterable
 
     @classmethod
     def shuffled(cls, iterable):
@@ -54,12 +56,12 @@ class LCG:
         solved_num = 0
         length = len(iterable)
         check_arr = [True] * length
+        iterator = utils.capped(lcg.random(), length)
 
         new_list = []
 
-        for idx in lcg.random():
+        for idx in iterator:
             if solved_num < length:
-                idx %= length
                 if check_arr[idx]:
                     check_arr[idx] = False
                     new_list.append(iterable[idx])

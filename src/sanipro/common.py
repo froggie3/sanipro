@@ -7,10 +7,10 @@ from .abc import PromptInterface
 logger = logging.getLogger()
 
 
-class FuncConfig(TypedDict):
+class FuncConfig(NamedTuple):
     # func: Callable[...]
     func: Callable
-    kwargs: dict[str, Any]
+    kwargs: tuple[tuple[str, Any], ...]
 
 
 class Delimiter(NamedTuple):
@@ -52,7 +52,7 @@ class SentenceBuilder:
         # marge!
         self.funcs = [*set([*self.funcs, *funcs])]
         for func in self.funcs:
-            prompts = func["func"](prompts, **func["kwargs"])
+            prompts = func.func(prompts, **dict(func.kwargs))
         self.tokens = prompts
         return self
 
@@ -66,7 +66,6 @@ class SentenceBuilder:
             sentence = hook(sentence)
 
         for element in parser.extract_token(sentence, self.delimiter.sep_input):
-            logger.debug(f"{element=}")
             prompt = parser.parse_line(element, factory)
             prompts.append(prompt)
 
@@ -75,7 +74,7 @@ class SentenceBuilder:
     def append_pre_hook(self, func) -> None:
         self.pre_funcs.append(func)
 
-    def append_hook(self, func) -> None:
+    def append_hook(self, func: FuncConfig) -> None:
         self.funcs.append(func)
 
 

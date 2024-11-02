@@ -73,42 +73,47 @@ def run(args) -> None:
     ps1 = args.ps1
 
     if args.random:
-        builder.append_hook(FuncConfig(func=random, kwargs={}))
+        builder.append_hook(FuncConfig(func=random, kwargs=()))
     if args.sort_all:
         builder.append_hook(
             FuncConfig(
                 func=sort_all,
-                kwargs={
-                    "sorted_partial": SortedFactory.apply_from(args.sort_all),
-                    "reverse": False,
-                },
+                kwargs=(
+                    ("sorted_partial", SortedFactory.apply_from(args.sort_all)),
+                    ("reverse", False),
+                ),
             )
         )
     elif args.sort_all_reverse:
         builder.append_hook(
             FuncConfig(
                 func=sort_all,
-                kwargs={
-                    "sorted_partial": SortedFactory.apply_from(args.sort_all),
-                    "reverse": True,
-                },
+                kwargs=(
+                    ("sorted_partial", SortedFactory.apply_from(args.sort_all)),
+                    ("reverse", True),
+                ),
             )
         )
     if args.sort:
-        builder.append_hook(FuncConfig(func=sort, kwargs={"reverse": False}))
+        builder.append_hook(FuncConfig(func=sort, kwargs=(("reverse", False),)))
     elif args.sort_reverse:
-        builder.append_hook(FuncConfig(func=sort, kwargs={"reverse": True}))
+        builder.append_hook(FuncConfig(func=sort, kwargs=(("reverse", True),)))
     if args.unique:
-        builder.append_hook(FuncConfig(func=unique, kwargs={"reverse": False}))
+        builder.append_hook(FuncConfig(func=unique, kwargs=(("reverse", False),)))
     elif args.unique_reverse:
-        builder.append_hook(FuncConfig(func=unique, kwargs={"reverse": True}))
+        builder.append_hook(FuncConfig(func=unique, kwargs=(("reverse", True),)))
     if args.exclude:
-        builder.append_hook(FuncConfig(func=exclude, kwargs={"excludes": args.exclude}))
+        builder.append_hook(
+            FuncConfig(func=exclude, kwargs=(("excludes", args.exclude),))
+        )
     if args.mask:
         builder.append_hook(
             FuncConfig(
                 func=mask,
-                kwargs={"excludes": args.mask, "replace_to": args.mask_replace_to},
+                kwargs=(
+                    ("excludes", args.mask),
+                    ("replace_to", args.mask_replace_to),
+                ),
             )
         )
 
@@ -225,5 +230,5 @@ def app():
         print()
         sys.exit(1)
     except Exception as e:
-        logger.error(f"error: {e}")
+        logger.exception(f"error: {e}")
         sys.exit(1)

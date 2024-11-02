@@ -80,7 +80,6 @@ def extract_token(sentence: str, delim) -> Generator[str, None, None]:
         stack.append(char)
 
     for character in sentence:
-        logger.debug(f"{character=}, {delim=}")
         if character == Tokens.PARENSIS_LEFT:
             stack.append(character)
         elif character == Tokens.PARENSIS_RIGHT:
