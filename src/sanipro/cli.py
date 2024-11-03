@@ -66,8 +66,6 @@ def run(args) -> None:
                 run_once(builder, ps1, TokenInteractive)
             except ValueError as e:
                 logger.exception(f"error: {e}")
-            except Exception as e:
-                logger.exception(f"error: {e}")
     else:
         ps1 = ""
         run_once(builder, ps1, TokenNonInteractive)

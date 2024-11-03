@@ -3,6 +3,7 @@ from typing import Generator, Type
 
 from .abc import TokenInterface
 
+logger = logging.getLogger()
 
 class Token(TokenInterface):
     def __init__(self, name: str, strength: float) -> None:
@@ -58,7 +59,7 @@ class Tokens:
     SPACE = " "
 
 
-def extract_token(sentence: str, delim) -> Generator[str, None, None]:
+def extract_token(sentence: str, delimiter: str) -> list[str]:
     """
     split `sentence` at commas and remove parentheses.
 
@@ -70,28 +71,30 @@ def extract_token(sentence: str, delim) -> Generator[str, None, None]:
     ['1girl', 'brown hair:1.2', 'school uniform', 'smile']
     """
 
-    stack = []
+    product = []
+    parenthesis = []
     character_stack = []
 
-    def consume(stack: list, char: str) -> None:
-        """Consumes characters and add them to the stack"""
-        stack.append(char)
-
-    for character in sentence:
+    for index, character in enumerate(sentence):
         if character == Tokens.PARENSIS_LEFT:
-            stack.append(character)
+            parenthesis.append(index)
         elif character == Tokens.PARENSIS_RIGHT:
-            stack.pop()
-        elif character == delim:
-            if stack:
-                consume(character_stack, character)
+            parenthesis.pop()
+        elif character == delimiter:
+            if parenthesis:
+                character_stack.append(character)
                 continue
             element = "".join(character_stack).strip()
             character_stack.clear()
-            yield element
+            product.append(element)
         else:
-            consume(character_stack, character)
+            character_stack.append(character)
 
+    if parenthesis:
+        first_parenthesis_index = parenthesis[0]
+        raise ValueError(f"first unclosed parenthesis was found after {sentence[0:first_parenthesis_index]!r}")
+
+    return product
 
 def parse_line(
     token_combined: str, token_factory: Type[TokenInterface]
@@ -113,8 +116,9 @@ def parse_line(
     PromptInteractive(_name='brown:hair', _strength='1.2', _delimiter=':')
     """
     token = token_combined.split(Tokens.COLON)
+    token_length = len(token)
 
-    match (len(token)):
+    match (token_length):
         case 1:
             name, *_ = token
             return token_factory(name, 1.0)
