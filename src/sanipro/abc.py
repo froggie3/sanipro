@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 logger = logging.getLogger()
 
 
-class PromptInterface(ABC):
+class TokenInterface(ABC):
     @abstractmethod
     def __init__(self, name: str, strength: str) -> None:
         pass
@@ -25,7 +25,7 @@ class PromptInterface(ABC):
         pass
 
     @abstractmethod
-    def replace(self, replace: str) -> "PromptInterface":
+    def replace(self, replace: str) -> "TokenInterface":
         pass
 
     @abstractmethod

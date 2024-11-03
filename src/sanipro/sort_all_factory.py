@@ -1,6 +1,6 @@
 import functools
 
-from .abc import PromptInterface
+from .abc import TokenInterface
 
 available = (
     "lexicographical",
@@ -9,16 +9,16 @@ available = (
 )
 
 
-def sort_lexicographically(prompt: PromptInterface) -> str:
-    return prompt.name
+def sort_lexicographically(token: TokenInterface) -> str:
+    return token.name
 
 
-def sort_by_length(prompt: PromptInterface) -> int:
-    return prompt.length
+def sort_by_length(token: TokenInterface) -> int:
+    return token.length
 
 
-def sort_by_strength(prompt: PromptInterface) -> str:
-    return prompt.strength
+def sort_by_strength(token: TokenInterface) -> str:
+    return token.strength
 
 
 def apply_from(sort_law_name: str):

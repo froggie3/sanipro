@@ -2,14 +2,14 @@ import functools
 import logging
 from typing import Callable
 
-from .abc import PromptInterface
+from .abc import TokenInterface
 
 logger = logging.getLogger()
 
 
 def mask(
-    prompts: list[PromptInterface], excludes: list[str], replace_to: str
-) -> list[PromptInterface]:
+    prompts: list[TokenInterface], excludes: list[str], replace_to: str
+) -> list[TokenInterface]:
     """
     >>> from lib.common import PromptInteractive
     >>> p = mask([PromptInteractive('white hair', 1.2), PromptInteractive('thighhighs', 1.0)], ['white'])
@@ -28,9 +28,7 @@ def mask(
     return filtered_prompts
 
 
-def exclude(
-    prompts: list[PromptInterface], excludes: list[str]
-) -> list[PromptInterface]:
+def exclude(prompts: list[TokenInterface], excludes: list[str]) -> list[TokenInterface]:
     """
     >>> from lib.common import PromptInteractive
     >>> p = exclude([PromptInteractive('white hair', 1.2), PromptInteractive('thighhighs', 1.0)], ['white'])
@@ -49,8 +47,8 @@ def exclude(
     return filtered_prompts
 
 
-def collect_same_prompt(prompts: list[PromptInterface]):
-    u: dict[str, list[PromptInterface]] = {}
+def collect_same_prompt(prompts: list[TokenInterface]):
+    u: dict[str, list[TokenInterface]] = {}
     for prompt in prompts:
         if prompt.name in u:
             u[prompt.name].append(prompt)
@@ -60,21 +58,21 @@ def collect_same_prompt(prompts: list[PromptInterface]):
 
 
 def sort_all(
-    prompts: list[PromptInterface], sorted_partial: functools.partial, reverse=False
-) -> list[PromptInterface]:
+    prompts: list[TokenInterface], sorted_partial: functools.partial, reverse=False
+) -> list[TokenInterface]:
     """
     sort all the prompts by an algolithm.
     """
     return sorted_partial(prompts, reverse=reverse)
 
 
-def random(prompts: list[PromptInterface]) -> list[PromptInterface]:
+def random(prompts: list[TokenInterface]) -> list[TokenInterface]:
     from .lcg import LCG
 
     return LCG.shuffle(prompts)
 
 
-def sort(prompts: list[PromptInterface], reverse=False) -> list[PromptInterface]:
+def sort(prompts: list[TokenInterface], reverse=False) -> list[TokenInterface]:
     """
     >>> from lib.common import PromptInteractive
     >>> p = sort([PromptInteractive('white hair', 1.2), PromptInteractive('white hair', 1.0)])
@@ -97,7 +95,7 @@ def sort(prompts: list[PromptInterface], reverse=False) -> list[PromptInterface]
     return prompts
 
 
-def unique(prompts: list[PromptInterface], reverse=False) -> list[PromptInterface]:
+def unique(prompts: list[TokenInterface], reverse=False) -> list[TokenInterface]:
     """
     >>> from lib.common import PromptInteractive
     >>> p = unique([PromptInteractive('white hair', 1.2), PromptInteractive('white hair', 1.0)])

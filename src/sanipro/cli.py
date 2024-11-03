@@ -2,18 +2,18 @@ import argparse
 import logging
 import sys
 
-from .abc import PromptInterface
-from .common import Delimiter, FuncConfig, SentenceBuilder
+from .abc import TokenInterface
+from .common import Delimiter, FuncConfig, PromptBuilder
 from .filters import exclude, mask, random, sort, sort_all, unique
-from .parser import PromptInteractive, PromptNonInteractive
+from .parser import PromptNonInteractive, TokenInteractive
 
 logger = logging.getLogger()
 
 
 def run_once(
-    builder: SentenceBuilder,
+    builder: PromptBuilder,
     ps1: str,
-    prpt: type[PromptInterface],
+    prpt: type[TokenInterface],
 ) -> None:
     sentence = input(ps1).strip()
     if sentence != "":
@@ -62,7 +62,7 @@ def run(args) -> None:
         from . import interactive_hooks
 
         while True:
-            run_once(builder, ps1, PromptInteractive)
+            run_once(builder, ps1, TokenInteractive)
     else:
         ps1 = ""
         run_once(builder, ps1, PromptNonInteractive)

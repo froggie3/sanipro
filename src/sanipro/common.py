@@ -1,8 +1,8 @@
 import logging
-from typing import Any, Callable, NamedTuple, Type, TypedDict
+from typing import Any, Callable, NamedTuple, Type
 
 from . import parser
-from .abc import PromptInterface
+from .abc import TokenInterface
 
 logger = logging.getLogger()
 
@@ -18,11 +18,11 @@ class Delimiter(NamedTuple):
     sep_output: str
 
     @classmethod
-    def create_builder(cls, input: str, output: str) -> "SentenceBuilder":
-        return SentenceBuilder(cls(input, output))
+    def create_builder(cls, input: str, output: str) -> "PromptBuilder":
+        return PromptBuilder(cls(input, output))
 
 
-class SentenceBuilder:
+class PromptBuilder:
     def __init__(self, delimiter: Delimiter):
         self.pre_funcs = []
         self.funcs: list[FuncConfig] = []
@@ -47,8 +47,8 @@ class SentenceBuilder:
         return delim.join(lines)
 
     def apply(
-        self, prompts: list[PromptInterface], funcs: list[FuncConfig] = []
-    ) -> "SentenceBuilder":
+        self, prompts: list[TokenInterface], funcs: list[FuncConfig] = []
+    ) -> "PromptBuilder":
         """sequentially applies the filters."""
         # marge!
         self.funcs = [*set([*self.funcs, *funcs])]
@@ -58,8 +58,8 @@ class SentenceBuilder:
         return self
 
     def parse(
-        self, sentence: str, factory: Type[PromptInterface], auto_apply=False
-    ) -> list[PromptInterface]:
+        self, sentence: str, token_factory: Type[TokenInterface], auto_apply=False
+    ) -> list[TokenInterface]:
         prompts = []
 
         # executes hooks bound
@@ -67,7 +67,7 @@ class SentenceBuilder:
             sentence = hook(sentence)
 
         for element in parser.extract_token(sentence, self.delimiter.sep_input):
-            prompt = parser.parse_line(element, factory)
+            prompt = parser.parse_line(element, token_factory)
             prompts.append(prompt)
 
         if auto_apply:
