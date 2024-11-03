@@ -62,7 +62,12 @@ def run(args) -> None:
         from . import interactive_hooks
 
         while True:
-            run_once(builder, ps1, TokenInteractive)
+            try:
+                run_once(builder, ps1, TokenInteractive)
+            except ValueError as e:
+                logger.exception(f"error: {e}")
+            except Exception as e:
+                logger.exception(f"error: {e}")
     else:
         ps1 = ""
         run_once(builder, ps1, TokenNonInteractive)
@@ -159,7 +164,10 @@ def app():
     logger.debug(args)
     try:
         run(args)
-    except (KeyboardInterrupt, EOFError) as e:
+    except KeyboardInterrupt as e:
+        print()
+        sys.exit(1)
+    except EOFError as e:
         print()
         sys.exit(1)
     except Exception as e:
