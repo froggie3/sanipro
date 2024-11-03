@@ -1,8 +1,5 @@
 import argparse
-import atexit
 import logging
-import os
-import readline
 import sys
 
 from .abc import PromptInterface
@@ -12,112 +9,58 @@ from .parser import PromptInteractive, PromptNonInteractive
 
 logger = logging.getLogger()
 
-logger.addHandler(logging.StreamHandler(sys.stdout))
-
-
-class SortedFactory:
-    available = (
-        "lexicographical",
-        "length",
-        "strength",
-    )
-
-    @classmethod
-    def sort_lexicographically(cls, prompt: PromptInterface) -> str:
-        return prompt.name
-
-    @classmethod
-    def sort_by_length(cls, prompt: PromptInterface) -> int:
-        return prompt.length
-
-    @classmethod
-    def sort_by_strength(cls, prompt: PromptInterface) -> str:
-        return prompt.strength
-
-    @classmethod
-    def apply_from(cls, sort_law_name: str):
-        import functools
-
-        funcs = (
-            cls.sort_lexicographically,
-            cls.sort_by_length,
-            cls.sort_by_strength,
-        )
-        f = None
-
-        for func_name, func in zip(cls.available, funcs):
-            if func_name.startswith(sort_law_name):
-                f = functools.partial(sorted, key=func)
-                break
-        else:
-            raise Exception(f"no matched sort law for '{sort_law_name}'")
-        return f
-
 
 def run_once(
     builder: SentenceBuilder,
     ps1: str,
     prpt: type[PromptInterface],
 ) -> None:
-    sentence = input(ps1)
-    tokens = builder.parse(sentence, prpt)
-
-    builder.apply(tokens)
-
-    result = str(builder)
-    print(result)
+    sentence = input(ps1).strip()
+    if sentence != "":
+        builder.parse(sentence, prpt, auto_apply=True)
+        result = str(builder)
+        print(result)
 
 
 def run(args) -> None:
     builder = Delimiter.create_builder(args.input_delimiter, args.output_delimiter)
     ps1 = args.ps1
+    cfg = FuncConfig
 
     if args.random:
-        builder.append_hook(FuncConfig(func=random, kwargs=()))
-    if args.sort_all:
+        builder.append_hook(cfg(func=random, kwargs=()))
+    if args.sort_all or args.sort_all_reverse:
+        from . import sort_all_factory
+
+        sorted_partial = sort_all_factory.apply_from(args.sort_all)
         builder.append_hook(
-            FuncConfig(
+            cfg(
                 func=sort_all,
                 kwargs=(
-                    ("sorted_partial", SortedFactory.apply_from(args.sort_all)),
-                    ("reverse", False),
+                    ("sorted_partial", sorted_partial),
+                    ("reverse", True if args.sort_all_reverse else False),
                 ),
             )
         )
-    elif args.sort_all_reverse:
+    if args.sort or args.sort_reverse:
+        builder.append_hook(cfg(func=sort, kwargs=(("reverse", args.sort_reverse),)))
+    if args.unique or args.unique_reverse:
         builder.append_hook(
-            FuncConfig(
-                func=sort_all,
-                kwargs=(
-                    ("sorted_partial", SortedFactory.apply_from(args.sort_all)),
-                    ("reverse", True),
-                ),
-            )
+            cfg(func=unique, kwargs=(("reverse", args.unique_reverse),))
         )
-    if args.sort:
-        builder.append_hook(FuncConfig(func=sort, kwargs=(("reverse", False),)))
-    elif args.sort_reverse:
-        builder.append_hook(FuncConfig(func=sort, kwargs=(("reverse", True),)))
-    if args.unique:
-        builder.append_hook(FuncConfig(func=unique, kwargs=(("reverse", False),)))
-    elif args.unique_reverse:
-        builder.append_hook(FuncConfig(func=unique, kwargs=(("reverse", True),)))
     if args.exclude:
-        builder.append_hook(
-            FuncConfig(func=exclude, kwargs=(("excludes", args.exclude),))
-        )
+        builder.append_hook(cfg(func=exclude, kwargs=(("excludes", args.exclude),)))
     if args.mask:
         builder.append_hook(
-            FuncConfig(
+            cfg(
                 func=mask,
-                kwargs=(
-                    ("excludes", args.mask),
-                    ("replace_to", args.mask_replace_to),
-                ),
+                kwargs=(("excludes", args.mask), ("replace_to", args.mask_replace_to)),
             )
         )
 
     if args.interactive:
+        from . import interactive_hooks
+
         while True:
             run_once(builder, ps1, PromptInteractive)
     else:
@@ -126,16 +69,6 @@ def run(args) -> None:
 
 
 def app():
-    histfile = os.path.join(os.path.expanduser("~"), ".python_history")
-
-    try:
-        readline.read_history_file(histfile)
-        readline.set_history_length(1000)
-    except FileNotFoundError:
-        pass
-
-    atexit.register(readline.write_history_file, histfile)
-
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-v",

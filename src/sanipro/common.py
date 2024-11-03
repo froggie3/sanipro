@@ -49,6 +49,7 @@ class SentenceBuilder:
     def apply(
         self, prompts: list[PromptInterface], funcs: list[FuncConfig] = []
     ) -> "SentenceBuilder":
+        """sequentially applies the filters."""
         # marge!
         self.funcs = [*set([*self.funcs, *funcs])]
         for func in self.funcs:
@@ -57,7 +58,7 @@ class SentenceBuilder:
         return self
 
     def parse(
-        self, sentence: str, factory: Type[PromptInterface]
+        self, sentence: str, factory: Type[PromptInterface], auto_apply=False
     ) -> list[PromptInterface]:
         prompts = []
 
@@ -68,6 +69,9 @@ class SentenceBuilder:
         for element in parser.extract_token(sentence, self.delimiter.sep_input):
             prompt = parser.parse_line(element, factory)
             prompts.append(prompt)
+
+        if auto_apply:
+            self.apply(prompts)
 
         return prompts
 
