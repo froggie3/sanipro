@@ -17,7 +17,7 @@ def sort_by_length(token: TokenInterface) -> int:
     return token.length
 
 
-def sort_by_strength(token: TokenInterface) -> str:
+def sort_by_strength(token: TokenInterface) -> float:
     return token.strength
 
 

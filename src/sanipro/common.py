@@ -46,10 +46,18 @@ class PromptBuilder:
 
         return delim.join(lines)
 
+    def map_token(self, attr: str, func: Callable) -> None:
+        for token in self.tokens:
+            val = getattr(token, attr)
+            val = func(val)
+            setattr(token, attr, val)
+
     def apply(
-        self, prompts: list[TokenInterface], funcs: list[FuncConfig] = []
+        self, prompts: list[TokenInterface], funcs: list[FuncConfig] | None = None
     ) -> "PromptBuilder":
         """sequentially applies the filters."""
+        if funcs is None:
+            funcs = []
         # marge!
         self.funcs = [*set([*self.funcs, *funcs])]
         for func in self.funcs:

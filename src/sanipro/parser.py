@@ -5,9 +5,9 @@ from .abc import TokenInterface
 
 
 class Token(TokenInterface):
-    def __init__(self, name: str, strength: str) -> None:
+    def __init__(self, name: str, strength: float) -> None:
         self._name = name
-        self._strength = strength
+        self._strength = float(strength)
         self._delimiter = None
 
     @property
@@ -31,23 +31,23 @@ class Token(TokenInterface):
 
 
 class TokenInteractive(Token):
-    def __init__(self, name: str, strength: str):
+    def __init__(self, name: str, strength: float):
         Token.__init__(self, name, strength)
         self._delimiter = ":"
 
     def __str__(self):
-        if self.strength != "1.0":
-            return "({}{}{})".format(self.name, self._delimiter, self.strength)
+        if self.strength != 1.0:
+            return "({}{}{:.1f})".format(self.name, self._delimiter, self.strength)
         return self.name
 
 
-class PromptNonInteractive(Token):
-    def __init__(self, name: str, strength: str):
+class TokenNonInteractive(Token):
+    def __init__(self, name: str, strength: float):
         Token.__init__(self, name, strength)
         self._delimiter = "\t"
 
     def __str__(self):
-        return "{}{}{}".format(self.strength, self._delimiter, self.name)
+        return "{}{}{.2f}".format(self.strength, self._delimiter, self.name)
 
 
 class Tokens:
@@ -93,7 +93,9 @@ def extract_token(sentence: str, delim) -> Generator[str, None, None]:
             consume(character_stack, character)
 
 
-def parse_line(token_combined: str, token_factory: Type[TokenInterface]) -> TokenInterface:
+def parse_line(
+    token_combined: str, token_factory: Type[TokenInterface]
+) -> TokenInterface:
     """
     split `token_combined` into left and right sides with `:`
     when there are three or more elements,
@@ -115,14 +117,14 @@ def parse_line(token_combined: str, token_factory: Type[TokenInterface]) -> Toke
     match (len(token)):
         case 1:
             name, *_ = token
-            return token_factory(name, "1.0")
+            return token_factory(name, 1.0)
         case 2:
             name, strength, *_ = token
-            return token_factory(name, strength)
+            return token_factory(name, float(strength))
         case _:
             *ret, strength = token
             name = Tokens.COLON.join(ret)
-            return token_factory(name, strength)
+            return token_factory(name, float(strength))
 
 
 if __name__ == "__main__":

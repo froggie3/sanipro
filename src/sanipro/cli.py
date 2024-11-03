@@ -5,7 +5,7 @@ import sys
 from .abc import TokenInterface
 from .common import Delimiter, FuncConfig, PromptBuilder
 from .filters import exclude, mask, random, sort, sort_all, unique
-from .parser import PromptNonInteractive, TokenInteractive
+from .parser import TokenNonInteractive, TokenInteractive
 
 logger = logging.getLogger()
 
@@ -65,7 +65,7 @@ def run(args) -> None:
             run_once(builder, ps1, TokenInteractive)
     else:
         ps1 = ""
-        run_once(builder, ps1, PromptNonInteractive)
+        run_once(builder, ps1, TokenNonInteractive)
 
 
 def app():

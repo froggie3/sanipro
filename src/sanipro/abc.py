@@ -6,7 +6,7 @@ logger = logging.getLogger()
 
 class TokenInterface(ABC):
     @abstractmethod
-    def __init__(self, name: str, strength: str) -> None:
+    def __init__(self, name: str, strength: float) -> None:
         pass
 
     @property
@@ -16,7 +16,7 @@ class TokenInterface(ABC):
 
     @property
     @abstractmethod
-    def strength(self) -> str:
+    def strength(self) -> float:
         pass
 
     @property
