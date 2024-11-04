@@ -1,10 +1,8 @@
 import logging
-import re
 from typing import Type
 
-from sanipro.parser import Tokens
-
 from .abc import TokenInterface
+from .parser import Tokens
 
 logger = logging.getLogger()
 
@@ -60,13 +58,13 @@ def parse_line(
     >>> from lib.common import PromptInteractive, PromptNonInteractive
 
     >>> parse_line('brown hair:1.2', PromptInteractive)
-    PromptInteractive(_name='brown hair', _strength='1.2', _delimiter=':')
+    PromptInteractive('brown hair', 1.2)
 
     >>> parse_line('1girl', PromptInteractive)
-    PromptInteractive(_name='1girl', _strength='1.0', _delimiter=':')
+    PromptInteractive('1girl', 1.0)
 
     >>> parse_line('brown:hair:1.2', PromptInteractive)
-    PromptInteractive(_name='brown:hair', _strength='1.2', _delimiter=':')
+    PromptInteractive('brown:hair', 1.2)
     """
     token = token_combined.split(Tokens.COLON)
     token_length = len(token)
