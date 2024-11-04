@@ -70,9 +70,6 @@ def parse_line(
     """
     token = token_combined.split(Tokens.COLON)
     token_length = len(token)
-    regex_strength = re.search(r"(?<=:)\d+(?:\.\d*)?", token_combined)
-    if regex_strength is not None:
-        regex_strength.group(0)
 
     match (token_length):
         case 1:
