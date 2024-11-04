@@ -1,10 +1,15 @@
 import logging
+import re
+from pprint import pprint
 from typing import Type
 
+from . import utils
 from .abc import TokenInterface
 from .parser import Tokens
 
 logger = logging.getLogger()
+
+debug_fp = utils.BufferingLoggerWriter(logger, logging.DEBUG)
 
 
 def extract_token(sentence: str, delimiter: str) -> list[str]:
@@ -13,30 +18,55 @@ def extract_token(sentence: str, delimiter: str) -> list[str]:
 
     >>> list(extract_token('1girl,'))
     ['1girl']
+
     >>> list(extract_token('(brown hair:1.2),'))
     ['brown hair:1.2']
+
+    >>> list(extract_token('\(foo\)'))
+    ['\\(foo\\)']
+
     >>> list(extract_token('1girl, (brown hair:1.2), school uniform, smile,'))
     ['1girl', 'brown hair:1.2', 'school uniform', 'smile']
     """
-
+    # final product
     product = []
-    parenthesis = []
-    character_stack = []
 
-    for index, character in enumerate(sentence):
-        if character == Tokens.PARENSIS_LEFT:
-            parenthesis.append(index)
-        elif character == Tokens.PARENSIS_RIGHT:
-            parenthesis.pop()
-        elif character == delimiter:
+    parenthesis: list[int] = []
+
+    # consumed chararater will be accumurated before next ','
+    partial = []
+
+    index = 0
+    while index < len(sentence):
+
+        if sentence[index] == Tokens.PARENSIS_LEFT:
+            if index > 0:
+                if sentence[index - 1] == Tokens.BACKSLASH:
+                    partial.append(sentence[index])
+            else:
+                parenthesis.append(index)
+            index += 1
+
+        elif sentence[index] == Tokens.PARENSIS_RIGHT:
+            if index > 0:
+                if sentence[index - 1] == Tokens.BACKSLASH:
+                    partial.append(sentence[index])
+            elif parenthesis:
+                parenthesis.pop()
+            index += 1
+
+        elif sentence[index] == delimiter:
             if parenthesis:
-                character_stack.append(character)
-                continue
-            element = "".join(character_stack).strip()
-            character_stack.clear()
-            product.append(element)
+                partial.append(sentence[index])
+            else:
+                element = "".join(partial).strip()
+                partial.clear()
+                product.append(element)
+            index += 1
+
         else:
-            character_stack.append(character)
+            partial.append(sentence[index])
+            index += 1
 
     if parenthesis:
         first_parenthesis_index = parenthesis[0]
@@ -65,21 +95,22 @@ def parse_line(
 
     >>> parse_line('brown:hair:1.2', PromptInteractive)
     PromptInteractive('brown:hair', 1.2)
-    """
-    token = token_combined.split(Tokens.COLON)
-    token_length = len(token)
 
-    match (token_length):
-        case 1:
-            name, *_ = token
-            return token_factory(name, 1.0)
-        case 2:
-            name, regex_strength, *_ = token
-            return token_factory(name, float(regex_strength))
-        case _:
-            *ret, regex_strength = token
-            name = Tokens.COLON.join(ret)
-            return token_factory(name, float(regex_strength))
+    >>> parse_line('brown:hair', PromptInteractive)
+    PromptInteractive('brown:hair', 1.0)
+    """
+
+    name_pattern = r"(.*?)"
+    weight_pattern = r"(\d+(?:\.\d+)?)"
+
+    pattern = rf"^{name_pattern}(?::{weight_pattern})?$"
+
+    m = re.match(pattern, token_combined)
+
+    if m:
+        return token_factory(m.group(1), float(m.group(2) or 1.0))
+
+    raise Exception(f"no matched string for {token_combined!r}")
 
 
 def get_token(

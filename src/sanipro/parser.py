@@ -57,6 +57,7 @@ class Tokens:
     COLON = ":"
     COMMA = ","
     SPACE = " "
+    BACKSLASH = "\\"
 
 
 # parser_v2 will not do anything more than parse for now
