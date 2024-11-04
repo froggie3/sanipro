@@ -1,11 +1,12 @@
 import argparse
 import logging
 import sys
+from pprint import pprint
 
 from .abc import TokenInterface
 from .common import Delimiter, FuncConfig, PromptBuilder
 from .filters import exclude, mask, random, sort, sort_all, unique
-from .parser import TokenNonInteractive, TokenInteractive
+from .parser import TokenInteractive, TokenNonInteractive
 
 logger = logging.getLogger()
 
@@ -24,11 +25,22 @@ def run_once(
 
 def run(args) -> None:
     builder = Delimiter.create_builder(args.input_delimiter, args.output_delimiter)
+
+    delimiter = getattr(builder.delimiter, "sep_input", "")
+
+    def add_last_comma(sentence: str) -> str:
+        if not sentence.endswith(delimiter):
+            sentence += delimiter
+        return sentence
+
+    builder.append_pre_hook(add_last_comma)
+
     ps1 = args.ps1
     cfg = FuncConfig
 
     if args.random:
         builder.append_hook(cfg(func=random, kwargs=()))
+
     if args.sort_all or args.sort_all_reverse:
         from . import sort_all_factory
 
@@ -42,14 +54,18 @@ def run(args) -> None:
                 ),
             )
         )
+
     if args.sort or args.sort_reverse:
         builder.append_hook(cfg(func=sort, kwargs=(("reverse", args.sort_reverse),)))
+
     if args.unique or args.unique_reverse:
         builder.append_hook(
             cfg(func=unique, kwargs=(("reverse", args.unique_reverse),))
         )
+
     if args.exclude:
         builder.append_hook(cfg(func=exclude, kwargs=(("excludes", args.exclude),)))
+
     if args.mask:
         builder.append_hook(
             cfg(
@@ -73,6 +89,7 @@ def run(args) -> None:
 
 def app():
     parser = argparse.ArgumentParser()
+
     parser.add_argument(
         "-v",
         "--verbose",

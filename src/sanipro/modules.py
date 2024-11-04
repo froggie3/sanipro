@@ -1,4 +1,3 @@
-from .abc import TokenInterface
 from .common import Delimiter, PromptBuilder
 from .parser import TokenInteractive
 
@@ -9,3 +8,7 @@ def parse(prompt: str, sep=", ") -> PromptBuilder:
     builder.parse(prompt, TokenInteractive, True)
 
     return builder
+
+
+# this module offers several interfaces intended for this module to be used as a library,
+# currently work in progress

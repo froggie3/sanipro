@@ -1,9 +1,9 @@
 import logging
-from typing import Generator, Type
 
 from .abc import TokenInterface
 
 logger = logging.getLogger()
+
 
 class Token(TokenInterface):
     def __init__(self, name: str, strength: float) -> None:
@@ -28,7 +28,7 @@ class Token(TokenInterface):
 
     def __repr__(self):
         items = (f"{v!r}" for v in (self.name, self.strength))
-        return "{}({})".format(type(self).__name__, Tokens.COMMA.join(items))
+        return "{}({})".format(type(self).__name__, f"{Tokens.COMMA} ".join(items))
 
 
 class TokenInteractive(Token):
@@ -59,77 +59,15 @@ class Tokens:
     SPACE = " "
 
 
-def extract_token(sentence: str, delimiter: str) -> list[str]:
-    """
-    split `sentence` at commas and remove parentheses.
+# parser_v2 will not do anything more than parse for now
+USE_PARSER_V2 = False
 
-    >>> list(extract_token('1girl,'))
-    ['1girl']
-    >>> list(extract_token('(brown hair:1.2),'))
-    ['brown hair:1.2']
-    >>> list(extract_token('1girl, (brown hair:1.2), school uniform, smile,'))
-    ['1girl', 'brown hair:1.2', 'school uniform', 'smile']
-    """
+if USE_PARSER_V2:
+    from . import parser_v2 as parser
+else:
+    from . import parser_v1 as parser
 
-    product = []
-    parenthesis = []
-    character_stack = []
-
-    for index, character in enumerate(sentence):
-        if character == Tokens.PARENSIS_LEFT:
-            parenthesis.append(index)
-        elif character == Tokens.PARENSIS_RIGHT:
-            parenthesis.pop()
-        elif character == delimiter:
-            if parenthesis:
-                character_stack.append(character)
-                continue
-            element = "".join(character_stack).strip()
-            character_stack.clear()
-            product.append(element)
-        else:
-            character_stack.append(character)
-
-    if parenthesis:
-        first_parenthesis_index = parenthesis[0]
-        raise ValueError(f"first unclosed parenthesis was found after {sentence[0:first_parenthesis_index]!r}")
-
-    return product
-
-def parse_line(
-    token_combined: str, token_factory: Type[TokenInterface]
-) -> TokenInterface:
-    """
-    split `token_combined` into left and right sides with `:`
-    when there are three or more elements,
-    the right side separated by the last colon is adopted as the strength.
-
-    >>> from lib.common import PromptInteractive, PromptNonInteractive
-
-    >>> parse_line('brown hair:1.2', PromptInteractive)
-    PromptInteractive(_name='brown hair', _strength='1.2', _delimiter=':')
-
-    >>> parse_line('1girl', PromptInteractive)
-    PromptInteractive(_name='1girl', _strength='1.0', _delimiter=':')
-
-    >>> parse_line('brown:hair:1.2', PromptInteractive)
-    PromptInteractive(_name='brown:hair', _strength='1.2', _delimiter=':')
-    """
-    token = token_combined.split(Tokens.COLON)
-    token_length = len(token)
-
-    match (token_length):
-        case 1:
-            name, *_ = token
-            return token_factory(name, 1.0)
-        case 2:
-            name, strength, *_ = token
-            return token_factory(name, float(strength))
-        case _:
-            *ret, strength = token
-            name = Tokens.COLON.join(ret)
-            return token_factory(name, float(strength))
-
+get_token = parser.get_token
 
 if __name__ == "__main__":
     import doctest
