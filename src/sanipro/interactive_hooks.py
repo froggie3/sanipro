@@ -16,7 +16,8 @@ def show_welcome_message():
     version = ".".join(("0", "1"))
     dt = time.asctime()
     welcome_message = (
-        f"{prog} {version} (created by iigau)\n" f"Program was launched up at {dt}."
+        f"{prog} (created by iigau) in interactive mode\n"
+        f"Program was launched up at {dt}."
     )
 
     print(welcome_message)

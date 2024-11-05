@@ -71,7 +71,7 @@ class Parser:
     def get_token(
         token_factory: Type[TokenInterface], sentence: str, delimiter: str | None = None
     ):
-        NotImplementedError("An object must implement this method")
+        raise NotImplementedError("An object must implement this method")
 
 
 class ParserV1(Parser):

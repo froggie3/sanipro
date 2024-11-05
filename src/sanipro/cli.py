@@ -38,10 +38,27 @@ def run(args) -> None:
     ps1 = args.ps1
     cfg = FuncConfig
 
-    if args.random:
+    # Todo: slightly redundant. may need a dedicated data structure for CLI option
+    v1_commands = {
+        "mask",
+        "random",
+        "sort",
+        "sort_all",
+        "unique",
+    }
+
+    if args.use_parser_v2 and args.subcommand in v1_commands:
+        raise NotImplementedError(
+            f"the '{args.subcommand}' command is not available when using parse_v2."
+        )
+
+    if args.use_parser_v2:
+        logger.warning("using parser_v2.")
+
+    if args.subcommand == "random":
         builder.append_hook(cfg(func=random, kwargs=()))
 
-    if args.sort_all or args.sort_all_reverse:
+    if args.subcommand == "sort_all":
         from . import sort_all_factory
 
         sorted_partial = sort_all_factory.apply_from(args.sort_all)
@@ -50,29 +67,31 @@ def run(args) -> None:
                 func=sort_all,
                 kwargs=(
                     ("sorted_partial", sorted_partial),
-                    ("reverse", True if args.sort_all_reverse else False),
+                    ("reverse", True if (args.sort_all.reverse or False) else False),
                 ),
             )
         )
 
-    if args.sort or args.sort_reverse:
-        builder.append_hook(cfg(func=sort, kwargs=(("reverse", args.sort_reverse),)))
-
-    if args.unique or args.unique_reverse:
+    if args.subcommand == "sort":
         builder.append_hook(
-            cfg(func=unique, kwargs=(("reverse", args.unique_reverse),))
+            cfg(func=sort, kwargs=(("reverse", (args.sort.reverse or False)),))
+        )
+
+    if args.subcommand == "unique":
+        builder.append_hook(
+            cfg(func=unique, kwargs=(("reverse", (args.unique.reverse or False)),))
+        )
+
+    if args.subcommand == "mask":
+        builder.append_hook(
+            cfg(
+                func=mask,
+                kwargs=(("excludes", args.mask), ("replace_to", args.mask.replace_to)),
+            )
         )
 
     if args.exclude:
         builder.append_hook(cfg(func=exclude, kwargs=(("excludes", args.exclude),)))
-
-    if args.mask:
-        builder.append_hook(
-            cfg(
-                func=mask,
-                kwargs=(("excludes", args.mask), ("replace_to", args.mask_replace_to)),
-            )
-        )
 
     if args.interactive:
         from . import interactive_hooks
@@ -119,57 +138,69 @@ def app():
         help="enables interactive input eternally",
     )
     parser.add_argument("-e", "--exclude", nargs="*", help="exclude words specified")
-
     parser.add_argument(
-        "-m", "--mask", nargs="*", help="mask words specified rather than removing them"
+        "--use_parser_v2",
+        "-2",
+        action="store_true",
+        help="use parse_v2 instead of the default parse_v1",
     )
-    parser.add_argument(
-        "--mask-replace-to",
+
+    subparsers = parser.add_subparsers(dest="subcommand")
+
+    parser_mask = subparsers.add_parser("mask")
+    parser_mask.add_argument(
+        "mask", nargs="*", help="mask words specified rather than removing them"
+    )
+    parser_mask.add_argument(
+        "--replace-to",
         default=r"%%%",
         help="in combination with --mask, specifies the new string replaced to",
     )
 
-    group_sort = parser.add_mutually_exclusive_group()
-    group_sort.add_argument(
-        "-r",
-        "--random",
+    parser_random = subparsers.add_parser("random")
+    parser_random.add_argument(
+        "random",
         action="store_true",
         help="BE RANDOM!",
     )
-    group_sort.add_argument(
-        "--sort-all",
-        metavar="sort_law_name",
-        help="reorder all the prompt (avaliable: 'lexicographical', 'length', 'strength')",
-    )
-    group_sort.add_argument(
-        "--sort-all-reverse",
-        metavar="sort_law_name",
-        help="the same as above but with reversed order",
-    )
-    group_sort.add_argument(
-        "-s",
-        "--sort",
+
+    parser_sort = subparsers.add_parser("sort")
+    parser_sort.add_argument(
+        "sort",
         action="store_true",
         help="reorder duplicate tokens with their strength to make them consecutive",
     )
-    group_sort.add_argument(
-        "--sort-reverse",
-        action="store_true",
-        help="the same as above but with reversed order",
-    )
-    group_sort.add_argument(
-        "-u",
-        "--unique",
-        action="store_true",
-        help="reorder duplicate tokens with their strength to make them unique",
-    )
-    group_sort.add_argument(
-        "--unique-reverse",
+    parser_sort.add_argument(
+        "--reverse",
         action="store_true",
         help="the same as above but with reversed order",
     )
 
-    args = parser.parse_args()
+    parser_sort_all = subparsers.add_parser("sort-all")
+    parser_sort_all.add_argument(
+        "sort-all",
+        metavar="sort_law_name",
+        help="reorder all the prompt (avaliable: 'lexicographical', 'length', 'strength')",
+    )
+    parser_sort_all.add_argument(
+        "--reverse",
+        action="store_true",
+        help="the same as above but with reversed order",
+    )
+
+    parser_unique = subparsers.add_parser("unique")
+    parser_unique.add_argument(
+        "unique",
+        action="store_true",
+        help="reorder duplicate tokens with their strength to make them unique",
+    )
+    parser_unique.add_argument(
+        "--reverse",
+        action="store_true",
+        help="the same as above but with reversed order",
+    )
+
+    args = parser.parse_args(sys.argv[1:])
 
     if args.verbose:
         logger.level = logging.DEBUG
@@ -184,6 +215,9 @@ def app():
         sys.exit(1)
     except EOFError as e:
         print()
+        sys.exit(1)
+    except NotImplementedError as e:
+        logger.error(f"error: {e}")
         sys.exit(1)
     except Exception as e:
         logger.exception(f"error: {e}")
