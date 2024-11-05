@@ -94,29 +94,30 @@ class ParserV1(Parser):
         """
         # final product
         product = []
-
         parenthesis: list[int] = []
-
         # consumed chararater will be accumurated before next ','
         partial = []
 
         index = 0
         while index < len(sentence):
-
             if sentence[index] == Tokens.PARENSIS_LEFT:
-                if index > 0:
+                if index >= 1:
                     if sentence[index - 1] == Tokens.BACKSLASH:
                         partial.append(sentence[index])
-                else:
+                    else:
+                        parenthesis.append(index)
+                elif index == 0:
                     parenthesis.append(index)
                 index += 1
 
             elif sentence[index] == Tokens.PARENSIS_RIGHT:
-                if index > 0:
+                if index >= 1:
                     if sentence[index - 1] == Tokens.BACKSLASH:
                         partial.append(sentence[index])
-                elif parenthesis:
-                    parenthesis.pop()
+                    else:
+                        parenthesis.pop()
+                elif index == 0:
+                    partial.append(sentence[index])
                 index += 1
 
             elif sentence[index] == delimiter:

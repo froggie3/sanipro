@@ -77,26 +77,26 @@ def run(args) -> None:
                 func=sort_all,
                 kwargs=(
                     ("sorted_partial", sorted_partial),
-                    ("reverse", True if (args.sort_all.reverse or False) else False),
+                    ("reverse", True if (args.reverse or False) else False),
                 ),
             )
         )
 
     if args.subcommand == "sort":
         builder.append_hook(
-            cfg(func=sort, kwargs=(("reverse", (args.sort.reverse or False)),))
+            cfg(func=sort, kwargs=(("reverse", (args.reverse or False)),))
         )
 
     if args.subcommand == "unique":
         builder.append_hook(
-            cfg(func=unique, kwargs=(("reverse", (args.unique.reverse or False)),))
+            cfg(func=unique, kwargs=(("reverse", (args.reverse or False)),))
         )
 
     if args.subcommand == "mask":
         builder.append_hook(
             cfg(
                 func=mask,
-                kwargs=(("excludes", args.mask), ("replace_to", args.mask.replace_to)),
+                kwargs=(("excludes", args.mask), ("replace_to", args.replace_to)),
             )
         )
 
@@ -211,6 +211,7 @@ def app():
     )
 
     args = parser.parse_args(sys.argv[1:])
+    print(args)
 
     if args.verbose:
         logger.level = logging.DEBUG
