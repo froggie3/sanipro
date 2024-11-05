@@ -21,22 +21,35 @@ class Delimiter(NamedTuple):
     sep_output: str
 
     @classmethod
-    def create_builder(cls, input: str, output: str) -> "PromptBuilder":
-        builder = PromptBuilder(cls(input, output))
+    def create_builder(
+        cls, input: str, output: str, parser: type[parser.Parser] = parser.ParserV1
+    ) -> "PromptBuilder":
+        builder = PromptBuilder(
+            parser,
+            cls(input, output),
+        )
 
         return builder
 
 
 class PromptBuilder:
-    def __init__(self, delimiter: Delimiter | None = None):
+    def __init__(
+        self,
+        psr: type[parser.Parser],
+        delimiter: Delimiter | None = None,
+    ):
         self.pre_funcs = []
         self.funcs: list[FuncConfig] = []
         self.tokens = []
         self.delimiter = delimiter
+        self.parser: type[parser.Parser] = psr
 
     def __str__(self) -> str:
         lines = []
-        delim = getattr(self.delimiter, "sep_output", "")
+        delim = ""
+        if self.delimiter is not None:
+            delim = getattr(self.delimiter, "sep_output")
+
         for token in self.tokens:
             lines.append(str(token))
 
@@ -73,9 +86,13 @@ class PromptBuilder:
         prompts = []
         sentence = self._execute_pre_hooks(sentence)
 
-        delimiter = getattr(self.delimiter, "sep_input")
-        for element in parser.get_token(token_factory, sentence, delimiter):
+        delimiter = ""
+        if self.delimiter is not None:
+            delimiter = getattr(self.delimiter, "sep_input")
+
+        for element in self.parser.get_token(token_factory, sentence, delimiter):
             prompts.append(element)
+
         pprint(prompts, debug_fp)
         if auto_apply:
             self.apply(prompts)

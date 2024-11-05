@@ -304,12 +304,6 @@ class ParserV2(Parser):
         )
 
 
-# parser_v2 will not do anything more than parse for now
-USE_PARSER_V2 = False
-
-parser = ParserV2 if USE_PARSER_V2 else ParserV1
-get_token = parser.get_token
-
 if __name__ == "__main__":
     import doctest
 

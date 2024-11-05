@@ -6,7 +6,8 @@ from pprint import pprint
 from .abc import TokenInterface
 from .common import Delimiter, FuncConfig, PromptBuilder
 from .filters import exclude, mask, random, sort, sort_all, unique
-from .parser import TokenInteractive, TokenNonInteractive
+from .parser import (Parser, ParserV1, ParserV2, TokenInteractive,
+                     TokenNonInteractive)
 
 logger = logging.getLogger()
 
@@ -24,16 +25,6 @@ def run_once(
 
 
 def run(args) -> None:
-    builder = Delimiter.create_builder(args.input_delimiter, args.output_delimiter)
-
-    delimiter = getattr(builder.delimiter, "sep_input", "")
-
-    def add_last_comma(sentence: str) -> str:
-        if not sentence.endswith(delimiter):
-            sentence += delimiter
-        return sentence
-
-    builder.append_pre_hook(add_last_comma)
 
     ps1 = args.ps1
     cfg = FuncConfig
@@ -52,8 +43,27 @@ def run(args) -> None:
             f"the '{args.subcommand}' command is not available when using parse_v2."
         )
 
+    builder = (
+        PromptBuilder(psr=ParserV2)
+        if args.use_parser_v2
+        else Delimiter.create_builder(
+            args.input_delimiter, args.output_delimiter, ParserV1
+        )
+    )
+
     if args.use_parser_v2:
         logger.warning("using parser_v2.")
+    else:
+
+        def add_last_comma(sentence: str) -> str:
+            delim = ""
+            if builder.delimiter is not None:
+                delim = builder.delimiter.sep_input
+            if not sentence.endswith(delim):
+                sentence += delim
+            return sentence
+
+        builder.append_pre_hook(add_last_comma)
 
     if args.subcommand == "random":
         builder.append_hook(cfg(func=random, kwargs=()))
