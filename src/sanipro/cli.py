@@ -12,6 +12,155 @@ from .parser import ParserV1, ParserV2, TokenInteractive, TokenNonInteractive
 logger = logging.getLogger()
 
 
+class Subcommand:
+    """the name definition for the subcommands"""
+
+    MASK = "mask"
+    RANDOM = "random"
+    SORT = "sort"
+    SORT_ALL = "sort-all"
+    UNIQUE = "unique"
+
+
+class Commands:
+    # features usable in parser_v1
+    mask = False
+    random = False
+    sort = False
+    sort_all = "lexicographical"
+    unique = False
+
+    # basic functions
+    exclude = False
+    input_delimiter = ","
+    interactive = False
+    output_delimiter = ", "
+    ps1 = f"{color.default}>>>{color.RESET} "
+    replace_to = r"%%%"
+    subcommand = ""
+    use_parser_v2 = False
+    verbose = False
+
+    # subcommands options
+    reverse = False
+
+    def get_logger_level(self) -> int:
+        return logging.DEBUG if self.verbose else logging.INFO
+
+    def debug(self) -> None:
+        logger.debug(f"CLI parameters={self!r}")
+
+    @classmethod
+    def prepare_parser(cls) -> argparse.ArgumentParser:
+        parser = argparse.ArgumentParser()
+
+        parser.add_argument(
+            "-v",
+            "--verbose",
+            action="store_true",
+            help="displays extra amount of logs for debugging",
+        )
+        parser.add_argument(
+            "-d",
+            "--input-delimiter",
+            default=cls.input_delimiter,
+            help="specifies the delimiter for the original prompts",
+        )
+        parser.add_argument(
+            "--output-delimiter",
+            default=cls.output_delimiter,
+            help="specifies the delimiter for the processed prompts",
+        )
+        parser.add_argument(
+            "--ps1",
+            default=cls.ps1,
+            help="specifies the custom format for the prompts",
+        )
+        parser.add_argument(
+            "-i",
+            "--interactive",
+            action="store_true",
+            help="enables interactive input eternally",
+        )
+        parser.add_argument(
+            "-e", "--exclude", nargs="*", help="exclude words specified"
+        )
+        parser.add_argument(
+            "--use_parser_v2",
+            "-2",
+            action="store_true",
+            help="use parse_v2 instead of the default parse_v1",
+        )
+
+        subparsers = parser.add_subparsers(dest="subcommand")
+
+        parser_mask = subparsers.add_parser(Subcommand.MASK)
+        parser_mask.add_argument(
+            "mask", nargs="*", help="mask words specified rather than removing them"
+        )
+        parser_mask.add_argument(
+            "--replace-to",
+            default=cls.replace_to,
+            help="in combination with --mask, specifies the new string replaced to",
+        )
+
+        parser_random = subparsers.add_parser(Subcommand.RANDOM)
+        parser_random.add_argument(
+            "random",
+            action="store_true",
+            help="BE RANDOM!",
+        )
+
+        parser_sort = subparsers.add_parser(Subcommand.SORT)
+        parser_sort.add_argument(
+            "sort",
+            action="store_true",
+            help="reorder duplicate tokens with their strength to make them consecutive",
+        )
+        parser_sort.add_argument(
+            "--reverse",
+            action="store_true",
+            help="the same as above but with reversed order",
+        )
+
+        parser_sort_all = subparsers.add_parser(Subcommand.SORT_ALL)
+        parser_sort_all.add_argument(
+            "sort-all",
+            metavar="sort_law_name",
+            default=cls.sort_all,
+            const=cls.sort_all,
+            nargs="?",
+            choices=("lexicographical", "length", "strength"),
+            help="reorder all the prompt (default: %(default)s)",
+        )
+        parser_sort_all.add_argument(
+            "--reverse",
+            action="store_true",
+            help="the same as above but with reversed order",
+        )
+
+        parser_unique = subparsers.add_parser(Subcommand.UNIQUE)
+        parser_unique.add_argument(
+            "unique",
+            action="store_true",
+            help="reorder duplicate tokens with their strength to make them unique",
+        )
+        parser_unique.add_argument(
+            "--reverse",
+            action="store_true",
+            help="the same as above but with reversed order",
+        )
+
+        return parser
+
+    @classmethod
+    def from_sys_argv(cls, argv: list) -> "Commands":
+        parser = cls.prepare_parser()
+        args = parser.parse_args(argv, namespace=cls())
+
+        return args
+
+
 def run_once(
     builder: PromptBuilder,
     ps1: str,
@@ -24,23 +173,13 @@ def run_once(
         print(result)
 
 
-def run(args) -> None:
-
+def run(args: Commands) -> None:
     ps1 = args.ps1
     cfg = FuncConfig
 
-    # Todo: slightly redundant. may need a dedicated data structure for CLI option
-    v1_commands = {
-        "mask",
-        "random",
-        "sort",
-        "sort_all",
-        "unique",
-    }
-
     cli_hooks.execute(cli_hooks.init)
 
-    if args.use_parser_v2 and args.subcommand in v1_commands:
+    if args.use_parser_v2 and hasattr(Subcommand, args.subcommand):
         raise NotImplementedError(
             f"the '{args.subcommand}' command is not available when using parse_v2."
         )
@@ -67,10 +206,10 @@ def run(args) -> None:
 
         builder.append_pre_hook(add_last_comma)
 
-    if args.subcommand == "random":
+    if args.subcommand == Subcommand.RANDOM:
         builder.append_hook(cfg(func=random, kwargs=()))
 
-    if args.subcommand == "sort_all":
+    if args.subcommand == Subcommand.SORT_ALL:
         from . import sort_all_factory
 
         sorted_partial = sort_all_factory.apply_from(args.sort_all)
@@ -84,17 +223,17 @@ def run(args) -> None:
             )
         )
 
-    if args.subcommand == "sort":
+    if args.subcommand == Subcommand.SORT:
         builder.append_hook(
             cfg(func=sort, kwargs=(("reverse", (args.reverse or False)),))
         )
 
-    if args.subcommand == "unique":
+    if args.subcommand == Subcommand.UNIQUE:
         builder.append_hook(
             cfg(func=unique, kwargs=(("reverse", (args.reverse or False)),))
         )
 
-    if args.subcommand == "mask":
+    if args.subcommand == Subcommand.MASK:
         builder.append_hook(
             cfg(
                 func=mask,
@@ -121,108 +260,10 @@ def run(args) -> None:
 
 
 def app():
-    parser = argparse.ArgumentParser()
+    args = Commands.from_sys_argv(sys.argv[1:])
+    logger.level = args.get_logger_level()
+    args.debug()
 
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        action="store_true",
-        help="displays extra amount of logs for debugging",
-    )
-    parser.add_argument(
-        "-d",
-        "--input-delimiter",
-        default=",",
-        help="specifies the delimiter for the original prompts",
-    )
-    parser.add_argument(
-        "--output-delimiter",
-        default=", ",
-        help="specifies the delimiter for the processed prompts",
-    )
-    parser.add_argument(
-        "--ps1",
-        default=f"{color.default}>>>{color.RESET} ",
-        help="specifies the custom format for the prompts",
-    )
-    parser.add_argument(
-        "-i",
-        "--interactive",
-        action="store_true",
-        help="enables interactive input eternally",
-    )
-    parser.add_argument("-e", "--exclude", nargs="*", help="exclude words specified")
-    parser.add_argument(
-        "--use_parser_v2",
-        "-2",
-        action="store_true",
-        help="use parse_v2 instead of the default parse_v1",
-    )
-
-    subparsers = parser.add_subparsers(dest="subcommand")
-
-    parser_mask = subparsers.add_parser("mask")
-    parser_mask.add_argument(
-        "mask", nargs="*", help="mask words specified rather than removing them"
-    )
-    parser_mask.add_argument(
-        "--replace-to",
-        default=r"%%%",
-        help="in combination with --mask, specifies the new string replaced to",
-    )
-
-    parser_random = subparsers.add_parser("random")
-    parser_random.add_argument(
-        "random",
-        action="store_true",
-        help="BE RANDOM!",
-    )
-
-    parser_sort = subparsers.add_parser("sort")
-    parser_sort.add_argument(
-        "sort",
-        action="store_true",
-        help="reorder duplicate tokens with their strength to make them consecutive",
-    )
-    parser_sort.add_argument(
-        "--reverse",
-        action="store_true",
-        help="the same as above but with reversed order",
-    )
-
-    parser_sort_all = subparsers.add_parser("sort-all")
-    parser_sort_all.add_argument(
-        "sort-all",
-        metavar="sort_law_name",
-        default="lexicographical",
-        help="reorder all the prompt (avaliable: 'lexicographical', 'length', 'strength')",
-    )
-    parser_sort_all.add_argument(
-        "--reverse",
-        action="store_true",
-        help="the same as above but with reversed order",
-    )
-
-    parser_unique = subparsers.add_parser("unique")
-    parser_unique.add_argument(
-        "unique",
-        action="store_true",
-        help="reorder duplicate tokens with their strength to make them unique",
-    )
-    parser_unique.add_argument(
-        "--reverse",
-        action="store_true",
-        help="the same as above but with reversed order",
-    )
-
-    args = parser.parse_args(sys.argv[1:])
-
-    if args.verbose:
-        logger.level = logging.DEBUG
-    else:
-        logger.level = logging.INFO
-
-    logger.debug(f"CLI parameters={args!r}")
     try:
         run(args)
     except KeyboardInterrupt as e:

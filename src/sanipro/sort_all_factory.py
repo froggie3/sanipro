@@ -1,6 +1,9 @@
 import functools
+import logging
 
 from .abc import TokenInterface
+
+logger = logging.getLogger()
 
 available = (
     "lexicographical",
@@ -29,7 +32,8 @@ def apply_from(sort_law_name: str):
     )
 
     for func_name, func in zip(available, funcs):
+        logger.debug(f"matching {func_name!r} with {func.__name__!r}")
         if func_name.startswith(sort_law_name):
             return functools.partial(sorted, key=func)
-    else:
-        raise Exception(f"no matched sort law for '{sort_law_name}'")
+
+    raise Exception(f"no matched sort law for '{sort_law_name}'")
