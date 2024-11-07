@@ -34,7 +34,10 @@ class Token(TokenInterface):
 
     def __repr__(self):
         items = (f"{v!r}" for v in (self.name, self.strength))
-        return "{}({})".format(type(self).__name__, f"{Tokens.COMMA} ".join(items))
+        return "{}({})".format(
+            type(self).__name__,
+            f"{Tokens.COMMA} ".join(items),
+        )
 
 
 class TokenInteractive(Token):
@@ -44,17 +47,27 @@ class TokenInteractive(Token):
 
     def __str__(self):
         if self.strength != 1.0:
-            return "({}{}{:.1f})".format(self.name, self._delimiter, self.strength)
+            return "({}{}{:.1f})".format(
+                self.name,
+                self._delimiter,
+                self.strength,
+            )
         return self.name
 
 
 class TokenNonInteractive(Token):
     def __init__(self, name: str, strength: float):
         Token.__init__(self, name, strength)
+        # defining 'delimiter' between token and weight helps to
+        # pass the result of this command to like `column -t -s"\t"`
         self._delimiter = "\t"
 
     def __str__(self):
-        return "{}{}{.2f}".format(self.strength, self._delimiter, self.name)
+        return "{}{}{:.1f}".format(
+            self.name,
+            self._delimiter,
+            self.strength,
+        )
 
 
 class Tokens:
