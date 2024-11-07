@@ -68,9 +68,10 @@ class PromptBuilder:
         if funcs is None:
             funcs = []
         # marge!
-        self.funcs = [*set([*self.funcs, *funcs])]
+        self.funcs.extend(funcs)
         for func in self.funcs:
             prompts = func.func(prompts, **dict(func.kwargs))
+            logger.debug(f"the hook {func.func.__name__!r} executed")
         self.tokens = prompts
         return self
 

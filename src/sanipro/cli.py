@@ -3,11 +3,11 @@ import logging
 import sys
 from pprint import pprint
 
+from . import cli_hooks, color
 from .abc import TokenInterface
 from .common import Delimiter, FuncConfig, PromptBuilder
 from .filters import exclude, mask, random, sort, sort_all, unique
-from .parser import (Parser, ParserV1, ParserV2, TokenInteractive,
-                     TokenNonInteractive)
+from .parser import ParserV1, ParserV2, TokenInteractive, TokenNonInteractive
 
 logger = logging.getLogger()
 
@@ -37,6 +37,8 @@ def run(args) -> None:
         "sort_all",
         "unique",
     }
+
+    cli_hooks.execute(cli_hooks.init)
 
     if args.use_parser_v2 and args.subcommand in v1_commands:
         raise NotImplementedError(
@@ -104,12 +106,14 @@ def run(args) -> None:
         builder.append_hook(cfg(func=exclude, kwargs=(("excludes", args.exclude),)))
 
     if args.interactive:
-        from . import interactive_hooks
+        cli_hooks.execute(cli_hooks.interactive)
 
         while True:
             try:
                 run_once(builder, ps1, TokenInteractive)
             except ValueError as e:
+                logger.exception(f"error: {e}")
+            except (IndexError, KeyError, AttributeError) as e:
                 logger.exception(f"error: {e}")
     else:
         ps1 = ""
@@ -138,7 +142,7 @@ def app():
     )
     parser.add_argument(
         "--ps1",
-        default=">>> ",
+        default=f"{color.default}>>>{color.RESET} ",
         help="specifies the custom format for the prompts",
     )
     parser.add_argument(
@@ -190,6 +194,7 @@ def app():
     parser_sort_all.add_argument(
         "sort-all",
         metavar="sort_law_name",
+        default="lexicographical",
         help="reorder all the prompt (avaliable: 'lexicographical', 'length', 'strength')",
     )
     parser_sort_all.add_argument(
@@ -211,14 +216,13 @@ def app():
     )
 
     args = parser.parse_args(sys.argv[1:])
-    print(args)
 
     if args.verbose:
         logger.level = logging.DEBUG
     else:
         logger.level = logging.INFO
 
-    logger.debug(args)
+    logger.debug(f"CLI parameters={args!r}")
     try:
         run(args)
     except KeyboardInterrupt as e:
