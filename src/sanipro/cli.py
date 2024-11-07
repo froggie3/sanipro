@@ -153,6 +153,77 @@ class Commands:
 
         return parser
 
+    def get_builder(self) -> PromptBuilder:
+        cfg = FuncConfig
+        cli_hooks.execute(cli_hooks.init)
+
+        if self.use_parser_v2 and hasattr(Subcommand, self.subcommand):
+            raise NotImplementedError(
+                f"the '{self.subcommand}' command is not available when using parse_v2."
+            )
+
+        builder = None
+        if self.use_parser_v2:
+            builder = PromptBuilder(psr=ParserV2)
+        else:
+            builder = Delimiter.create_builder(
+                self.input_delimiter, self.output_delimiter, ParserV1
+            )
+
+        if self.use_parser_v2:
+            logger.warning("using parser_v2.")
+        else:
+
+            def add_last_comma(sentence: str) -> str:
+                delim = ""
+                if builder.delimiter is not None:
+                    delim = builder.delimiter.sep_input
+                if not sentence.endswith(delim):
+                    sentence += delim
+                return sentence
+
+            builder.append_pre_hook(add_last_comma)
+
+        if self.subcommand == Subcommand.RANDOM:
+            builder.append_hook(cfg(func=random, kwargs=()))
+
+        if self.subcommand == Subcommand.SORT_ALL:
+            from . import sort_all_factory
+
+            sorted_partial = sort_all_factory.apply_from(self.sort_all)
+            builder.append_hook(
+                cfg(
+                    func=sort_all,
+                    kwargs=(
+                        ("sorted_partial", sorted_partial),
+                        ("reverse", True if (self.reverse or False) else False),
+                    ),
+                )
+            )
+
+        if self.subcommand == Subcommand.SORT:
+            builder.append_hook(
+                cfg(func=sort, kwargs=(("reverse", (self.reverse or False)),))
+            )
+
+        if self.subcommand == Subcommand.UNIQUE:
+            builder.append_hook(
+                cfg(func=unique, kwargs=(("reverse", (self.reverse or False)),))
+            )
+
+        if self.subcommand == Subcommand.MASK:
+            builder.append_hook(
+                cfg(
+                    func=mask,
+                    kwargs=(("excludes", self.mask), ("replace_to", self.replace_to)),
+                )
+            )
+
+        if self.exclude:
+            builder.append_hook(cfg(func=exclude, kwargs=(("excludes", self.exclude),)))
+
+        return builder
+
     @classmethod
     def from_sys_argv(cls, argv: list) -> "Commands":
         parser = cls.prepare_parser()
@@ -167,7 +238,7 @@ class Runner:
         self.ps1 = ps1
         self.prpt = prpt
 
-    def run_once(
+    def _run_once(
         self,
     ) -> None:
         sentence = input(self.ps1).strip()
@@ -180,11 +251,10 @@ class Runner:
         raise NotImplementedError
 
     @staticmethod
-    def from_args(
-        builder: PromptBuilder, ps1: str, is_interactive: bool = False
-    ) -> "Runner":
-        if is_interactive:
-            return RunnerInteractive(builder, ps1=ps1, prpt=TokenInteractive)
+    def from_args(args: Commands) -> "Runner":
+        builder = args.get_builder()
+        if args.interactive:
+            return RunnerInteractive(builder, ps1=args.ps1, prpt=TokenInteractive)
         else:
             return RunnerNonInteractive(builder, ps1="", prpt=TokenNonInteractive)
 
@@ -194,7 +264,7 @@ class RunnerInteractive(Runner):
         cli_hooks.execute(cli_hooks.interactive)
         while True:
             try:
-                self.run_once()
+                self._run_once()
             except ValueError as e:
                 logger.exception(f"error: {e}")
             except (IndexError, KeyError, AttributeError) as e:
@@ -203,88 +273,14 @@ class RunnerInteractive(Runner):
 
 class RunnerNonInteractive(Runner):
     def run(self):
-        self.run_once()
-
-
-def run(args: Commands) -> Runner:
-    ps1 = args.ps1
-    cfg = FuncConfig
-
-    cli_hooks.execute(cli_hooks.init)
-
-    if args.use_parser_v2 and hasattr(Subcommand, args.subcommand):
-        raise NotImplementedError(
-            f"the '{args.subcommand}' command is not available when using parse_v2."
-        )
-
-    builder = None
-    if args.use_parser_v2:
-        builder = PromptBuilder(psr=ParserV2)
-    else:
-        builder = Delimiter.create_builder(
-            args.input_delimiter, args.output_delimiter, ParserV1
-        )
-
-    if args.use_parser_v2:
-        logger.warning("using parser_v2.")
-    else:
-
-        def add_last_comma(sentence: str) -> str:
-            delim = ""
-            if builder.delimiter is not None:
-                delim = builder.delimiter.sep_input
-            if not sentence.endswith(delim):
-                sentence += delim
-            return sentence
-
-        builder.append_pre_hook(add_last_comma)
-
-    if args.subcommand == Subcommand.RANDOM:
-        builder.append_hook(cfg(func=random, kwargs=()))
-
-    if args.subcommand == Subcommand.SORT_ALL:
-        from . import sort_all_factory
-
-        sorted_partial = sort_all_factory.apply_from(args.sort_all)
-        builder.append_hook(
-            cfg(
-                func=sort_all,
-                kwargs=(
-                    ("sorted_partial", sorted_partial),
-                    ("reverse", True if (args.reverse or False) else False),
-                ),
-            )
-        )
-
-    if args.subcommand == Subcommand.SORT:
-        builder.append_hook(
-            cfg(func=sort, kwargs=(("reverse", (args.reverse or False)),))
-        )
-
-    if args.subcommand == Subcommand.UNIQUE:
-        builder.append_hook(
-            cfg(func=unique, kwargs=(("reverse", (args.reverse or False)),))
-        )
-
-    if args.subcommand == Subcommand.MASK:
-        builder.append_hook(
-            cfg(
-                func=mask,
-                kwargs=(("excludes", args.mask), ("replace_to", args.replace_to)),
-            )
-        )
-
-    if args.exclude:
-        builder.append_hook(cfg(func=exclude, kwargs=(("excludes", args.exclude),)))
-
-    return Runner.from_args(builder, ps1, args.interactive)
+        self._run_once()
 
 
 def app():
     args = Commands.from_sys_argv(sys.argv[1:])
     logger.level = args.get_logger_level()
     args.debug()
-    runner = run(args)
+    runner = Runner.from_args(args)
 
     try:
         runner.run()
