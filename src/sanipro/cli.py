@@ -161,19 +161,52 @@ class Commands:
         return args
 
 
-def run_once(
-    builder: PromptBuilder,
-    ps1: str,
-    prpt: type[TokenInterface],
-) -> None:
-    sentence = input(ps1).strip()
-    if sentence != "":
-        builder.parse(sentence, prpt, auto_apply=True)
-        result = str(builder)
-        print(result)
+class Runner:
+    def __init__(self, builder: PromptBuilder, ps1: str, prpt: type[TokenInterface]):
+        self.builder = builder
+        self.ps1 = ps1
+        self.prpt = prpt
+
+    def run_once(
+        self,
+    ) -> None:
+        sentence = input(self.ps1).strip()
+        if sentence != "":
+            self.builder.parse(sentence, self.prpt, auto_apply=True)
+            result = str(self.builder)
+            print(result)
+
+    def run(self):
+        raise NotImplementedError
+
+    @staticmethod
+    def from_args(
+        builder: PromptBuilder, ps1: str, is_interactive: bool = False
+    ) -> "Runner":
+        if is_interactive:
+            return RunnerInteractive(builder, ps1=ps1, prpt=TokenInteractive)
+        else:
+            return RunnerNonInteractive(builder, ps1="", prpt=TokenNonInteractive)
 
 
-def run(args: Commands) -> None:
+class RunnerInteractive(Runner):
+    def run(self):
+        cli_hooks.execute(cli_hooks.interactive)
+        while True:
+            try:
+                self.run_once()
+            except ValueError as e:
+                logger.exception(f"error: {e}")
+            except (IndexError, KeyError, AttributeError) as e:
+                logger.exception(f"error: {e}")
+
+
+class RunnerNonInteractive(Runner):
+    def run(self):
+        self.run_once()
+
+
+def run(args: Commands) -> Runner:
     ps1 = args.ps1
     cfg = FuncConfig
 
@@ -184,13 +217,13 @@ def run(args: Commands) -> None:
             f"the '{args.subcommand}' command is not available when using parse_v2."
         )
 
-    builder = (
-        PromptBuilder(psr=ParserV2)
-        if args.use_parser_v2
-        else Delimiter.create_builder(
+    builder = None
+    if args.use_parser_v2:
+        builder = PromptBuilder(psr=ParserV2)
+    else:
+        builder = Delimiter.create_builder(
             args.input_delimiter, args.output_delimiter, ParserV1
         )
-    )
 
     if args.use_parser_v2:
         logger.warning("using parser_v2.")
@@ -244,28 +277,17 @@ def run(args: Commands) -> None:
     if args.exclude:
         builder.append_hook(cfg(func=exclude, kwargs=(("excludes", args.exclude),)))
 
-    if args.interactive:
-        cli_hooks.execute(cli_hooks.interactive)
-
-        while True:
-            try:
-                run_once(builder, ps1, TokenInteractive)
-            except ValueError as e:
-                logger.exception(f"error: {e}")
-            except (IndexError, KeyError, AttributeError) as e:
-                logger.exception(f"error: {e}")
-    else:
-        ps1 = ""
-        run_once(builder, ps1, TokenNonInteractive)
+    return Runner.from_args(builder, ps1, args.interactive)
 
 
 def app():
     args = Commands.from_sys_argv(sys.argv[1:])
     logger.level = args.get_logger_level()
     args.debug()
+    runner = run(args)
 
     try:
-        run(args)
+        runner.run()
     except KeyboardInterrupt as e:
         print()
         sys.exit(1)
