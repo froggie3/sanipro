@@ -1,6 +1,7 @@
 import functools
 import logging
 
+from . import utils
 from .abc import TokenInterface
 
 logger = logging.getLogger()
@@ -34,6 +35,6 @@ def apply_from(sort_law_name: str):
     for func_name, func in zip(available, funcs):
         logger.debug(f"matching {func_name!r} with {func.__name__!r}")
         if func_name.startswith(sort_law_name):
-            return functools.partial(sorted, key=func)
+            return functools.partial(utils.sorted, key=func)
 
     raise Exception(f"no matched sort law for '{sort_law_name}'")

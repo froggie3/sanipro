@@ -7,31 +7,38 @@ from . import utils
 logger = logging.getLogger()
 
 
-class LCG:
+class LinearCongruentialGenerator:
     """Notorious rand() simulation"""
 
-    def __init__(self, seed=0, shift=0):
-        self.a = 1103515245
-        self.x = seed
-        self.c = 12345
-        self.m = 1 << 31
+    def __init__(
+        self,
+        *,
+        multiplier=1103515245,
+        increment=12345,
+        modulo=1 << 31,
+        seed=int(time.time() * 100),
+        shift=16
+    ):
+        self.multiplier = multiplier
+        self.increment = increment
+        self.seed = seed
+        self.modulo = modulo
         self.bit_lshift = shift
 
-    def _random(self) -> typing.Generator[int, None, None]:
+    def _next_number(self) -> typing.Generator[int, None, None]:
         while True:
-            self.x = (self.a * self.x + self.c) % self.m
-            yield self.x
+            self.seed = (self.multiplier * self.seed + self.increment) % self.modulo
+            yield self.seed
 
     def random(self) -> typing.Generator[int, None, None]:
         while True:
-            self.x = next(self._random())
-            buffer = self.x >> self.bit_lshift
+            self.seed = next(self._next_number())
+            buffer = self.seed >> self.bit_lshift
             yield buffer
 
     @classmethod
     def shuffle(cls, iterable):
-        seed = int(time.time() * 100)
-        lcg = cls(seed, shift=16)
+        lcg = cls()
 
         solved_num = 0
         length = len(iterable)
@@ -48,8 +55,7 @@ class LCG:
 
     @classmethod
     def shuffled(cls, iterable):
-        seed = int(time.time() * 100)
-        lcg = cls(seed, shift=20)
+        lcg = cls()
 
         solved_num = 0
         length = len(iterable)

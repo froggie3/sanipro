@@ -1,13 +1,12 @@
 import logging
-from pprint import pprint
+import pprint
 from typing import Any, Callable, NamedTuple, Type
 
-from . import parser, utils
+from . import parser
 from .abc import TokenInterface
+from .utils import debug_fp
 
 logger = logging.getLogger()
-
-debug_fp = utils.BufferingLoggerWriter(logger, logging.DEBUG)
 
 
 class FuncConfig(NamedTuple):
@@ -22,7 +21,10 @@ class Delimiter(NamedTuple):
 
     @classmethod
     def create_builder(
-        cls, input: str, output: str, parser: type[parser.Parser] = parser.ParserV1
+        cls,
+        input: str,
+        output: str,
+        parser: type[parser.Parser] = parser.ParserV1,
     ) -> "PromptBuilder":
         builder = PromptBuilder(
             parser,
@@ -62,7 +64,9 @@ class PromptBuilder:
             setattr(token, attr, val)
 
     def apply(
-        self, prompts: list[TokenInterface], funcs: list[FuncConfig] | None = None
+        self,
+        prompts: list[TokenInterface],
+        funcs: list[FuncConfig] | None = None,
     ) -> "PromptBuilder":
         """sequentially applies the filters."""
         if funcs is None:
@@ -82,7 +86,10 @@ class PromptBuilder:
         return sentence
 
     def parse(
-        self, sentence: str, token_factory: Type[TokenInterface], auto_apply=False
+        self,
+        sentence: str,
+        token_factory: Type[TokenInterface],
+        auto_apply=False,
     ) -> list[TokenInterface]:
         prompts = []
         sentence = self._execute_pre_hooks(sentence)
@@ -94,7 +101,7 @@ class PromptBuilder:
         for element in self.parser.get_token(token_factory, sentence, delimiter):
             prompts.append(element)
 
-        pprint(prompts, debug_fp)
+        pprint.pprint(prompts, debug_fp)
         if auto_apply:
             self.apply(prompts)
         return prompts

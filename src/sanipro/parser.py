@@ -3,12 +3,9 @@ import re
 from pprint import pprint
 from typing import Type
 
-from . import utils
 from .abc import TokenInterface
 
 logger = logging.getLogger()
-
-debug_fp = utils.BufferingLoggerWriter(logger, logging.DEBUG)
 
 
 class Token(TokenInterface):
@@ -82,14 +79,19 @@ class Tokens:
 class Parser:
     @staticmethod
     def get_token(
-        token_factory: Type[TokenInterface], sentence: str, delimiter: str | None = None
+        token_factory: Type[TokenInterface],
+        sentence: str,
+        delimiter: str | None = None,
     ):
         raise NotImplementedError("An object must implement this method")
 
 
 class ParserV1(Parser):
     @staticmethod
-    def extract_token(sentence: str, delimiter: str) -> list[str]:
+    def extract_token(
+        sentence: str,
+        delimiter: str,
+    ) -> list[str]:
         """
         split `sentence` at commas and remove parentheses.
 
@@ -156,7 +158,8 @@ class ParserV1(Parser):
 
     @staticmethod
     def parse_line(
-        token_combined: str, token_factory: Type[TokenInterface]
+        token_combined: str,
+        token_factory: Type[TokenInterface],
     ) -> TokenInterface:
         """
         split `token_combined` into left and right sides with `:`

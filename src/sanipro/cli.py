@@ -1,7 +1,6 @@
 import argparse
 import logging
 import sys
-from pprint import pprint
 
 from . import cli_hooks, color
 from .abc import TokenInterface

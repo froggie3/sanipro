@@ -1,14 +1,17 @@
 import functools
 import logging
-from typing import Callable
 
+from . import sort_all_factory, utils
 from .abc import TokenInterface
+from .lcg import LinearCongruentialGenerator
 
 logger = logging.getLogger()
 
 
 def mask(
-    prompts: list[TokenInterface], excludes: list[str], replace_to: str
+    prompts: list[TokenInterface],
+    excludes: list[str],
+    replace_to: str,
 ) -> list[TokenInterface]:
     """
     >>> from lib.common import PromptInteractive
@@ -28,7 +31,10 @@ def mask(
     return filtered_prompts
 
 
-def exclude(prompts: list[TokenInterface], excludes: list[str]) -> list[TokenInterface]:
+def exclude(
+    prompts: list[TokenInterface],
+    excludes: list[str],
+) -> list[TokenInterface]:
     """
     >>> from lib.common import PromptInteractive
     >>> p = exclude([PromptInteractive('white hair', 1.2), PromptInteractive('thighhighs', 1.0)], ['white'])
@@ -47,18 +53,23 @@ def exclude(prompts: list[TokenInterface], excludes: list[str]) -> list[TokenInt
     return filtered_prompts
 
 
-def collect_same_prompt(prompts: list[TokenInterface]):
-    u: dict[str, list[TokenInterface]] = {}
+def collect_same_prompt(
+    prompts: list[TokenInterface],
+):
+    groups: dict[str, list[TokenInterface]] = {}
     for prompt in prompts:
-        if prompt.name in u:
-            u[prompt.name].append(prompt)
+        if prompt.name in groups:
+            groups[prompt.name].append(prompt)
         else:
-            u[prompt.name] = [prompt]
-    return u
+            groups[prompt.name] = [prompt]
+    return groups
 
 
 def sort_all(
-    prompts: list[TokenInterface], sorted_partial: functools.partial, reverse=False
+    prompts: list[TokenInterface],
+    sorted_partial: functools.partial,
+    *,
+    reverse=False,
 ) -> list[TokenInterface]:
     """
     sort all the prompts by an algolithm.
@@ -66,13 +77,17 @@ def sort_all(
     return sorted_partial(prompts, reverse=reverse)
 
 
-def random(prompts: list[TokenInterface]) -> list[TokenInterface]:
-    from .lcg import LCG
+def random(
+    prompts: list[TokenInterface],
+) -> list[TokenInterface]:
+    return LinearCongruentialGenerator.shuffle(prompts)
 
-    return LCG.shuffle(prompts)
 
-
-def sort(prompts: list[TokenInterface], reverse=False) -> list[TokenInterface]:
+def sort(
+    prompts: list[TokenInterface],
+    *,
+    reverse=False,
+) -> list[TokenInterface]:
     """
     >>> from lib.common import PromptInteractive
     >>> p = sort([PromptInteractive('white hair', 1.2), PromptInteractive('white hair', 1.0)])
@@ -84,18 +99,22 @@ def sort(prompts: list[TokenInterface], reverse=False) -> list[TokenInterface]:
     >>> [(x.name, x.strength) for x in p]
     [('white hair', 1.2), ('white hair', 1.0)]
     """
-    u = collect_same_prompt(prompts)
+    groups = collect_same_prompt(prompts)
 
     prompts = []
-    for k, v in u.items():
-        v.sort(key=lambda x: x.strength, reverse=reverse)
+    for k, v in groups.items():
+        v = utils.sorted(v, key=sort_all_factory.sort_by_strength, reverse=reverse)
         for item in v:
             prompts.append(item)
 
     return prompts
 
 
-def unique(prompts: list[TokenInterface], reverse=False) -> list[TokenInterface]:
+def unique(
+    prompts: list[TokenInterface],
+    *,
+    reverse=False,
+) -> list[TokenInterface]:
     """
     >>> from lib.common import PromptInteractive
     >>> p = unique([PromptInteractive('white hair', 1.2), PromptInteractive('white hair', 1.0)])
@@ -107,11 +126,13 @@ def unique(prompts: list[TokenInterface], reverse=False) -> list[TokenInterface]
     >>> [(x.name, x.strength) for x in p]
     [('white hair', 1.2)]
     """
-    u = collect_same_prompt(prompts)
+    groups = collect_same_prompt(prompts)
 
     prompts = []
-    for k, v in u.items():
-        v.sort(key=lambda x: x.strength, reverse=reverse)
+    for k, v in groups.items():
+        v = utils.sorted(v, key=sort_all_factory.sort_by_strength, reverse=reverse)
+        if len(v) > 1:
+            logger.debug(f"duplicates found: {v!r}")
         prompts.append(v.pop(0))
 
     return prompts

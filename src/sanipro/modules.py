@@ -2,7 +2,11 @@ from .common import Delimiter, PromptBuilder
 from .parser import Parser, ParserV1, TokenInteractive
 
 
-def parse(prompt: str, sep=", ", psr=ParserV1) -> PromptBuilder:
+def parse(
+    prompt: str,
+    sep=", ",
+    psr=ParserV1,
+) -> PromptBuilder:
     """赤ちゃんインターフェース"""
     builder = PromptBuilder(
         psr,
