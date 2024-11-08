@@ -45,7 +45,7 @@ def show_welcome_message() -> None:
 
 
 def prepare_readline() -> None:
-    histfile = os.path.join(os.path.expanduser("~"), ".python_history")
+    histfile = os.path.join(os.path.expanduser("~"), ".sanipro_history")
     try:
         readline.read_history_file(histfile)
         readline.set_history_length(1000)
