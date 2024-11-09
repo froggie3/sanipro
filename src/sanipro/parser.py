@@ -1,5 +1,6 @@
 import logging
 import re
+import typing
 from pprint import pprint
 from typing import Type
 
@@ -42,7 +43,7 @@ class TokenInteractive(Token):
         Token.__init__(self, name, strength)
         self._delimiter = ":"
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.strength != 1.0:
             return "({}{}{:.1f})".format(
                 self.name,
@@ -59,7 +60,7 @@ class TokenNonInteractive(Token):
         # pass the result of this command to like `column -t -s"\t"`
         self._delimiter = "\t"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "{}{}{:.1f}".format(
             self.name,
             self._delimiter,
@@ -314,7 +315,7 @@ class ParserV2(Parser):
     @staticmethod
     def get_token(
         token_factory: Type[TokenInterface], sentence: str, delimiter: str | None = None
-    ):
+    ) -> typing.Generator[TokenInterface, None, None]:
         return (
             token_factory(text, weight)
             for text, weight in ParserV2.parse_prompt_attention(sentence)

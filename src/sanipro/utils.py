@@ -2,17 +2,19 @@ import itertools
 import logging
 import pprint
 import typing
+from collections.abc import MutableSequence, Sequence
+from random import randrange
 
 logger = logging.getLogger(__name__)
 
 
 class BufferingLoggerWriter(typing.IO):
-    def __init__(self, logger, level):
+    def __init__(self, logger: logging.Logger, level: int):
         self.logger = logger
         self.level = level
         self.buffer = ""
 
-    def write(self, message):
+    def write(self, message) -> None:
         if "\n" not in message:
             self.buffer += message
         else:
@@ -24,17 +26,14 @@ class BufferingLoggerWriter(typing.IO):
             for part in parts:
                 self.logger.log(self.level, part)
 
-    def flush(self):
+    def flush(self) -> None:
         pass
 
-    def close(self):
+    def close(self) -> None:
         pass
 
 
-debug_fp = BufferingLoggerWriter(logger, logging.DEBUG)
-
-
-def batched(iterable, n, *, strict=False):
+def batched(iterable: typing.Iterable, n: int, *, strict: bool = False):
     # batched('ABCDEFG', 3) → ABC DEF G
     if n < 1:
         raise ValueError("n must be at least one")
@@ -45,21 +44,23 @@ def batched(iterable, n, *, strict=False):
         yield batch
 
 
-def capped(iterable, n):
+def capped(iterable: Sequence, n: int):
     return (x % n for x in iterable)
 
 
-def cmp_helper(a, b, key=None, reverse=False):
+def cmp_helper(
+    a: typing.Any,
+    b: typing.Any,
+    key: typing.Callable | None = None,
+    reverse: bool = False,
+):
     if key is not None:
         return key(b) <= key(a) if reverse else key(a) <= key(b)
 
     return b <= a if reverse else a <= b
 
 
-from random import randrange
-
-
-def sorted(collection: list, *, key=None, reverse=False) -> list:
+def sorted(collection: MutableSequence, *, key=None, reverse=False) -> MutableSequence:
     # Base case: if the collection has 0 or 1 elements, it is already sorted
     if len(collection) < 2:
         return collection
@@ -80,3 +81,6 @@ def sorted(collection: list, *, key=None, reverse=False) -> list:
         pivot,
         *sorted(greater, key=key, reverse=reverse),
     ]
+
+
+debug_fp = BufferingLoggerWriter(logger, logging.DEBUG)

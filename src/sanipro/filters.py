@@ -1,5 +1,6 @@
 import functools
 import logging
+from collections.abc import Sequence
 
 from . import sort_all_factory, utils
 from .abc import TokenInterface
@@ -9,8 +10,8 @@ logger = logging.getLogger(__name__)
 
 
 def mask(
-    prompts: list[TokenInterface],
-    excludes: list[str],
+    prompts: Sequence[TokenInterface],
+    excludes: Sequence[str],
     replace_to: str,
 ) -> list[TokenInterface]:
     """
@@ -32,8 +33,8 @@ def mask(
 
 
 def exclude(
-    prompts: list[TokenInterface],
-    excludes: list[str],
+    prompts: Sequence[TokenInterface],
+    excludes: Sequence[str],
 ) -> list[TokenInterface]:
     """
     >>> from lib.common import PromptInteractive
@@ -54,7 +55,7 @@ def exclude(
 
 
 def collect_same_prompt(
-    prompts: list[TokenInterface],
+    prompts: Sequence[TokenInterface],
 ):
     groups: dict[str, list[TokenInterface]] = {}
     for prompt in prompts:
@@ -66,7 +67,7 @@ def collect_same_prompt(
 
 
 def sort_all(
-    prompts: list[TokenInterface],
+    prompts: Sequence[TokenInterface],
     sorted_partial: functools.partial,
     *,
     reverse=False,
@@ -78,13 +79,13 @@ def sort_all(
 
 
 def random(
-    prompts: list[TokenInterface],
-) -> list[TokenInterface]:
+    prompts: Sequence[TokenInterface],
+) -> Sequence[TokenInterface]:
     return LinearCongruentialGenerator.shuffle(prompts)
 
 
 def sort(
-    prompts: list[TokenInterface],
+    prompts: Sequence[TokenInterface],
     *,
     reverse=False,
 ) -> list[TokenInterface]:
@@ -111,7 +112,7 @@ def sort(
 
 
 def unique(
-    prompts: list[TokenInterface],
+    prompts: Sequence[TokenInterface],
     *,
     reverse=False,
 ) -> list[TokenInterface]:

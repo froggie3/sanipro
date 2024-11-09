@@ -1,6 +1,7 @@
 import argparse
 import logging
 import sys
+from collections.abc import Sequence
 
 from . import cli_hooks, color
 from .abc import TokenInterface
@@ -224,9 +225,9 @@ class Commands:
         return builder
 
     @classmethod
-    def from_sys_argv(cls, argv: list) -> "Commands":
+    def from_sys_argv(cls, arg_val: Sequence) -> "Commands":
         parser = cls.prepare_parser()
-        args = parser.parse_args(argv, namespace=cls())
+        args = parser.parse_args(arg_val, namespace=cls())
 
         return args
 

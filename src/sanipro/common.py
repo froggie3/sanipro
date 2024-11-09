@@ -1,6 +1,7 @@
 import logging
 import pprint
 import typing
+from collections.abc import Sequence
 
 from . import parser
 from .abc import TokenInterface
@@ -35,16 +36,22 @@ class Delimiter(typing.NamedTuple):
 
 
 class PromptBuilder:
+    pre_funcs: list[typing.Callable]
+    funcs: list[FuncConfig]
+    tokens: list[TokenInterface]
+    delimiter: Delimiter | None
+    _parser: type[parser.Parser]
+
     def __init__(
         self,
         psr: type[parser.Parser],
         delimiter: Delimiter | None = None,
     ):
         self.pre_funcs = []
-        self.funcs: list[FuncConfig] = []
+        self.funcs = []
         self.tokens = []
         self.delimiter = delimiter
-        self.parser: type[parser.Parser] = psr
+        self._parser = psr
 
     def __str__(self) -> str:
         lines = []
@@ -66,8 +73,8 @@ class PromptBuilder:
 
     def apply(
         self,
-        prompts: list[TokenInterface],
-        funcs: list[FuncConfig] | None = None,
+        prompts: Sequence[TokenInterface],
+        funcs: Sequence[FuncConfig] | None = None,
     ) -> "PromptBuilder":
         """sequentially applies the filters."""
         if funcs is None:
@@ -80,7 +87,7 @@ class PromptBuilder:
             prompts = func.func(prompts, **dict(func.kwargs))
             logger.debug(f"the hook {func.func.__name__!r} executed")
 
-        self.tokens = prompts
+        self.tokens = list(prompts)
         return self
 
     def _execute_pre_hooks(self, sentence: str) -> str:
@@ -102,7 +109,7 @@ class PromptBuilder:
         if self.delimiter is not None:
             delimiter = getattr(self.delimiter, "sep_input")
 
-        for element in self.parser.get_token(token_factory, sentence, delimiter):
+        for element in self._parser.get_token(token_factory, sentence, delimiter):
             prompts.append(element)
 
         if logger.getEffectiveLevel() <= logging.DEBUG:
