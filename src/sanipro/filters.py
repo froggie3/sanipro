@@ -5,7 +5,7 @@ from . import sort_all_factory, utils
 from .abc import TokenInterface
 from .lcg import LinearCongruentialGenerator
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 
 def mask(

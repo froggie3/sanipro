@@ -8,7 +8,7 @@ from .common import Delimiter, FuncConfig, PromptBuilder
 from .filters import exclude, mask, random, sort, sort_all, unique
 from .parser import ParserV1, ParserV2, TokenInteractive, TokenNonInteractive
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 
 class Subcommand:

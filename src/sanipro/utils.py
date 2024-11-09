@@ -3,7 +3,7 @@ import logging
 import pprint
 import typing
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 
 class BufferingLoggerWriter(typing.IO):

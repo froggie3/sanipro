@@ -5,7 +5,7 @@ from typing import Type
 
 from .abc import TokenInterface
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 
 class Token(TokenInterface):

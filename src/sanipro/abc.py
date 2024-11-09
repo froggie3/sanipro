@@ -1,7 +1,7 @@
 import logging
 from abc import ABC, abstractmethod
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 
 class TokenInterface(ABC):

@@ -1,21 +1,21 @@
 import logging
 import pprint
-from typing import Any, Callable, NamedTuple, Type
+import typing
 
 from . import parser
 from .abc import TokenInterface
 from .utils import debug_fp
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 
-class FuncConfig(NamedTuple):
+class FuncConfig(typing.NamedTuple):
     # func: Callable[...]
-    func: Callable
-    kwargs: tuple[tuple[str, Any], ...]
+    func: typing.Callable
+    kwargs: tuple[tuple[str, typing.Any], ...]
 
 
-class Delimiter(NamedTuple):
+class Delimiter(typing.NamedTuple):
     sep_input: str
     sep_output: str
 
@@ -49,6 +49,7 @@ class PromptBuilder:
     def __str__(self) -> str:
         lines = []
         delim = ""
+
         if self.delimiter is not None:
             delim = getattr(self.delimiter, "sep_output")
 
@@ -57,7 +58,7 @@ class PromptBuilder:
 
         return delim.join(lines)
 
-    def map_token(self, attr: str, func: Callable) -> None:
+    def map_token(self, attr: str, func: typing.Callable) -> None:
         for token in self.tokens:
             val = getattr(token, attr)
             val = func(val)
@@ -71,11 +72,14 @@ class PromptBuilder:
         """sequentially applies the filters."""
         if funcs is None:
             funcs = []
-        # marge!
-        self.funcs.extend(funcs)
+
+        for func in funcs:
+            self.append_hook(func)
+
         for func in self.funcs:
             prompts = func.func(prompts, **dict(func.kwargs))
             logger.debug(f"the hook {func.func.__name__!r} executed")
+
         self.tokens = prompts
         return self
 
@@ -88,7 +92,7 @@ class PromptBuilder:
     def parse(
         self,
         sentence: str,
-        token_factory: Type[TokenInterface],
+        token_factory: typing.Type[TokenInterface],
         auto_apply=False,
     ) -> list[TokenInterface]:
         prompts = []
@@ -101,9 +105,11 @@ class PromptBuilder:
         for element in self.parser.get_token(token_factory, sentence, delimiter):
             prompts.append(element)
 
-        pprint.pprint(prompts, debug_fp)
+        if logger.getEffectiveLevel() <= logging.DEBUG:
+            pprint.pprint(prompts, debug_fp)
         if auto_apply:
             self.apply(prompts)
+
         return prompts
 
     def append_pre_hook(self, func) -> None:

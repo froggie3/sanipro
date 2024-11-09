@@ -15,7 +15,7 @@ class Logformatter(logging.Formatter):
 
 
 def logger_add_handler() -> None:
-    logger = logging.getLogger()
+    logger = logging.getLogger(__name__)
 
     handler = logging.StreamHandler(sys.stdout)
 

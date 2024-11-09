@@ -4,7 +4,7 @@ import logging
 from . import utils
 from .abc import TokenInterface
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 available = (
     "lexicographical",
