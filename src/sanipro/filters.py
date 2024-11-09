@@ -1,10 +1,10 @@
 import functools
 import logging
+import typing
 from collections.abc import Sequence
 
 from . import sort_all_factory, utils
 from .abc import TokenInterface
-from .lcg import LinearCongruentialGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +81,13 @@ def sort_all(
 def random(
     prompts: Sequence[TokenInterface],
 ) -> Sequence[TokenInterface]:
-    return LinearCongruentialGenerator.shuffle(prompts)
+    import random
+
+    if isinstance(prompts, typing.MutableSequence):
+        random.shuffle(prompts)
+        return prompts
+    else:
+        return random.sample(prompts, len(prompts))
 
 
 def sort(
