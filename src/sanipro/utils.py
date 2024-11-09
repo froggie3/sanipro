@@ -1,8 +1,9 @@
+import io
 import itertools
 import logging
 import pprint
 import typing
-from collections.abc import MutableSequence, Sequence
+from collections.abc import MutableSequence
 from random import randrange
 
 logger = logging.getLogger(__name__)
@@ -14,7 +15,7 @@ class BufferingLoggerWriter(typing.IO):
         self.level = level
         self.buffer = ""
 
-    def write(self, message) -> None:
+    def write(self, message) -> int:
         if "\n" not in message:
             self.buffer += message
         else:
@@ -25,6 +26,7 @@ class BufferingLoggerWriter(typing.IO):
             self.buffer = parts.pop()
             for part in parts:
                 self.logger.log(self.level, part)
+        return 0
 
     def flush(self) -> None:
         pass
@@ -44,7 +46,7 @@ def batched(iterable: typing.Iterable, n: int, *, strict: bool = False):
         yield batch
 
 
-def capped(iterable: Sequence, n: int):
+def capped(iterable, n: int) -> typing.Generator[int, None, None]:
     return (x % n for x in iterable)
 
 
