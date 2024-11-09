@@ -1,14 +1,16 @@
 import argparse
 import logging
+import pprint
 import sys
 from collections.abc import Sequence
 
-from . import cli_hooks, color
+from . import cli_hooks, color, utils
 from .abc import TokenInterface
 from .common import Delimiter, FuncConfig, PromptBuilder
 from .filters import exclude, mask, random, sort, sort_all, unique
 from .parser import ParserV1, ParserV2, TokenInteractive, TokenNonInteractive
 
+logger_root = logging.getLogger()
 logger = logging.getLogger(__name__)
 
 
@@ -22,7 +24,7 @@ class Subcommand:
     UNIQUE = "unique"
 
 
-class Commands:
+class Commands(utils.HasPrettyRepr):
     # features usable in parser_v1
     mask = False
     random = False
@@ -48,7 +50,7 @@ class Commands:
         return logging.DEBUG if self.verbose else logging.INFO
 
     def debug(self) -> None:
-        logger.debug(f"CLI parameters={self!r}")
+        pprint.pprint(self, utils.debug_fp)
 
     @classmethod
     def prepare_parser(cls) -> argparse.ArgumentParser:
@@ -155,7 +157,6 @@ class Commands:
 
     def get_builder(self) -> PromptBuilder:
         cfg = FuncConfig
-        cli_hooks.execute(cli_hooks.init)
 
         if self.use_parser_v2 and hasattr(Subcommand, self.subcommand):
             raise NotImplementedError(
@@ -232,7 +233,7 @@ class Commands:
         return args
 
 
-class Runner:
+class Runner(utils.HasPrettyRepr):
     def __init__(self, builder: PromptBuilder, ps1: str, prpt: type[TokenInterface]):
         self.builder = builder
         self.ps1 = ps1
@@ -278,7 +279,8 @@ class RunnerNonInteractive(Runner):
 
 def app():
     args = Commands.from_sys_argv(sys.argv[1:])
-    logger.level = args.get_logger_level()
+    cli_hooks.execute(cli_hooks.init)
+    logger_root.setLevel(args.get_logger_level())
     args.debug()
     runner = Runner.from_args(args)
 

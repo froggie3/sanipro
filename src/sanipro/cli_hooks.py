@@ -2,34 +2,22 @@ import atexit
 import logging
 import os
 import readline
-import sys
 import time
 import typing
 
 from . import color
 
 
-class Logformatter(logging.Formatter):
-    default_time_format = "%Y-%m-%d %H:%M:%S"
-    default_msec_format = "%s.%03d"
-
-
 def logger_add_handler() -> None:
-    logger = logging.getLogger(__name__)
-
-    handler = logging.StreamHandler(sys.stdout)
-
-    fmt = (
-        f"{color.default}[%(levelname)s]{color.RESET} "
-        f"{color.default}%(module)s/%(funcName)s{color.RESET} "
-        f"{color.default}(%(lineno)d):{color.RESET} "
-        f"%(message)s"
+    logging.basicConfig(
+        format=(
+            f"{color.default}[%(levelname)s]{color.RESET} "
+            f"{color.default}%(module)s/%(funcName)s{color.RESET} "
+            f"{color.default}(%(lineno)d):{color.RESET} "
+            f"%(message)s"
+        ),
+        datefmt=r"%Y-%m-%d %H:%M:%S",
     )
-
-    formatter = Logformatter(fmt=fmt)
-
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
 
 
 def show_welcome_message() -> None:

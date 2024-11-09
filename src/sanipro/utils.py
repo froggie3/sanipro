@@ -1,12 +1,8 @@
-import io
 import itertools
 import logging
-import pprint
 import typing
 from collections.abc import MutableSequence
 from random import randrange
-
-logger = logging.getLogger(__name__)
 
 
 class BufferingLoggerWriter(typing.IO):
@@ -85,4 +81,14 @@ def sorted(collection: MutableSequence, *, key=None, reverse=False) -> MutableSe
     ]
 
 
-debug_fp = BufferingLoggerWriter(logger, logging.DEBUG)
+def to_dict(obj):
+    return {k: v for k, v in vars(obj).items() if not k.startswith("_")}
+
+
+class HasPrettyRepr:
+    def __repr__(self):
+        params = ", ".join(f"{k}={v!r}" for k, v in to_dict(self).items())
+        return f"{self.__class__.__name__}({params})"
+
+
+debug_fp = BufferingLoggerWriter(logging.getLogger(__name__), logging.DEBUG)

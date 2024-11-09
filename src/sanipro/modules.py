@@ -1,5 +1,5 @@
 from .common import Delimiter, PromptBuilder
-from .parser import Parser, ParserV1, TokenInteractive
+from .parser import ParserV1, TokenInteractive
 
 
 def parse(

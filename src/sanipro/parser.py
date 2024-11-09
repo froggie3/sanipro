@@ -1,7 +1,6 @@
 import logging
 import re
 import typing
-from pprint import pprint
 from typing import Type
 
 from .abc import TokenInterface

@@ -112,8 +112,8 @@ class PromptBuilder:
         for element in self._parser.get_token(token_factory, sentence, delimiter):
             prompts.append(element)
 
-        if logger.getEffectiveLevel() <= logging.DEBUG:
-            pprint.pprint(prompts, debug_fp)
+        pprint.pprint(prompts, debug_fp)
+
         if auto_apply:
             self.apply(prompts)
 
