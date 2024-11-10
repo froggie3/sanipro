@@ -4,8 +4,7 @@ import pprint
 import sys
 from collections.abc import Sequence
 
-
-from . import cli_hooks, color, utils, filters
+from . import cli_hooks, color, filters, utils
 from .abc import TokenInterface
 from .common import Delimiter, FuncConfig, PromptBuilder
 from .parser import ParserV1, ParserV2, TokenInteractive, TokenNonInteractive

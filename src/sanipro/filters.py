@@ -77,19 +77,22 @@ def sort_all(
     """
     return sorted_partial(prompts, reverse=reverse)
 
+
 def round_up(
     prompts: Sequence[TokenInterface],
     digits: int,
 ) -> Sequence[TokenInterface]:
-    
+
     def f(dgt: int) -> typing.Callable:
         def g(p: TokenInterface) -> TokenInterface:
             cls = type(p)
             return cls(p.name, round(p.strength, dgt))
+
         return g
 
     prompts = list(map(f(digits), prompts))
     return prompts
+
 
 def random(
     prompts: Sequence[TokenInterface],

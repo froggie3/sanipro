@@ -195,7 +195,7 @@ class ParserV1(Parser):
         if delimiter is not None:
             for element in cls.extract_token(sentence, delimiter):
                 token = cls.parse_line(element, token_cls)
-                yield token 
+                yield token
 
 
 class ParserV2(Parser):
