@@ -4,10 +4,10 @@ import pprint
 import sys
 from collections.abc import Sequence
 
-from . import cli_hooks, color, utils
+
+from . import cli_hooks, color, utils, filters
 from .abc import TokenInterface
 from .common import Delimiter, FuncConfig, PromptBuilder
-from .filters import exclude, mask, random, sort, sort_all, unique
 from .parser import ParserV1, ParserV2, TokenInteractive, TokenNonInteractive
 
 logger_root = logging.getLogger()
@@ -37,6 +37,7 @@ class Commands(utils.HasPrettyRepr):
     input_delimiter = ","
     interactive = False
     output_delimiter = ", "
+    roundup = 2
     ps1 = f"{color.default}>>>{color.RESET} "
     replace_to = r"%%%"
     subcommand = ""
@@ -83,6 +84,13 @@ class Commands(utils.HasPrettyRepr):
             "--interactive",
             action="store_true",
             help="enables interactive input eternally",
+        )
+        parser.add_argument(
+            "-r",
+            "--roundup",
+            default=cls.roundup,
+            type=int,
+            help="round up to x digits",
         )
         parser.add_argument(
             "-e",
@@ -193,10 +201,18 @@ class Commands(utils.HasPrettyRepr):
 
             builder.append_pre_hook(add_last_comma)
 
+        # always round
+        builder.append_hook(
+            cfg(
+                func=filters.round_up,
+                kwargs=(("digits", self.roundup),),
+            ),
+        )
+
         if self.subcommand == Subcommand.RANDOM:
             builder.append_hook(
                 cfg(
-                    func=random,
+                    func=filters.random,
                     kwargs=(),
                 ),
             )
@@ -207,7 +223,7 @@ class Commands(utils.HasPrettyRepr):
             sorted_partial = sort_all_factory.apply_from(self.sort_all)
             builder.append_hook(
                 cfg(
-                    func=sort_all,
+                    func=filters.sort_all,
                     kwargs=(
                         ("sorted_partial", sorted_partial),
                         ("reverse", True if (self.reverse or False) else False),
@@ -218,7 +234,7 @@ class Commands(utils.HasPrettyRepr):
         if self.subcommand == Subcommand.SORT:
             builder.append_hook(
                 cfg(
-                    func=sort,
+                    func=filters.sort,
                     kwargs=(
                         (
                             "reverse",
@@ -231,7 +247,7 @@ class Commands(utils.HasPrettyRepr):
         if self.subcommand == Subcommand.UNIQUE:
             builder.append_hook(
                 cfg(
-                    func=unique,
+                    func=filters.unique,
                     kwargs=(("reverse", (self.reverse or False)),),
                 )
             )
@@ -239,7 +255,7 @@ class Commands(utils.HasPrettyRepr):
         if self.subcommand == Subcommand.MASK:
             builder.append_hook(
                 cfg(
-                    func=mask,
+                    func=filters.mask,
                     kwargs=(
                         ("excludes", self.mask),
                         ("replace_to", self.replace_to),
@@ -250,7 +266,7 @@ class Commands(utils.HasPrettyRepr):
         if self.exclude:
             builder.append_hook(
                 cfg(
-                    func=exclude,
+                    func=filters.exclude,
                     kwargs=(("excludes", self.exclude),),
                 ),
             )

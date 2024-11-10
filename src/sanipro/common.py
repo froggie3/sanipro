@@ -64,12 +64,12 @@ class PromptBuilder:
         self.delimiter = delimiter
         self._parser = psr
 
+    def has_delimiter(self):
+        return self.delimiter is not None
+
     def __str__(self) -> str:
         lines = []
-        delim = ""
-
-        if self.delimiter is not None:
-            delim = getattr(self.delimiter, "sep_output")
+        delim = getattr(self.delimiter, "sep_output") if self.has_delimiter() else ""
 
         for token in self.tokens:
             lines.append(str(token))
@@ -118,22 +118,20 @@ class PromptBuilder:
     def parse(
         self,
         sentence: str,
-        token_factory: typing.Type[TokenInterface],
+        token_cls: type[TokenInterface],
         auto_apply=False,
     ) -> list[TokenInterface]:
-        prompts = []
         sentence = self._execute_pre_hooks(sentence)
 
         delimiter = ""
         if self.delimiter is not None:
             delimiter = getattr(self.delimiter, "sep_input")
 
-        for element in self._parser.get_token(
-            token_factory,
+        prompts = list(self._parser.get_token(
+            token_cls,
             sentence,
             delimiter,
-        ):
-            prompts.append(element)
+        ))
 
         pprint.pprint(prompts, debug_fp)
 

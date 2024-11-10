@@ -7,6 +7,15 @@ from .abc import TokenInterface
 logger = logging.getLogger(__name__)
 
 
+class Tokens:
+    PARENSIS_LEFT: str = "("
+    PARENSIS_RIGHT: str = ")"
+    COLON: str = ":"
+    COMMA: str = ","
+    SPACE: str = " "
+    BACKSLASH: str = "\\"
+
+
 class Token(TokenInterface):
     def __init__(self, name: str, strength: float) -> None:
         self._name = name
@@ -14,21 +23,21 @@ class Token(TokenInterface):
         self._delimiter = None
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self._name
 
     @property
-    def strength(self):
+    def strength(self) -> float:
         return self._strength
 
     @property
-    def length(self):
+    def length(self) -> int:
         return len(self.name)
 
-    def replace(self, replace: str):
+    def replace(self, replace: str) -> typing.Self:
         return type(self)(replace, self._strength)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         items = (f"{v!r}" for v in (self.name, self.strength))
         return "{}({})".format(
             type(self).__name__,
@@ -39,15 +48,11 @@ class Token(TokenInterface):
 class TokenInteractive(Token):
     def __init__(self, name: str, strength: float):
         Token.__init__(self, name, strength)
-        self._delimiter = ":"
+        self._delimiter = Tokens.COLON
 
     def __str__(self) -> str:
         if self.strength != 1.0:
-            return "({}{}{:.1f})".format(
-                self.name,
-                self._delimiter,
-                self.strength,
-            )
+            return f"({self.name}{self._delimiter}{self.strength})"
         return self.name
 
 
@@ -59,26 +64,14 @@ class TokenNonInteractive(Token):
         self._delimiter = "\t"
 
     def __str__(self) -> str:
-        return "{}{}{:.1f}".format(
-            self.name,
-            self._delimiter,
-            self.strength,
-        )
-
-
-class Tokens:
-    PARENSIS_LEFT = "("
-    PARENSIS_RIGHT = ")"
-    COLON = ":"
-    COMMA = ","
-    SPACE = " "
-    BACKSLASH = "\\"
+        return f"{self.name}{self._delimiter}{self.strength}"
 
 
 class Parser:
-    @staticmethod
+    @classmethod
     def get_token(
-        token_factory: type[TokenInterface],
+        cls,
+        token_cls: type[TokenInterface],
         sentence: str,
         delimiter: str | None = None,
     ):
@@ -149,8 +142,9 @@ class ParserV1(Parser):
 
         if parenthesis:
             first_parenthesis_index = parenthesis[0]
+            ok_partial = sentence[0:first_parenthesis_index]
             raise ValueError(
-                f"first unclosed parenthesis was found after {sentence[0:first_parenthesis_index]!r}"
+                f"first unclosed parenthesis was found after {ok_partial!r}"
             )
 
         return product
@@ -158,7 +152,7 @@ class ParserV1(Parser):
     @staticmethod
     def parse_line(
         token_combined: str,
-        token_factory: type[TokenInterface],
+        token_cls: type[TokenInterface],
     ) -> TokenInterface:
         """
         split `token_combined` into left and right sides with `:`
@@ -185,16 +179,23 @@ class ParserV1(Parser):
         pattern = rf"^{name_pattern}(?::{weight_pattern})?$"
         m = re.match(pattern, token_combined)
         if m:
-            return token_factory(m.group(1), float(m.group(2) or 1.0))
+            return token_cls(
+                m.group(1),
+                float(m.group(2) or 1.0),
+            )
         raise Exception(f"no matched string for {token_combined!r}")
 
-    @staticmethod
+    @classmethod
     def get_token(
-        token_factory: type[TokenInterface], sentence: str, delimiter: str | None = None
+        cls,
+        token_cls: type[TokenInterface],
+        sentence: str,
+        delimiter: str | None = None,
     ):
         if delimiter is not None:
-            for element in ParserV1.extract_token(sentence, delimiter):
-                yield ParserV1.parse_line(element, token_factory)
+            for element in cls.extract_token(sentence, delimiter):
+                token = cls.parse_line(element, token_cls)
+                yield token 
 
 
 class ParserV2(Parser):
@@ -219,8 +220,8 @@ class ParserV2(Parser):
 
     re_break = re.compile(r"\s*\bBREAK\b\s*", re.S)
 
-    @staticmethod
-    def parse_prompt_attention(text: str) -> list[list]:
+    @classmethod
+    def parse_prompt_attention(cls, text: str) -> list[list]:
         """
         Parses a string with attention tokens and returns a list of pairs: text and its associated weight.
         Accepted tokens are:
@@ -267,7 +268,7 @@ class ParserV2(Parser):
             for p in range(start_position, len(res)):
                 res[p][1] *= multiplier
 
-        for m in ParserV2.re_attention.finditer(text):
+        for m in cls.re_attention.finditer(text):
             text = m.group(0)
             weight = m.group(1)
 
@@ -284,7 +285,7 @@ class ParserV2(Parser):
             elif text == "]" and len(square_brackets) > 0:
                 multiply_range(square_brackets.pop(), square_bracket_multiplier)
             else:
-                parts = re.split(ParserV2.re_break, text)
+                parts = re.split(cls.re_break, text)
                 for i, part in enumerate(parts):
                     if i > 0:
                         res.append(["BREAK", -1])
@@ -310,13 +311,16 @@ class ParserV2(Parser):
 
         return res
 
-    @staticmethod
+    @classmethod
     def get_token(
-        token_factory: type[TokenInterface], sentence: str, delimiter: str | None = None
+        cls,
+        token_cls: type[TokenInterface],
+        sentence: str,
+        delimiter: str | None = None,
     ) -> typing.Generator[TokenInterface, None, None]:
         return (
-            token_factory(text, weight)
-            for text, weight in ParserV2.parse_prompt_attention(sentence)
+            token_cls(text, weight)
+            for text, weight in cls.parse_prompt_attention(sentence)
         )
 
 
