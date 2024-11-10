@@ -10,9 +10,20 @@ from .utils import debug_fp
 logger = logging.getLogger(__name__)
 
 
+class FuncType(typing.Protocol):
+    def __call__(
+        self,
+        prompts: Sequence[TokenInterface],
+        *args: typing.Any,
+        **kwargs: typing.Any,
+    ) -> Sequence[TokenInterface]: ...
+
+    @property
+    def __name__(self) -> str: ...
+
+
 class FuncConfig(typing.NamedTuple):
-    # func: Callable[...]
-    func: typing.Callable
+    func: FuncType
     kwargs: tuple[tuple[str, typing.Any], ...]
 
 
@@ -36,7 +47,7 @@ class Delimiter(typing.NamedTuple):
 
 
 class PromptBuilder:
-    pre_funcs: list[typing.Callable]
+    pre_funcs: list[typing.Callable[..., str]]
     funcs: list[FuncConfig]
     tokens: list[TokenInterface]
     delimiter: Delimiter | None
@@ -65,7 +76,11 @@ class PromptBuilder:
 
         return delim.join(lines)
 
-    def map_token(self, attr: str, func: typing.Callable) -> None:
+    def map_token(
+        self,
+        attr: str,
+        func: typing.Callable,
+    ) -> None:
         for token in self.tokens:
             val = getattr(token, attr)
             val = func(val)
@@ -84,16 +99,20 @@ class PromptBuilder:
             self.append_hook(func)
 
         for func in self.funcs:
-            prompts = func.func(prompts, **dict(func.kwargs))
-            logger.debug(f"the hook {func.func.__name__!r} executed")
+            prompts = func.func(
+                prompts,
+                **dict(func.kwargs),
+            )
+            func_name = func.func.__name__
+            logger.debug(f"the hook {func_name!r} executed")
 
         self.tokens = list(prompts)
         return self
 
     def _execute_pre_hooks(self, sentence: str) -> str:
         """executes hooks bound"""
-        for hook in self.pre_funcs:
-            sentence = hook(sentence)
+        for func in self.pre_funcs:
+            sentence = func(sentence)
         return sentence
 
     def parse(
@@ -109,7 +128,11 @@ class PromptBuilder:
         if self.delimiter is not None:
             delimiter = getattr(self.delimiter, "sep_input")
 
-        for element in self._parser.get_token(token_factory, sentence, delimiter):
+        for element in self._parser.get_token(
+            token_factory,
+            sentence,
+            delimiter,
+        ):
             prompts.append(element)
 
         pprint.pprint(prompts, debug_fp)

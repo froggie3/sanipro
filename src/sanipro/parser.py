@@ -1,7 +1,6 @@
 import logging
 import re
 import typing
-from typing import Type
 
 from .abc import TokenInterface
 
@@ -79,7 +78,7 @@ class Tokens:
 class Parser:
     @staticmethod
     def get_token(
-        token_factory: Type[TokenInterface],
+        token_factory: type[TokenInterface],
         sentence: str,
         delimiter: str | None = None,
     ):
@@ -159,7 +158,7 @@ class ParserV1(Parser):
     @staticmethod
     def parse_line(
         token_combined: str,
-        token_factory: Type[TokenInterface],
+        token_factory: type[TokenInterface],
     ) -> TokenInterface:
         """
         split `token_combined` into left and right sides with `:`
@@ -191,7 +190,7 @@ class ParserV1(Parser):
 
     @staticmethod
     def get_token(
-        token_factory: Type[TokenInterface], sentence: str, delimiter: str | None = None
+        token_factory: type[TokenInterface], sentence: str, delimiter: str | None = None
     ):
         if delimiter is not None:
             for element in ParserV1.extract_token(sentence, delimiter):
@@ -313,7 +312,7 @@ class ParserV2(Parser):
 
     @staticmethod
     def get_token(
-        token_factory: Type[TokenInterface], sentence: str, delimiter: str | None = None
+        token_factory: type[TokenInterface], sentence: str, delimiter: str | None = None
     ) -> typing.Generator[TokenInterface, None, None]:
         return (
             token_factory(text, weight)

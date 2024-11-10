@@ -85,7 +85,10 @@ class Commands(utils.HasPrettyRepr):
             help="enables interactive input eternally",
         )
         parser.add_argument(
-            "-e", "--exclude", nargs="*", help="exclude words specified"
+            "-e",
+            "--exclude",
+            nargs="*",
+            help="exclude words specified",
         )
         parser.add_argument(
             "--use_parser_v2",
@@ -98,7 +101,9 @@ class Commands(utils.HasPrettyRepr):
 
         parser_mask = subparsers.add_parser(Subcommand.MASK)
         parser_mask.add_argument(
-            "mask", nargs="*", help="mask words specified rather than removing them"
+            "mask",
+            nargs="*",
+            help="mask words specified rather than removing them",
         )
         parser_mask.add_argument(
             "--replace-to",
@@ -160,7 +165,8 @@ class Commands(utils.HasPrettyRepr):
 
         if self.use_parser_v2 and hasattr(Subcommand, self.subcommand):
             raise NotImplementedError(
-                f"the '{self.subcommand}' command is not available when using parse_v2."
+                f"the '{self.subcommand}' command is not available "
+                "when using parse_v2."
             )
 
         builder = None
@@ -168,7 +174,9 @@ class Commands(utils.HasPrettyRepr):
             builder = PromptBuilder(psr=ParserV2)
         else:
             builder = Delimiter.create_builder(
-                self.input_delimiter, self.output_delimiter, ParserV1
+                self.input_delimiter,
+                self.output_delimiter,
+                ParserV1,
             )
 
         if self.use_parser_v2:
@@ -186,7 +194,12 @@ class Commands(utils.HasPrettyRepr):
             builder.append_pre_hook(add_last_comma)
 
         if self.subcommand == Subcommand.RANDOM:
-            builder.append_hook(cfg(func=random, kwargs=()))
+            builder.append_hook(
+                cfg(
+                    func=random,
+                    kwargs=(),
+                ),
+            )
 
         if self.subcommand == Subcommand.SORT_ALL:
             from . import sort_all_factory
@@ -204,24 +217,43 @@ class Commands(utils.HasPrettyRepr):
 
         if self.subcommand == Subcommand.SORT:
             builder.append_hook(
-                cfg(func=sort, kwargs=(("reverse", (self.reverse or False)),))
+                cfg(
+                    func=sort,
+                    kwargs=(
+                        (
+                            "reverse",
+                            (self.reverse or False),
+                        ),
+                    ),
+                )
             )
 
         if self.subcommand == Subcommand.UNIQUE:
             builder.append_hook(
-                cfg(func=unique, kwargs=(("reverse", (self.reverse or False)),))
+                cfg(
+                    func=unique,
+                    kwargs=(("reverse", (self.reverse or False)),),
+                )
             )
 
         if self.subcommand == Subcommand.MASK:
             builder.append_hook(
                 cfg(
                     func=mask,
-                    kwargs=(("excludes", self.mask), ("replace_to", self.replace_to)),
+                    kwargs=(
+                        ("excludes", self.mask),
+                        ("replace_to", self.replace_to),
+                    ),
                 )
             )
 
         if self.exclude:
-            builder.append_hook(cfg(func=exclude, kwargs=(("excludes", self.exclude),)))
+            builder.append_hook(
+                cfg(
+                    func=exclude,
+                    kwargs=(("excludes", self.exclude),),
+                ),
+            )
 
         return builder
 
@@ -234,7 +266,12 @@ class Commands(utils.HasPrettyRepr):
 
 
 class Runner(utils.HasPrettyRepr):
-    def __init__(self, builder: PromptBuilder, ps1: str, prpt: type[TokenInterface]):
+    def __init__(
+        self,
+        builder: PromptBuilder,
+        ps1: str,
+        prpt: type[TokenInterface],
+    ):
         self.builder = builder
         self.ps1 = ps1
         self.prpt = prpt
@@ -244,7 +281,11 @@ class Runner(utils.HasPrettyRepr):
     ) -> None:
         sentence = input(self.ps1).strip()
         if sentence != "":
-            self.builder.parse(sentence, self.prpt, auto_apply=True)
+            self.builder.parse(
+                sentence,
+                self.prpt,
+                auto_apply=True,
+            )
             result = str(self.builder)
             print(result)
 
@@ -255,9 +296,17 @@ class Runner(utils.HasPrettyRepr):
     def from_args(args: Commands) -> "Runner":
         builder = args.get_builder()
         if args.interactive:
-            return RunnerInteractive(builder, ps1=args.ps1, prpt=TokenInteractive)
+            return RunnerInteractive(
+                builder,
+                ps1=args.ps1,
+                prpt=TokenInteractive,
+            )
         else:
-            return RunnerNonInteractive(builder, ps1="", prpt=TokenNonInteractive)
+            return RunnerNonInteractive(
+                builder,
+                ps1="",
+                prpt=TokenNonInteractive,
+            )
 
 
 class RunnerInteractive(Runner):
