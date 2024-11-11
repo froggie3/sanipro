@@ -8,7 +8,13 @@ from collections.abc import Sequence
 
 from . import cli_hooks, color, filters, utils
 from .abc import TokenInterface
-from .common import Delimiter, FuncConfig, PromptBuilder
+from .common import (
+    Delimiter,
+    FuncConfig,
+    PromptBuilder,
+    PromptBuilderV1,
+    PromptBuilderV2,
+)
 from .parser import ParserV1, ParserV2, TokenInteractive, TokenNonInteractive
 
 logger_root = logging.getLogger()
@@ -169,6 +175,19 @@ class Commands(utils.HasPrettyRepr):
 
         return parser
 
+    @property
+    def get_delimiter(self) -> Delimiter:
+        return Delimiter(
+            self.input_delimiter,
+            self.output_delimiter,
+        )
+
+    def get_builder_from(self, use_parser_v2: bool) -> PromptBuilder:
+        delim = self.get_delimiter
+        if not use_parser_v2:
+            return delim.create_builder(PromptBuilderV1)
+        return delim.create_builder(PromptBuilderV2)
+
     def get_builder(self) -> PromptBuilder:
         cfg = FuncConfig
 
@@ -178,30 +197,10 @@ class Commands(utils.HasPrettyRepr):
                 "when using parse_v2."
             )
 
-        builder = None
-        if self.use_parser_v2:
-            builder = PromptBuilder(psr=ParserV2)
-        else:
-            builder = Delimiter.create_builder(
-                self.input_delimiter,
-                self.output_delimiter,
-                ParserV1,
-            )
-
         if self.use_parser_v2:
             logger.warning("using parser_v2.")
-        else:
 
-            def add_last_comma(sentence: str) -> str:
-                delim = ""
-                if builder.delimiter is not None:
-                    delim = builder.delimiter.sep_input
-                if not sentence.endswith(delim):
-                    sentence += delim
-                return sentence
-
-            builder.append_pre_hook(add_last_comma)
-
+        builder = self.get_builder_from(self.use_parser_v2)
         # always round
         builder.append_hook(
             cfg(

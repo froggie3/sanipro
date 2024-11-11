@@ -32,19 +32,44 @@ class Delimiter(typing.NamedTuple):
     sep_input: str
     sep_output: str
 
-    @classmethod
-    def create_builder(
-        cls,
-        input: str,
-        output: str,
-        parser: type[parser.Parser] = parser.ParserV1,
-    ) -> "PromptBuilder":
-        builder = PromptBuilder(
-            parser,
-            cls(input, output),
+    def create_v1_builder(
+        self,
+    ) -> "PromptBuilderV1":
+
+        return PromptBuilderV1(
+            parser.ParserV1,
+            self,
         )
 
-        return builder
+    def create_v2_builder(
+        self,
+    ) -> "PromptBuilderV2":
+
+        return PromptBuilderV2(
+            parser.ParserV2,
+            self,
+        )
+
+    def create_builder(
+        self,
+        cls: type["PromptBuilder"],
+    ) -> "PromptBuilder":
+
+        builder = None
+        if cls is PromptBuilderV1:
+            builder = cls(
+                parser.ParserV1,
+                self,
+            )
+        elif cls is PromptBuilderV2:
+            builder = cls(
+                parser.ParserV2,
+                self,
+            )
+        if builder is not None:
+            return builder
+
+        raise NotImplementedError
 
 
 class PromptBuilder:
@@ -131,6 +156,29 @@ class PromptBuilder:
 
     def append_hook(self, *funcs: FuncConfig) -> None:
         self.funcs.extend(funcs)
+
+
+class PromptBuilderV1(PromptBuilder):
+    def __init__(
+        self,
+        psr: type[parser.Parser],
+        delimiter: Delimiter | None = None,
+    ):
+        PromptBuilder.__init__(self, psr, delimiter)
+
+        def add_last_comma(sentence: str) -> str:
+            delim = ""
+            if self.delimiter is not None:
+                delim = self.delimiter.sep_input
+            if not sentence.endswith(delim):
+                sentence += delim
+            return sentence
+
+        self.append_pre_hook(add_last_comma)
+
+
+class PromptBuilderV2(PromptBuilder):
+    pass
 
 
 if __name__ == "__main__":
