@@ -205,7 +205,7 @@ class Commands(utils.HasPrettyRepr):
         builder.append_hook(
             cfg(
                 func=filters.round_up,
-                kwargs=(("digits", self.roundup),),
+                kwargs={"digits": self.roundup},
             ),
         )
 
@@ -213,7 +213,7 @@ class Commands(utils.HasPrettyRepr):
             builder.append_hook(
                 cfg(
                     func=filters.random,
-                    kwargs=(),
+                    kwargs={},
                 ),
             )
 
@@ -224,10 +224,10 @@ class Commands(utils.HasPrettyRepr):
             builder.append_hook(
                 cfg(
                     func=filters.sort_all,
-                    kwargs=(
-                        ("sorted_partial", sorted_partial),
-                        ("reverse", True if (self.reverse or False) else False),
-                    ),
+                    kwargs={
+                        "sorted_partial": sorted_partial,
+                        "reverse": True if (self.reverse or False) else False,
+                    },
                 )
             )
 
@@ -235,12 +235,9 @@ class Commands(utils.HasPrettyRepr):
             builder.append_hook(
                 cfg(
                     func=filters.sort,
-                    kwargs=(
-                        (
-                            "reverse",
-                            (self.reverse or False),
-                        ),
-                    ),
+                    kwargs={
+                        "reverse": (self.reverse or False),
+                    },
                 )
             )
 
@@ -248,7 +245,9 @@ class Commands(utils.HasPrettyRepr):
             builder.append_hook(
                 cfg(
                     func=filters.unique,
-                    kwargs=(("reverse", (self.reverse or False)),),
+                    kwargs={
+                        "reverse": self.reverse or False,
+                    },
                 )
             )
 
@@ -256,10 +255,10 @@ class Commands(utils.HasPrettyRepr):
             builder.append_hook(
                 cfg(
                     func=filters.mask,
-                    kwargs=(
-                        ("excludes", self.mask),
-                        ("replace_to", self.replace_to),
-                    ),
+                    kwargs={
+                        "excludes": self.mask,
+                        "replace_to": self.replace_to,
+                    },
                 )
             )
 
@@ -267,7 +266,9 @@ class Commands(utils.HasPrettyRepr):
             builder.append_hook(
                 cfg(
                     func=filters.exclude,
-                    kwargs=(("excludes", self.exclude),),
+                    kwargs={
+                        "excludes": self.exclude,
+                    },
                 ),
             )
 
