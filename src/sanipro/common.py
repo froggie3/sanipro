@@ -25,7 +25,7 @@ class FuncType(typing.Protocol):
 
 class FuncConfig(typing.NamedTuple):
     func: FuncType
-    kwargs: tuple[tuple[str, typing.Any], ...]
+    kwargs: Sequence[tuple[str, typing.Any]] | dict[str, typing.Any]
 
 
 class Delimiter(typing.NamedTuple):
