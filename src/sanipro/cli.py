@@ -2,6 +2,8 @@ import argparse
 import logging
 import pprint
 import sys
+import time
+from code import InteractiveConsole, InteractiveInterpreter
 from collections.abc import Sequence
 
 from . import cli_hooks, color, filters, utils
@@ -294,15 +296,7 @@ class Runner(utils.HasPrettyRepr):
     def _run_once(
         self,
     ) -> None:
-        sentence = input(self.ps1).strip()
-        if sentence != "":
-            self.builder.parse(
-                sentence,
-                self.prpt,
-                auto_apply=True,
-            )
-            result = str(self.builder)
-            print(result)
+        raise NotImplementedError
 
     def run(self):
         raise NotImplementedError
@@ -324,19 +318,107 @@ class Runner(utils.HasPrettyRepr):
             )
 
 
-class RunnerInteractive(Runner):
+class RunnerInteractive(Runner, InteractiveConsole):
+    def __init__(
+        self,
+        builder: PromptBuilder,
+        ps1: str,
+        prpt: type[TokenInterface],
+        locals=None,
+        filename="<console>",
+        *,
+        local_exit=False,
+    ):
+        self.builder = builder
+        self.ps1 = ps1
+        self.prpt = prpt
+
+        InteractiveInterpreter.__init__(self, locals)
+        self.filename = filename
+        self.local_exit = local_exit
+        self.resetbuffer()
+
     def run(self):
         cli_hooks.execute(cli_hooks.interactive)
-        while True:
-            try:
-                self._run_once()
-            except ValueError as e:
-                logger.exception(f"error: {e}")
-            except (IndexError, KeyError, AttributeError) as e:
-                logger.exception(f"error: {e}")
+        self.interact(exitmsg="")
+
+    def interact(self, banner=None, exitmsg=None):
+        try:
+            sys.ps1
+        except AttributeError:
+            sys.ps1 = self.ps1
+
+        if banner is None:
+            self.write(
+                f"Sanipro (created by iigau) in interactive mode\n"
+                f"Program was launched up at {time.asctime()}.\n"
+            )
+        elif banner:
+            self.write("%s\n" % str(banner))
+
+        try:
+            while True:
+                try:
+                    prompt = sys.ps1
+                    try:
+                        line = self.raw_input(prompt)  # type: ignore
+                    except EOFError:
+                        self.write("\n")
+                        break
+                    else:
+                        self.push(line)
+                except KeyboardInterrupt:
+                    self.write("\n")
+                    self.resetbuffer()
+                    break
+                except SystemExit as e:
+                    if self.local_exit:
+                        self.write("\n")
+                        break
+                    else:
+                        raise e
+        finally:
+            if exitmsg is None:
+                self.write("now exiting %s...\n" % self.__class__.__name__)
+            elif exitmsg != "":
+                self.write("%s\n" % exitmsg)
+
+    def runcode(self, code):
+        print(code)
+
+    def runsource(self, source, filename="<input>", symbol="single"):
+        self.builder.parse(
+            str(source),
+            self.prpt,
+            auto_apply=True,
+        )
+        result = str(self.builder)
+        self.runcode(result)  # type: ignore
+        return False
+
+    def push(self, line, filename=None, _symbol="single"):
+        self.buffer.append(line)
+        source = "\n".join(self.buffer)
+        if filename is None:
+            filename = self.filename
+        more = self.runsource(source, filename, symbol=_symbol)
+        if not more:
+            self.resetbuffer()
+        return more
 
 
 class RunnerNonInteractive(Runner):
+    def _run_once(self) -> None:
+        sentence = input(self.ps1).strip()
+        if sentence != "":
+            self.builder.parse(
+                sentence,
+                self.prpt,
+                auto_apply=True,
+            )
+            result = str(self.builder)
+            print(result)
+
     def run(self):
         self._run_once()
 

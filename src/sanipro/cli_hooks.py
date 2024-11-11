@@ -2,7 +2,6 @@ import atexit
 import logging
 import os
 import readline
-import time
 import typing
 
 from . import color
@@ -20,18 +19,6 @@ def logger_add_handler() -> None:
     )
 
 
-def show_welcome_message() -> None:
-    prog = "Sanipro"
-    version = ".".join(("0", "1"))
-    dt = time.asctime()
-    welcome_message = (
-        f"{prog} (created by iigau) in interactive mode\n"
-        f"Program was launched up at {dt}."
-    )
-
-    print(welcome_message)
-
-
 def prepare_readline() -> None:
     histfile = os.path.join(os.path.expanduser("~"), ".sanipro_history")
     try:
@@ -47,10 +34,7 @@ def execute(hooks: tuple[typing.Callable, ...]) -> None:
         fun()
 
 
-init = (
-    logger_add_handler,
-    show_welcome_message,
-)
+init = (logger_add_handler,)
 
 interactive = (prepare_readline,)
 
