@@ -324,23 +324,19 @@ class RunnerInteractive(Runner, InteractiveConsole):
         builder: PromptBuilder,
         ps1: str,
         prpt: type[TokenInterface],
-        locals=None,
-        filename="<console>",
-        *,
-        local_exit=False,
     ):
         self.builder = builder
         self.ps1 = ps1
         self.prpt = prpt
 
-        InteractiveInterpreter.__init__(self, locals)
-        self.filename = filename
-        self.local_exit = local_exit
+        InteractiveInterpreter.__init__(self)
+        self.filename = "<console>"
+        self.local_exit = False
         self.resetbuffer()
 
     def run(self):
         cli_hooks.execute(cli_hooks.interactive)
-        self.interact(exitmsg="")
+        self.interact()
 
     def interact(self, banner=None, exitmsg=None):
         try:
@@ -363,23 +359,15 @@ class RunnerInteractive(Runner, InteractiveConsole):
                     try:
                         line = self.raw_input(prompt)  # type: ignore
                     except EOFError:
-                        self.write("\n")
                         break
                     else:
                         self.push(line)
                 except KeyboardInterrupt:
-                    self.write("\n")
                     self.resetbuffer()
                     break
-                except SystemExit as e:
-                    if self.local_exit:
-                        self.write("\n")
-                        break
-                    else:
-                        raise e
         finally:
             if exitmsg is None:
-                self.write("now exiting %s...\n" % self.__class__.__name__)
+                self.write("\n")
             elif exitmsg != "":
                 self.write("%s\n" % exitmsg)
 
