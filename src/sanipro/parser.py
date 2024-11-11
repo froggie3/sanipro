@@ -4,6 +4,11 @@ import typing
 
 from .abc import TokenInterface
 
+try:
+    from typing import Self
+except ImportError:
+    from typing_extensions import Self
+
 logger = logging.getLogger(__name__)
 
 
@@ -34,7 +39,7 @@ class Token(TokenInterface):
     def length(self) -> int:
         return len(self.name)
 
-    def replace(self, replace: str) -> typing.Self:
+    def replace(self, replace: str) -> Self:
         return type(self)(replace, self._strength)
 
     def __repr__(self) -> str:

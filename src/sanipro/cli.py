@@ -8,8 +8,13 @@ from collections.abc import Sequence
 
 from . import cli_hooks, color, filters, utils
 from .abc import TokenInterface
-from .common import (Delimiter, FuncConfig, PromptBuilder, PromptBuilderV1,
-                     PromptBuilderV2)
+from .common import (
+    Delimiter,
+    FuncConfig,
+    PromptBuilder,
+    PromptBuilderV1,
+    PromptBuilderV2,
+)
 from .parser import TokenInteractive, TokenNonInteractive
 
 logger_root = logging.getLogger()
