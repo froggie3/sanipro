@@ -76,7 +76,7 @@ class PromptBuilder:
     pre_funcs: list[typing.Callable[..., str]]
     funcs: list[FuncConfig]
     tokens: list[TokenInterface]
-    delimiter: Delimiter | None
+    delimiter: Delimiter
     _parser: type[parser.Parser]
 
     def __init__(
@@ -87,27 +87,11 @@ class PromptBuilder:
         self.pre_funcs = []
         self.funcs = []
         self.tokens = []
-        self.delimiter = delimiter
+        self.delimiter = Delimiter("", "") if delimiter is None else delimiter
         self._parser = psr
 
-    def has_delimiter(self):
-        return self.delimiter is not None
-
     def __str__(self) -> str:
-        delim = getattr(self.delimiter, "sep_output") if self.has_delimiter() else ""
-        lines = map(lambda token: str(token), self.tokens)
-
-        return delim.join(lines)
-
-    def map_token(
-        self,
-        attr: str,
-        func: typing.Callable,
-    ) -> None:
-        for token in self.tokens:
-            val = getattr(token, attr)
-            val = func(val)
-            setattr(token, attr, val)
+        raise NotImplementedError
 
     def apply(
         self,
@@ -138,9 +122,7 @@ class PromptBuilder:
     ) -> list[TokenInterface]:
         sentence = self._execute_pre_hooks(sentence)
 
-        delimiter = ""
-        if self.delimiter is not None:
-            delimiter = getattr(self.delimiter, "sep_input")
+        delimiter = self.delimiter.sep_input
 
         prompts = list(self._parser.get_token(token_cls, sentence, delimiter))
         pprint.pprint(prompts, debug_fp)
@@ -167,18 +149,24 @@ class PromptBuilderV1(PromptBuilder):
         PromptBuilder.__init__(self, psr, delimiter)
 
         def add_last_comma(sentence: str) -> str:
-            delim = ""
-            if self.delimiter is not None:
-                delim = self.delimiter.sep_input
-            if not sentence.endswith(delim):
-                sentence += delim
+            if not sentence.endswith(self.delimiter.sep_input):
+                sentence += self.delimiter.sep_input
             return sentence
 
         self.append_pre_hook(add_last_comma)
 
+    def __str__(self) -> str:
+        delim = self.delimiter.sep_output
+        lines = map(lambda token: str(token), self.tokens)
+
+        return delim.join(lines)
+
 
 class PromptBuilderV2(PromptBuilder):
-    pass
+    def __str__(self) -> str:
+        delim = ""
+        lines = map(lambda token: str(token), self.tokens)
+        return delim.join(lines)
 
 
 if __name__ == "__main__":

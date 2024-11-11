@@ -8,20 +8,15 @@ from collections.abc import Sequence
 
 from . import cli_hooks, color, filters, utils
 from .abc import TokenInterface
-from .common import (
-    Delimiter,
-    FuncConfig,
-    PromptBuilder,
-    PromptBuilderV1,
-    PromptBuilderV2,
-)
-from .parser import ParserV1, ParserV2, TokenInteractive, TokenNonInteractive
+from .common import (Delimiter, FuncConfig, PromptBuilder, PromptBuilderV1,
+                     PromptBuilderV2)
+from .parser import TokenInteractive, TokenNonInteractive
 
 logger_root = logging.getLogger()
 logger = logging.getLogger(__name__)
 
 
-class Subcommand:
+class Subcommand(object):
     """the name definition for the subcommands"""
 
     MASK = "mask"
@@ -29,6 +24,11 @@ class Subcommand:
     SORT = "sort"
     SORT_ALL = "sort-all"
     UNIQUE = "unique"
+
+    @classmethod
+    def get_set(cls) -> set:
+        ok = set([val for val in cls.__dict__.keys() if val.isupper()])
+        return ok
 
 
 class Commands(utils.HasPrettyRepr):
@@ -191,7 +191,7 @@ class Commands(utils.HasPrettyRepr):
     def get_builder(self) -> PromptBuilder:
         cfg = FuncConfig
 
-        if self.use_parser_v2 and hasattr(Subcommand, self.subcommand):
+        if self.use_parser_v2 and self.subcommand in Subcommand.get_set():
             raise NotImplementedError(
                 f"the '{self.subcommand}' command is not available "
                 "when using parse_v2."
@@ -361,9 +361,14 @@ class RunnerInteractive(Runner, InteractiveConsole):
                         break
                     else:
                         self.push(line)
+                except ValueError as e:
+                    logger.exception(f"error: {e}")
+                except (IndexError, KeyError, AttributeError) as e:
+                    logger.exception(f"error: {e}")
                 except KeyboardInterrupt:
                     self.resetbuffer()
                     break
+
         finally:
             if exitmsg is None:
                 self.write("\n")
@@ -411,13 +416,12 @@ class RunnerNonInteractive(Runner):
 
 
 def app():
-    args = Commands.from_sys_argv(sys.argv[1:])
-    cli_hooks.execute(cli_hooks.init)
-    logger_root.setLevel(args.get_logger_level())
-    args.debug()
-    runner = Runner.from_args(args)
-
     try:
+        args = Commands.from_sys_argv(sys.argv[1:])
+        cli_hooks.execute(cli_hooks.init)
+        logger_root.setLevel(args.get_logger_level())
+        args.debug()
+        runner = Runner.from_args(args)
         runner.run()
     except KeyboardInterrupt as e:
         print()
