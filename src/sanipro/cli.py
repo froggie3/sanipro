@@ -168,7 +168,6 @@ class Commands(utils.HasPrettyRepr):
             description=(
                 "List of available filters that can be applied to the prompt."
             ),
-            prog="UNKOUNKO",
             dest="subcommand",
             help=("Just one filter can be applied at once."),
             metavar="FILTER",
