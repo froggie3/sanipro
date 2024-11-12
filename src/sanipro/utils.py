@@ -1,8 +1,6 @@
 import itertools
 import logging
 import typing
-from collections.abc import MutableSequence
-from random import randrange
 
 
 class BufferingLoggerWriter(typing.IO):
@@ -56,29 +54,6 @@ def cmp_helper(
         return key(b) <= key(a) if reverse else key(a) <= key(b)
 
     return b <= a if reverse else a <= b
-
-
-def sorted(collection: MutableSequence, *, key=None, reverse=False) -> MutableSequence:
-    # Base case: if the collection has 0 or 1 elements, it is already sorted
-    if len(collection) < 2:
-        return collection
-
-    # Randomly select a pivot index and remove the pivot element from the collection
-    pivot_index = randrange(len(collection))
-    pivot = collection.pop(pivot_index)
-
-    # Partition the remaining elements into two groups: lesser or equal, and greater
-    lesser = [item for item in collection if cmp_helper(item, pivot, key=key)]
-    greater = [
-        item for item in collection if cmp_helper(item, pivot, key=key, reverse=True)
-    ]
-
-    # Recursively sort the lesser and greater groups, and combine with the pivot
-    return [
-        *sorted(lesser, key=key, reverse=reverse),
-        pivot,
-        *sorted(greater, key=key, reverse=reverse),
-    ]
 
 
 def to_dict(obj):
