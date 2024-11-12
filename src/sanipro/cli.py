@@ -6,6 +6,8 @@ import time
 from code import InteractiveConsole, InteractiveInterpreter
 from collections.abc import Sequence
 
+from sanipro import sort_all_factory
+
 from . import cli_hooks, color, filters, utils
 from .abc import TokenInterface
 from .common import (
@@ -41,7 +43,7 @@ class Commands(utils.HasPrettyRepr):
     mask = False
     random = False
     sort = False
-    sort_all = "lexicographical"
+    sort_all = False
     unique = False
 
     # basic functions
@@ -58,6 +60,7 @@ class Commands(utils.HasPrettyRepr):
 
     # subcommands options
     reverse = False
+    method = "lexicographical"
 
     def get_logger_level(self) -> int:
         return logging.DEBUG if self.verbose else logging.INFO
@@ -67,115 +70,188 @@ class Commands(utils.HasPrettyRepr):
 
     @classmethod
     def prepare_parser(cls) -> argparse.ArgumentParser:
-        parser = argparse.ArgumentParser()
+        parser = argparse.ArgumentParser(
+            prog="sanipro",
+            description=(
+                "Toolbox for Stable Diffusion prompts. "
+                "'Sanipro' stands for 'pro'mpt 'sani'tizer."
+            ),
+            epilog="Helps for subcommands are available, respectively.",
+        )
 
         parser.add_argument(
             "-v",
             "--verbose",
             action="store_true",
-            help="displays extra amount of logs for debugging",
+            help=(
+                "Switch to display the extra logs for nerds, "
+                "This may be useful for debugging."
+            ),
         )
+
         parser.add_argument(
             "-d",
             "--input-delimiter",
+            metavar="str",
             default=cls.input_delimiter,
-            help="specifies the delimiter for the original prompts",
+            help=(
+                "Delimiter character for the original prompts."
+                "(default: `%(default)s`)"
+            ),
         )
+
         parser.add_argument(
+            "-s",
             "--output-delimiter",
+            metavar="str",
             default=cls.output_delimiter,
-            help="specifies the delimiter for the processed prompts",
+            help=(
+                "Delimiter character for the processed prompts"
+                "(default: `%(default)s`)"
+            ),
         )
+
         parser.add_argument(
+            "-p",
             "--ps1",
+            metavar="str",
             default=cls.ps1,
-            help="specifies the custom format for the prompts",
+            help=(
+                "Custom string that is used when asking user "
+                "for the prompts (default: `%(default)s`)"
+            ),
         )
+
         parser.add_argument(
             "-i",
             "--interactive",
             action="store_true",
-            help="enables interactive input eternally",
+            help="Provides REPL interface to play with prompts.",
         )
+
         parser.add_argument(
-            "-r",
+            "-u",
             "--roundup",
+            metavar="n",
             default=cls.roundup,
             type=int,
-            help="round up to x digits",
+            help=(
+                "All the token with weights (> 1.0 or < 1.0) "
+                "will be rounded up to n digit(s) in here (default: `%(default)s`)"
+            ),
         )
+
         parser.add_argument(
-            "-e",
+            "-x",
             "--exclude",
+            metavar="str",
             nargs="*",
-            help="exclude words specified",
+            help=(
+                "Exclude this token from original prompt. "
+                "Multiple options can be specified."
+            ),
         )
+
         parser.add_argument(
-            "--use_parser_v2",
+            "--use-parser-v2",
             "-2",
             action="store_true",
-            help="use parse_v2 instead of the default parse_v1",
+            help=(
+                "Switch to use another version of the parser instead. "
+                "This might be inferrior to the default parser "
+                "as it only parses the prompt and does nothing at all."
+            ),
         )
 
-        subparsers = parser.add_subparsers(dest="subcommand")
+        subparsers = parser.add_subparsers(
+            title="Subcommands",
+            description=(
+                "List of available filters that can be applied to the prompt."
+            ),
+            prog="UNKOUNKO",
+            dest="subcommand",
+            help=("Just one filter can be applied at once."),
+            metavar="FILTER",
+        )
 
-        parser_mask = subparsers.add_parser(Subcommand.MASK)
+        parser_mask = subparsers.add_parser(
+            Subcommand.MASK,
+            help="mask tokens",
+            description="Mask words specified with another word (optional).",
+            epilog=(
+                "This subcommands allow this program to remove the tokens"
+                "rather than remove them as in `--exclude` option. "
+                "Still, you can use `--exclude` option as well as this method."
+            ),
+        )
+
         parser_mask.add_argument(
             "mask",
             nargs="*",
-            help="mask words specified rather than removing them",
+            help="Masks this word.",
         )
+
         parser_mask.add_argument(
+            "-t",
             "--replace-to",
             default=cls.replace_to,
-            help="in combination with --mask, specifies the new string replaced to",
+            help="The new character or string replaced to.",
         )
 
-        parser_random = subparsers.add_parser(Subcommand.RANDOM)
-        parser_random.add_argument(
-            "random",
-            action="store_true",
-            help="BE RANDOM!",
+        parser_random = subparsers.add_parser(
+            Subcommand.RANDOM,
+            help="Shuffles all the prompts altogether.",
+            description="Shuffles all the prompts altogether.",
         )
 
-        parser_sort = subparsers.add_parser(Subcommand.SORT)
-        parser_sort.add_argument(
-            "sort",
-            action="store_true",
-            help="reorder duplicate tokens with their strength to make them consecutive",
+        parser_sort = subparsers.add_parser(
+            Subcommand.SORT,
+            help="Reorders duplicate tokens.",
+            description="Reorders duplicate tokens.",
+            epilog="This command reorders tokens with their weights by default.",
         )
         parser_sort.add_argument(
+            "-r",
             "--reverse",
             action="store_true",
-            help="the same as above but with reversed order",
+            help="with reversed order",
         )
 
-        parser_sort_all = subparsers.add_parser(Subcommand.SORT_ALL)
+        parser_sort_all = subparsers.add_parser(
+            Subcommand.SORT_ALL,
+            help="Reorder all the prompts.",
+            description="Reorder all the prompts.",
+            epilog="METHOD = { " + ", ".join(sort_all_factory.available) + " }",
+        )
+
         parser_sort_all.add_argument(
-            "sort-all",
-            metavar="sort_law_name",
-            default=cls.sort_all,
-            const=cls.sort_all,
+            "-m",
+            "--method",
+            default=cls.method,
+            const=cls.method,
             nargs="?",
-            choices=("lexicographical", "length", "strength"),
-            help="reorder all the prompt (default: %(default)s)",
-        )
-        parser_sort_all.add_argument(
-            "--reverse",
-            action="store_true",
-            help="the same as above but with reversed order",
+            help="based on this strategy (default: `%(default)s`)",
         )
 
-        parser_unique = subparsers.add_parser(Subcommand.UNIQUE)
-        parser_unique.add_argument(
-            "unique",
-            action="store_true",
-            help="reorder duplicate tokens with their strength to make them unique",
-        )
-        parser_unique.add_argument(
+        parser_sort_all.add_argument(
+            "-r",
             "--reverse",
             action="store_true",
-            help="the same as above but with reversed order",
+            help="with reversed order",
+        )
+
+        parser_unique = subparsers.add_parser(
+            Subcommand.UNIQUE,
+            help="removes duplicated tokens, and uniquify them",
+            description="Removes duplicated tokens, and uniquify them.",
+            epilog="",
+        )
+
+        parser_unique.add_argument(
+            "-r",
+            "--reverse",
+            action="store_true",
+            help="make the token with the heaviest weight survived",
         )
 
         return parser
@@ -225,7 +301,7 @@ class Commands(utils.HasPrettyRepr):
         if self.subcommand == Subcommand.SORT_ALL:
             from . import sort_all_factory
 
-            sorted_partial = sort_all_factory.apply_from(self.sort_all)
+            sorted_partial = sort_all_factory.apply_from(self.method)
             builder.append_hook(
                 cfg(
                     func=filters.sort_all,
