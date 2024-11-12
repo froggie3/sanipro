@@ -49,6 +49,14 @@ class Token(TokenInterface):
             f"{Tokens.COMMA} ".join(items),
         )
 
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, self.__class__):
+            raise NotImplementedError
+        return self._name == other._name and self._strength == other._strength
+
+    def __hash__(self) -> int:
+        return hash((self._name, self._strength))
+
 
 class TokenInteractive(Token):
     def __init__(self, name: str, strength: float):

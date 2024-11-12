@@ -1,12 +1,10 @@
 import functools
 import logging
-import pprint
 import typing
 from collections.abc import Sequence
 
 from . import parser
 from .abc import TokenInterface
-from .utils import debug_fp
 
 logger = logging.getLogger(__name__)
 
@@ -125,7 +123,7 @@ class PromptBuilder:
         delimiter = self.delimiter.sep_input
 
         prompts = list(self._parser.get_token(token_cls, sentence, delimiter))
-        pprint.pprint(prompts, debug_fp)
+        # pprint.pprint(prompts, debug_fp)
 
         if auto_apply:
             self.apply(prompts)

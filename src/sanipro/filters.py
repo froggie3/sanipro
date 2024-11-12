@@ -3,7 +3,7 @@ import logging
 import typing
 from collections.abc import Sequence
 
-from . import sort_all_factory, utils
+from . import sort_all_factory
 from .abc import TokenInterface
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,6 @@ def mask(
                 break
         else:
             filtered_prompts.append(prompt)
-
     return filtered_prompts
 
 
@@ -50,20 +49,27 @@ def exclude(
                 break
         else:
             continue
-
     return filtered_prompts
 
 
-def collect_same_prompt(
+def collect_same_prompt_2(
     prompts: Sequence[TokenInterface],
-):
-    groups: dict[str, list[TokenInterface]] = {}
+) -> dict[str, list[TokenInterface]]:
+    groups = {}
     for prompt in prompts:
         if prompt.name in groups:
             groups[prompt.name].append(prompt)
         else:
             groups[prompt.name] = [prompt]
     return groups
+
+
+def collect_same_prompt(
+    prompts: Sequence[TokenInterface],
+) -> typing.Generator[tuple[str, list[TokenInterface]], None, None]:
+    groups = collect_same_prompt_2(prompts)
+    for k, v in groups.items():
+        yield k, v
 
 
 def sort_all(
@@ -122,15 +128,13 @@ def sort(
     >>> [(x.name, x.strength) for x in p]
     [('white hair', 1.2), ('white hair', 1.0)]
     """
-    groups = collect_same_prompt(prompts)
-
-    prompts = []
-    for k, v in groups.items():
-        v = utils.sorted(v, key=sort_all_factory.sort_by_strength, reverse=reverse)
+    tokens = []
+    for _, v in collect_same_prompt(prompts):
+        v = sorted(v, key=sort_all_factory.sort_by_strength, reverse=reverse)
         for item in v:
-            prompts.append(item)
+            tokens.append(item)
 
-    return prompts
+    return tokens
 
 
 def unique(
@@ -149,16 +153,12 @@ def unique(
     >>> [(x.name, x.strength) for x in p]
     [('white hair', 1.2)]
     """
-    groups = collect_same_prompt(prompts)
+    tokens = []
+    for _, v in collect_same_prompt(prompts):
+        v = sorted(v, key=sort_all_factory.sort_by_strength, reverse=reverse)
+        tokens.append(v.pop(0))
 
-    prompts = []
-    for k, v in groups.items():
-        v = utils.sorted(v, key=sort_all_factory.sort_by_strength, reverse=reverse)
-        if len(v) > 1:
-            logger.debug(f"duplicates found: {v!r}")
-        prompts.append(v.pop(0))
-
-    return prompts
+    return tokens
 
 
 if __name__ == "__main__":

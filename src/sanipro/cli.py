@@ -1,4 +1,5 @@
 import argparse
+import dataclasses
 import logging
 import pprint
 import sys
@@ -398,6 +399,50 @@ class Runner(utils.HasPrettyRepr):
             )
 
 
+class Analyzer:
+    pass
+
+
+@dataclasses.dataclass
+class AnalyzerDiff(Analyzer):
+    before_process: list[TokenInterface]
+    after_process: list[TokenInterface]
+
+    @property
+    def len_reduced(self) -> int:
+        return len(self.before_process) - len(self.after_process)
+
+    @property
+    def duplicates(self) -> list[TokenInterface]:
+        tokens_pairs = []
+        for _, tokens in filters.collect_same_prompt(self.before_process):
+            if len(tokens) > 1:
+                pair = []
+                for token in tokens:
+                    stats = {
+                        "token": token,
+                        # "hash": hash(token),
+                        # "id": hex(id(token)),
+                    }
+                    pair.append(stats)
+                tokens_pairs.append({"pair": pair})
+        for pair in tokens_pairs:
+            pprint.pprint(pair, utils.debug_fp)
+            # logger.debug(token)
+        return tokens_pairs
+
+    def get_stats(self) -> dict[str, dict[str, int]]:
+        self.duplicates
+        stats_number = {
+            "statistics": {
+                "before_process": len(self.before_process),
+                "after_process": len(self.after_process),
+                "reduced_total": self.len_reduced,
+            }
+        }
+        return stats_number
+
+
 class RunnerInteractive(Runner, InteractiveConsole):
     def __init__(
         self,
@@ -460,13 +505,17 @@ class RunnerInteractive(Runner, InteractiveConsole):
         print(code)
 
     def runsource(self, source, filename="<input>", symbol="single"):
-        self.builder.parse(
+        tokens_unparsed = self.builder.parse(
             str(source),
             self.prpt,
             auto_apply=True,
         )
-        result = str(self.builder)
-        self.runcode(result)  # type: ignore
+        tokens = str(self.builder)
+
+        anal = AnalyzerDiff(tokens_unparsed, self.builder.tokens)
+        pprint.pprint(anal.get_stats(), utils.debug_fp)
+
+        self.runcode(tokens)  # type: ignore
         return False
 
     def push(self, line, filename=None, _symbol="single"):
