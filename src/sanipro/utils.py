@@ -56,6 +56,17 @@ def cmp_helper(
     return b <= a if reverse else a <= b
 
 
+def get_log_level_from(count: int | None) -> int:
+    import logging
+
+    if count is None or count < 2:
+        return logging.INFO
+    elif count == 2:
+        return logging.DEBUG
+    else:
+        raise ValueError("the maximum two -v flags can only be added")
+
+
 def to_dict(obj):
     return {k: v for k, v in vars(obj).items() if not k.startswith("_")}
 

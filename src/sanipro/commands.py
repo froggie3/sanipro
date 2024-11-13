@@ -42,14 +42,17 @@ class Commands(utils.HasPrettyRepr):
     replace_to = r"%%%"
     subcommand = ""
     use_parser_v2 = False
-    verbose = False
+    verbose: int | None = None
 
     # subcommands options
     reverse = False
     method = "lexicographical"
 
     def get_logger_level(self) -> int:
-        return logging.DEBUG if self.verbose else logging.INFO
+        if self.verbose is None:
+            return logging.WARNING
+
+        return utils.get_log_level_from(self.verbose)
 
     def debug(self) -> None:
         pprint.pprint(self, utils.debug_fp)
@@ -68,7 +71,7 @@ class Commands(utils.HasPrettyRepr):
         parser.add_argument(
             "-v",
             "--verbose",
-            action="store_true",
+            action="count",
             help=(
                 "Switch to display the extra logs for nerds, "
                 "This may be useful for debugging."

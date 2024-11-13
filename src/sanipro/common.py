@@ -101,7 +101,7 @@ class PromptBuilder:
 
         return prompts
 
-    def append_pre_hook(self, *funcs: typing.Callable) -> None:
+    def append_pre_hook(self, *funcs: typing.Callable[..., str]) -> None:
         """処理前のプロンプトに対して実行されるコールバック関数を追加"""
         self.pre_funcs.extend(funcs)
 

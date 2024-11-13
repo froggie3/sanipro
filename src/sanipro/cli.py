@@ -13,17 +13,17 @@ def app():
     try:
         args = Commands.from_sys_argv(sys.argv[1:])
         cli_hooks.execute(cli_hooks.init)
-        logger_root.setLevel(args.get_logger_level())
+
+        log_level = args.get_logger_level()
+        logger_root.setLevel(log_level)
+
         args.debug()
         runner = Runner.from_args(args)
         runner.run()
-    except KeyboardInterrupt as e:
+    except (KeyboardInterrupt, EOFError) as e:
         print()
         sys.exit(1)
-    except EOFError as e:
-        print()
-        sys.exit(1)
-    except NotImplementedError as e:
+    except (ValueError, NotImplementedError) as e:
         logger.error(f"error: {e}")
         sys.exit(1)
     except Exception as e:
