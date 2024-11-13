@@ -68,7 +68,7 @@ def get_log_level_from(count: int | None) -> int:
     elif count == 2:
         return logging.DEBUG
     else:
-        raise ValueError("the maximum two -v flags can only be added")
+        raise ValueError
 
 
 def to_dict(obj):

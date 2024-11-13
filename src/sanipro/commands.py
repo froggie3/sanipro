@@ -51,8 +51,11 @@ class Commands(utils.HasPrettyRepr):
     def get_logger_level(self) -> int:
         if self.verbose is None:
             return logging.WARNING
-
-        return utils.get_log_level_from(self.verbose)
+        try:
+            log_level = utils.get_log_level_from(self.verbose)
+            return log_level
+        except ValueError:
+            raise ValueError("the maximum two -v flags can only be added")
 
     def debug(self) -> None:
         pprint.pprint(self, utils.debug_fp)
