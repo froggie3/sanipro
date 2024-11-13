@@ -87,7 +87,7 @@ class Parser:
         token_cls: type[TokenInterface],
         sentence: str,
         delimiter: str | None = None,
-    ) -> typing.Generator[TokenInterface]:
+    ) -> typing.Generator[TokenInterface, None, None]:
         raise NotImplementedError("An object must implement this method")
 
 
@@ -204,7 +204,7 @@ class ParserV1(Parser):
         token_cls: type[TokenInterface],
         sentence: str,
         delimiter: str | None = None,
-    ) -> typing.Generator[TokenInterface]:
+    ) -> typing.Generator[TokenInterface, None, None]:
         if delimiter is not None:
             for element in cls.extract_token(sentence, delimiter):
                 token = cls.parse_line(element, token_cls)
@@ -330,7 +330,7 @@ class ParserV2(Parser):
         token_cls: type[TokenInterface],
         sentence: str,
         delimiter: str | None = None,
-    ) -> typing.Generator[TokenInterface]:
+    ) -> typing.Generator[TokenInterface, None, None]:
         return (
             token_cls(text, weight)
             for text, weight in cls.parse_prompt_attention(sentence)

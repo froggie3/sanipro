@@ -4,13 +4,9 @@ import typing
 from collections.abc import Sequence
 
 from . import filters, parser
-from .abc import TokenInterface
+from .abc import MutablePrompt, Prompt, TokenInterface
 
 logger = logging.getLogger(__name__)
-
-Prompt = Sequence[TokenInterface]
-
-MutablePrompt = list[TokenInterface]
 
 
 class FuncConfig(typing.NamedTuple):

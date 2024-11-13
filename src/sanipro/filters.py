@@ -4,8 +4,7 @@ import typing
 from collections.abc import Sequence
 
 from . import sort_all_factory
-from .abc import TokenInterface
-from .common import MutablePrompt, Prompt
+from .abc import MutablePrompt, Prompt, TokenInterface
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +23,7 @@ def collect_same_prompt(
 
 def collect_same_prompt_generator(
     prompts: Prompt,
-) -> typing.Generator[tuple[str, MutablePrompt]]:
+) -> typing.Generator[tuple[str, MutablePrompt], None, None]:
     groups = collect_same_prompt(prompts)
     for k, v in groups.items():
         yield k, v
@@ -135,6 +134,8 @@ def random(
 
 class Random(typing.Protocol):
     def __call__(self, prompts: Prompt) -> Prompt: ...
+
+
 def sort(
     prompts: Prompt,
     *,
@@ -162,6 +163,8 @@ def sort(
 
 class Sort(typing.Protocol):
     def __call__(self, prompts: Prompt, *, reverse=False) -> MutablePrompt: ...
+
+
 def unique(
     prompts: Prompt,
     *,

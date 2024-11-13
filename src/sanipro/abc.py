@@ -1,5 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 
 logger = logging.getLogger(__name__)
 
@@ -35,3 +36,8 @@ class TokenInterface(ABC):
     @abstractmethod
     def __str__(self) -> str:
         pass
+
+
+Prompt = Sequence[TokenInterface]
+
+MutablePrompt = list[TokenInterface]
