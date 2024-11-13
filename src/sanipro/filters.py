@@ -5,15 +5,36 @@ from collections.abc import Sequence
 
 from . import sort_all_factory
 from .abc import TokenInterface
+from .common import MutablePrompt, Prompt
 
 logger = logging.getLogger(__name__)
 
 
+def collect_same_prompt(
+    prompts: Prompt,
+) -> dict[str, MutablePrompt]:
+    groups = {}
+    for prompt in prompts:
+        if prompt.name in groups:
+            groups[prompt.name].append(prompt)
+        else:
+            groups[prompt.name] = [prompt]
+    return groups
+
+
+def collect_same_prompt_generator(
+    prompts: Prompt,
+) -> typing.Generator[tuple[str, MutablePrompt]]:
+    groups = collect_same_prompt(prompts)
+    for k, v in groups.items():
+        yield k, v
+
+
 def mask(
-    prompts: Sequence[TokenInterface],
+    prompts: Prompt,
     excludes: Sequence[str],
     replace_to: str,
-) -> list[TokenInterface]:
+) -> MutablePrompt:
     """
     >>> from lib.common import PromptInteractive
     >>> p = mask([PromptInteractive('white hair', 1.2), PromptInteractive('thighhighs', 1.0)], ['white'])
@@ -31,10 +52,16 @@ def mask(
     return filtered_prompts
 
 
+class Mask(typing.Protocol):
+    def __call__(
+        self, prompts: Prompt, excludes: Sequence[str], replace_to: str
+    ) -> MutablePrompt: ...
+
+
 def exclude(
-    prompts: Sequence[TokenInterface],
+    prompts: Prompt,
     excludes: Sequence[str],
-) -> list[TokenInterface]:
+) -> MutablePrompt:
     """
     >>> from lib.common import PromptInteractive
     >>> p = exclude([PromptInteractive('white hair', 1.2), PromptInteractive('thighhighs', 1.0)], ['white'])
@@ -52,42 +79,32 @@ def exclude(
     return filtered_prompts
 
 
-def collect_same_prompt_2(
-    prompts: Sequence[TokenInterface],
-) -> dict[str, list[TokenInterface]]:
-    groups = {}
-    for prompt in prompts:
-        if prompt.name in groups:
-            groups[prompt.name].append(prompt)
-        else:
-            groups[prompt.name] = [prompt]
-    return groups
-
-
-def collect_same_prompt(
-    prompts: Sequence[TokenInterface],
-) -> typing.Generator[tuple[str, list[TokenInterface]], None, None]:
-    groups = collect_same_prompt_2(prompts)
-    for k, v in groups.items():
-        yield k, v
+class Exclude(typing.Protocol):
+    def __call__(self, prompts: Prompt, excludes: Sequence[str]) -> MutablePrompt: ...
 
 
 def sort_all(
-    prompts: Sequence[TokenInterface],
+    prompts: Prompt,
     sorted_partial: functools.partial,
     *,
     reverse=False,
-) -> list[TokenInterface]:
+) -> MutablePrompt:
     """
     sort all the prompts by an algolithm.
     """
     return sorted_partial(prompts, reverse=reverse)
 
 
+class SortAll(typing.Protocol):
+    def __call__(
+        self, prompts: Prompt, sorted_partial: functools.partial, *, reverse=False
+    ) -> MutablePrompt: ...
+
+
 def round_up(
-    prompts: Sequence[TokenInterface],
+    prompts: Prompt,
     digits: int,
-) -> Sequence[TokenInterface]:
+) -> Prompt:
 
     def f(dgt: int) -> typing.Callable:
         def g(p: TokenInterface) -> TokenInterface:
@@ -100,9 +117,13 @@ def round_up(
     return prompts
 
 
+class RoundUp(typing.Protocol):
+    def __call__(self, prompts: Prompt, digits: int) -> Prompt: ...
+
+
 def random(
-    prompts: Sequence[TokenInterface],
-) -> Sequence[TokenInterface]:
+    prompts: Prompt,
+) -> Prompt:
     import random
 
     if isinstance(prompts, typing.MutableSequence):
@@ -112,11 +133,13 @@ def random(
         return random.sample(prompts, len(prompts))
 
 
+class Random(typing.Protocol):
+    def __call__(self, prompts: Prompt) -> Prompt: ...
 def sort(
-    prompts: Sequence[TokenInterface],
+    prompts: Prompt,
     *,
     reverse=False,
-) -> list[TokenInterface]:
+) -> MutablePrompt:
     """
     >>> from lib.common import PromptInteractive
     >>> p = sort([PromptInteractive('white hair', 1.2), PromptInteractive('white hair', 1.0)])
@@ -129,7 +152,7 @@ def sort(
     [('white hair', 1.2), ('white hair', 1.0)]
     """
     tokens = []
-    for _, v in collect_same_prompt(prompts):
+    for _, v in collect_same_prompt_generator(prompts):
         v = sorted(v, key=sort_all_factory.sort_by_strength, reverse=reverse)
         for item in v:
             tokens.append(item)
@@ -137,11 +160,13 @@ def sort(
     return tokens
 
 
+class Sort(typing.Protocol):
+    def __call__(self, prompts: Prompt, *, reverse=False) -> MutablePrompt: ...
 def unique(
-    prompts: Sequence[TokenInterface],
+    prompts: Prompt,
     *,
     reverse=False,
-) -> list[TokenInterface]:
+) -> MutablePrompt:
     """
     >>> from lib.common import PromptInteractive
     >>> p = unique([PromptInteractive('white hair', 1.2), PromptInteractive('white hair', 1.0)])
@@ -154,11 +179,18 @@ def unique(
     [('white hair', 1.2)]
     """
     tokens = []
-    for _, v in collect_same_prompt(prompts):
+    for _, v in collect_same_prompt_generator(prompts):
         v = sorted(v, key=sort_all_factory.sort_by_strength, reverse=reverse)
         tokens.append(v.pop(0))
 
     return tokens
+
+
+class Unique(typing.Protocol):
+    def __call__(self, prompts: Prompt, *, reverse=False) -> MutablePrompt: ...
+
+
+Filters = Mask | Exclude | SortAll | RoundUp | Random | Sort | Unique
 
 
 if __name__ == "__main__":

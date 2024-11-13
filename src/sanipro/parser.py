@@ -59,7 +59,7 @@ class Token(TokenInterface):
 
 
 class TokenInteractive(Token):
-    def __init__(self, name: str, strength: float):
+    def __init__(self, name: str, strength: float) -> None:
         Token.__init__(self, name, strength)
         self._delimiter = Tokens.COLON
 
@@ -70,7 +70,7 @@ class TokenInteractive(Token):
 
 
 class TokenNonInteractive(Token):
-    def __init__(self, name: str, strength: float):
+    def __init__(self, name: str, strength: float) -> None:
         Token.__init__(self, name, strength)
         # defining 'delimiter' between token and weight helps to
         # pass the result of this command to like `column -t -s"\t"`
@@ -87,7 +87,7 @@ class Parser:
         token_cls: type[TokenInterface],
         sentence: str,
         delimiter: str | None = None,
-    ):
+    ) -> typing.Generator[TokenInterface]:
         raise NotImplementedError("An object must implement this method")
 
 
@@ -204,7 +204,7 @@ class ParserV1(Parser):
         token_cls: type[TokenInterface],
         sentence: str,
         delimiter: str | None = None,
-    ):
+    ) -> typing.Generator[TokenInterface]:
         if delimiter is not None:
             for element in cls.extract_token(sentence, delimiter):
                 token = cls.parse_line(element, token_cls)
@@ -330,7 +330,7 @@ class ParserV2(Parser):
         token_cls: type[TokenInterface],
         sentence: str,
         delimiter: str | None = None,
-    ) -> typing.Generator[TokenInterface, None, None]:
+    ) -> typing.Generator[TokenInterface]:
         return (
             token_cls(text, weight)
             for text, weight in cls.parse_prompt_attention(sentence)

@@ -7,17 +7,10 @@ import time
 from code import InteractiveConsole, InteractiveInterpreter
 from collections.abc import Sequence
 
-from sanipro import sort_all_factory
-
-from . import cli_hooks, color, filters, utils
+from . import cli_hooks, color, filters, sort_all_factory, utils
 from .abc import TokenInterface
-from .common import (
-    Delimiter,
-    FuncConfig,
-    PromptBuilder,
-    PromptBuilderV1,
-    PromptBuilderV2,
-)
+from .common import (Delimiter, FuncConfig, MutablePrompt, PromptBuilder,
+                     PromptBuilderV1, PromptBuilderV2)
 from .parser import TokenInteractive, TokenNonInteractive
 
 logger_root = logging.getLogger()
@@ -96,7 +89,7 @@ class Commands(utils.HasPrettyRepr):
             metavar="str",
             default=cls.input_delimiter,
             help=(
-                "Delimiter character for the original prompts."
+                "Preferred delimiter string for the original prompts. "
                 "(default: `%(default)s`)"
             ),
         )
@@ -107,7 +100,7 @@ class Commands(utils.HasPrettyRepr):
             metavar="str",
             default=cls.output_delimiter,
             help=(
-                "Delimiter character for the processed prompts"
+                "Preferred delimiter string for the processed prompts. "
                 "(default: `%(default)s`)"
             ),
         )
@@ -176,12 +169,13 @@ class Commands(utils.HasPrettyRepr):
 
         parser_mask = subparsers.add_parser(
             Subcommand.MASK,
-            help="mask tokens",
+            help="Mask tokens with words.",
             description="Mask words specified with another word (optional).",
             epilog=(
-                "This subcommands allow this program to remove the tokens"
-                "rather than remove them as in `--exclude` option. "
-                "Still, you can use `--exclude` option as well as this method."
+                (
+                    "Note that you can still use the global `--exclude` option"
+                    "as well as this filter."
+                )
             ),
         )
 
@@ -214,7 +208,7 @@ class Commands(utils.HasPrettyRepr):
             "-r",
             "--reverse",
             action="store_true",
-            help="with reversed order",
+            help="With reversed order.",
         )
 
         parser_sort_all = subparsers.add_parser(
@@ -230,19 +224,19 @@ class Commands(utils.HasPrettyRepr):
             default=cls.method,
             const=cls.method,
             nargs="?",
-            help="based on this strategy (default: `%(default)s`)",
+            help="Based on this strategy (default: `%(default)s`)",
         )
 
         parser_sort_all.add_argument(
             "-r",
             "--reverse",
             action="store_true",
-            help="with reversed order",
+            help="With reversed order.",
         )
 
         parser_unique = subparsers.add_parser(
             Subcommand.UNIQUE,
-            help="removes duplicated tokens, and uniquify them",
+            help="Removes duplicated tokens, and uniquify them.",
             description="Removes duplicated tokens, and uniquify them.",
             epilog="",
         )
@@ -251,7 +245,7 @@ class Commands(utils.HasPrettyRepr):
             "-r",
             "--reverse",
             action="store_true",
-            help="make the token with the heaviest weight survived",
+            help="Make the token with the heaviest weight survived.",
         )
 
         return parser
@@ -369,7 +363,7 @@ class Runner(utils.HasPrettyRepr):
         builder: PromptBuilder,
         ps1: str,
         prpt: type[TokenInterface],
-    ):
+    ) -> None:
         self.builder = builder
         self.ps1 = ps1
         self.prpt = prpt
@@ -405,17 +399,17 @@ class Analyzer:
 
 @dataclasses.dataclass
 class AnalyzerDiff(Analyzer):
-    before_process: list[TokenInterface]
-    after_process: list[TokenInterface]
+    before_process: MutablePrompt
+    after_process: MutablePrompt
 
     @property
     def len_reduced(self) -> int:
         return len(self.before_process) - len(self.after_process)
 
     @property
-    def duplicates(self) -> list[TokenInterface]:
+    def duplicates(self) -> MutablePrompt:
         tokens_pairs = []
-        for _, tokens in filters.collect_same_prompt(self.before_process):
+        for _, tokens in filters.collect_same_prompt_generator(self.before_process):
             if len(tokens) > 1:
                 pair = []
                 for token in tokens:
@@ -449,7 +443,7 @@ class RunnerInteractive(Runner, InteractiveConsole):
         builder: PromptBuilder,
         ps1: str,
         prpt: type[TokenInterface],
-    ):
+    ) -> None:
         self.builder = builder
         self.ps1 = ps1
         self.prpt = prpt

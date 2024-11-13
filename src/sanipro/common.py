@@ -3,50 +3,24 @@ import logging
 import typing
 from collections.abc import Sequence
 
-from . import parser
+from . import filters, parser
 from .abc import TokenInterface
 
 logger = logging.getLogger(__name__)
 
+Prompt = Sequence[TokenInterface]
 
-class FuncType(typing.Protocol):
-    def __call__(
-        self,
-        prompts: Sequence[TokenInterface],
-        *args: typing.Any,
-        **kwargs: typing.Any,
-    ) -> Sequence[TokenInterface]: ...
-
-    @property
-    def __name__(self) -> str: ...
+MutablePrompt = list[TokenInterface]
 
 
 class FuncConfig(typing.NamedTuple):
-    func: FuncType
+    func: filters.Filters
     kwargs: Sequence[tuple[str, typing.Any]] | dict[str, typing.Any]
 
 
 class Delimiter(typing.NamedTuple):
     sep_input: str
     sep_output: str
-
-    def create_v1_builder(
-        self,
-    ) -> "PromptBuilderV1":
-
-        return PromptBuilderV1(
-            parser.ParserV1,
-            self,
-        )
-
-    def create_v2_builder(
-        self,
-    ) -> "PromptBuilderV2":
-
-        return PromptBuilderV2(
-            parser.ParserV2,
-            self,
-        )
 
     def create_builder(
         self,
@@ -73,7 +47,7 @@ class Delimiter(typing.NamedTuple):
 class PromptBuilder:
     pre_funcs: list[typing.Callable[..., str]]
     funcs: list[FuncConfig]
-    tokens: list[TokenInterface]
+    tokens: MutablePrompt
     delimiter: Delimiter
     _parser: type[parser.Parser]
 
@@ -81,7 +55,7 @@ class PromptBuilder:
         self,
         psr: type[parser.Parser],
         delimiter: Delimiter | None = None,
-    ):
+    ) -> None:
         self.pre_funcs = []
         self.funcs = []
         self.tokens = []
@@ -93,7 +67,7 @@ class PromptBuilder:
 
     def apply(
         self,
-        prompts: Sequence[TokenInterface],
+        prompts: Prompt,
         funcs: Sequence[FuncConfig] | None = None,
     ) -> None:
         """sequentially applies the filters."""
@@ -117,12 +91,13 @@ class PromptBuilder:
         sentence: str,
         token_cls: type[TokenInterface],
         auto_apply=False,
-    ) -> list[TokenInterface]:
+    ) -> MutablePrompt:
         sentence = self._execute_pre_hooks(sentence)
 
         delimiter = self.delimiter.sep_input
 
         prompts = list(self._parser.get_token(token_cls, sentence, delimiter))
+
         # pprint.pprint(prompts, debug_fp)
 
         if auto_apply:
@@ -143,7 +118,7 @@ class PromptBuilderV1(PromptBuilder):
         self,
         psr: type[parser.Parser],
         delimiter: Delimiter | None = None,
-    ):
+    ) -> None:
         PromptBuilder.__init__(self, psr, delimiter)
 
         def add_last_comma(sentence: str) -> str:
