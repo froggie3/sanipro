@@ -59,7 +59,11 @@ def cmp_helper(
 def get_log_level_from(count: int | None) -> int:
     import logging
 
-    if count is None or count < 2:
+    if count is None:
+        return logging.INFO
+    elif count == 0:
+        return logging.INFO
+    elif count == 1:
         return logging.INFO
     elif count == 2:
         return logging.DEBUG
