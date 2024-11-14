@@ -26,14 +26,14 @@ class Subcommand(object):
 
 class Commands(utils.HasPrettyRepr):
     # features usable in parser_v1
-    mask = False
+    mask: Sequence[str]
     random = False
     sort = False
     sort_all = False
     unique = False
 
     # basic functions
-    exclude = False
+    exclude: Sequence[str]
     input_delimiter = ","
     interactive = False
     output_delimiter = ", "
@@ -262,8 +262,6 @@ class Commands(utils.HasPrettyRepr):
         return delim.create_builder(common.PromptBuilderV2)
 
     def get_builder(self) -> common.PromptBuilder:
-        cfg = common.FuncConfig
-
         if self.use_parser_v2 and self.subcommand in Subcommand.get_set():
             raise NotImplementedError(
                 f"the '{self.subcommand}' command is not available "
@@ -275,73 +273,26 @@ class Commands(utils.HasPrettyRepr):
 
         builder = self.get_builder_from(self.use_parser_v2)
         # always round
-        builder.append_hook(
-            cfg(
-                func=filters.round_up,
-                kwargs={"digits": self.roundup},
-            ),
-        )
+        builder.append_filter(filters.RoundUpCommand(self.roundup))
 
         if self.subcommand == Subcommand.RANDOM:
-            builder.append_hook(
-                cfg(
-                    func=filters.random,
-                    kwargs={},
-                ),
-            )
+            builder.append_filter(filters.RandomCommand())
 
         if self.subcommand == Subcommand.SORT_ALL:
             sorted_partial = sort_all_factory.apply_from(self.method)
-            builder.append_hook(
-                cfg(
-                    func=filters.sort_all,
-                    kwargs={
-                        "sorted_partial": sorted_partial,
-                        "reverse": True if (self.reverse or False) else False,
-                    },
-                )
-            )
+            builder.append_filter(filters.SortAllCommand(sorted_partial, self.reverse))
 
         if self.subcommand == Subcommand.SORT:
-            builder.append_hook(
-                cfg(
-                    func=filters.sort,
-                    kwargs={
-                        "reverse": (self.reverse or False),
-                    },
-                )
-            )
+            builder.append_filter(filters.SortCommand(self.reverse))
 
         if self.subcommand == Subcommand.UNIQUE:
-            builder.append_hook(
-                cfg(
-                    func=filters.unique,
-                    kwargs={
-                        "reverse": self.reverse or False,
-                    },
-                )
-            )
+            builder.append_filter(filters.UniqueCommand(self.reverse))
 
         if self.subcommand == Subcommand.MASK:
-            builder.append_hook(
-                cfg(
-                    func=filters.mask,
-                    kwargs={
-                        "excludes": self.mask,
-                        "replace_to": self.replace_to,
-                    },
-                )
-            )
+            builder.append_filter(filters.MaskCommand(self.mask, self.replace_to))
 
         if self.exclude:
-            builder.append_hook(
-                cfg(
-                    func=filters.exclude,
-                    kwargs={
-                        "excludes": self.exclude,
-                    },
-                ),
-            )
+            builder.append_filter(filters.ExcludeCommand(self.exclude))
 
         return builder
 

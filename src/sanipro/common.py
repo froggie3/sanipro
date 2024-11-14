@@ -9,11 +9,6 @@ from .abc import MutablePrompt, Prompt, TokenInterface
 logger = logging.getLogger(__name__)
 
 
-class FuncConfig(typing.NamedTuple):
-    func: filters.Filters
-    kwargs: Sequence[tuple[str, typing.Any]] | dict[str, typing.Any]
-
-
 class Delimiter(typing.NamedTuple):
     sep_input: str
     sep_output: str
@@ -22,7 +17,7 @@ class Delimiter(typing.NamedTuple):
         self,
         cls: type["PromptBuilder"],
     ) -> "PromptBuilder":
-
+        """Creates builder from Delimiter object"""
         builder = None
         if cls is PromptBuilderV1:
             builder = cls(
@@ -42,7 +37,7 @@ class Delimiter(typing.NamedTuple):
 
 class PromptBuilder:
     pre_funcs: list[typing.Callable[..., str]]
-    funcs: list[FuncConfig]
+    funcs: list[filters.Command]
     tokens: MutablePrompt
     delimiter: Delimiter
     _parser: type[parser.Parser]
@@ -61,52 +56,53 @@ class PromptBuilder:
     def __str__(self) -> str:
         raise NotImplementedError
 
-    def apply(
+    def execute(
         self,
         prompts: Prompt,
-        funcs: Sequence[FuncConfig] | None = None,
+        funcs: Sequence[filters.Command] | None = None,
     ) -> None:
         """sequentially applies the filters."""
         if funcs is None:
             funcs = []
-        self.append_hook(*funcs)
+        self.append_filter(*funcs)
 
         result = functools.reduce(
-            lambda x, y: y.func(x, **dict(y.kwargs)),
+            lambda x, y: y.execute(x),
             self.funcs,
             prompts,
         )
         self.tokens = list(result)
 
     def _execute_pre_hooks(self, sentence: str) -> str:
-        """executes hooks bound"""
+        """Executes hooks bound."""
         return functools.reduce(lambda x, y: y(x), self.pre_funcs, sentence)
 
     def parse(
         self,
-        sentence: str,
+        prompt: str,
         token_cls: type[TokenInterface],
         auto_apply=False,
     ) -> MutablePrompt:
-        sentence = self._execute_pre_hooks(sentence)
+        """Tokenize the prompt string."""
+        prompt = self._execute_pre_hooks(prompt)
 
         delimiter = self.delimiter.sep_input
 
-        prompts = list(self._parser.get_token(token_cls, sentence, delimiter))
+        tokens = list(self._parser.get_token(token_cls, prompt, delimiter))
 
         # pprint.pprint(prompts, debug_fp)
 
         if auto_apply:
-            self.apply(prompts)
+            self.execute(tokens)
 
-        return prompts
+        return tokens
 
     def append_pre_hook(self, *funcs: typing.Callable[..., str]) -> None:
         """処理前のプロンプトに対して実行されるコールバック関数を追加"""
         self.pre_funcs.extend(funcs)
 
-    def append_hook(self, *funcs: FuncConfig) -> None:
-        self.funcs.extend(funcs)
+    def append_filter(self, *command: filters.Command) -> None:
+        self.funcs.extend(command)
 
 
 class PromptBuilderV1(PromptBuilder):

@@ -1,6 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
+from collections.abc import MutableSequence, Sequence
 
 logger = logging.getLogger(__name__)
 
@@ -40,4 +40,4 @@ class TokenInterface(ABC):
 
 Prompt = Sequence[TokenInterface]
 
-MutablePrompt = list[TokenInterface]
+MutablePrompt = MutableSequence[TokenInterface]
