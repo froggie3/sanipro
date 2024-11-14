@@ -13,29 +13,29 @@ class Delimiter(typing.NamedTuple):
     sep_input: str
     sep_output: str
 
-    def create_builder(
+    def create_pipeline(
         self,
-        cls: type["PromptBuilder"],
-    ) -> "PromptBuilder":
-        """Creates builder from Delimiter object"""
-        builder = None
+        cls: type["PromptPipeline"],
+    ) -> "PromptPipeline":
+        """Creates pipeline from Delimiter object"""
+        pipeline = None
         if cls is PromptBuilderV1:
-            builder = cls(
+            pipeline = cls(
                 parser.ParserV1,
                 self,
             )
         elif cls is PromptBuilderV2:
-            builder = cls(
+            pipeline = cls(
                 parser.ParserV2,
                 self,
             )
-        if builder is not None:
-            return builder
+        if pipeline is not None:
+            return pipeline
 
         raise NotImplementedError
 
 
-class PromptBuilder:
+class PromptPipeline:
     pre_funcs: list[typing.Callable[..., str]]
     funcs: list[filters.Command]
     tokens: MutablePrompt
@@ -64,7 +64,7 @@ class PromptBuilder:
         """sequentially applies the filters."""
         if funcs is None:
             funcs = []
-        self.append_filter(*funcs)
+        self.append_command(*funcs)
 
         result = functools.reduce(
             lambda x, y: y.execute(x),
@@ -101,17 +101,17 @@ class PromptBuilder:
         """処理前のプロンプトに対して実行されるコールバック関数を追加"""
         self.pre_funcs.extend(funcs)
 
-    def append_filter(self, *command: filters.Command) -> None:
+    def append_command(self, *command: filters.Command) -> None:
         self.funcs.extend(command)
 
 
-class PromptBuilderV1(PromptBuilder):
+class PromptBuilderV1(PromptPipeline):
     def __init__(
         self,
         psr: type[parser.Parser],
         delimiter: Delimiter | None = None,
     ) -> None:
-        PromptBuilder.__init__(self, psr, delimiter)
+        PromptPipeline.__init__(self, psr, delimiter)
 
         def add_last_comma(sentence: str) -> str:
             if not sentence.endswith(self.delimiter.sep_input):
@@ -127,7 +127,7 @@ class PromptBuilderV1(PromptBuilder):
         return delim.join(lines)
 
 
-class PromptBuilderV2(PromptBuilder):
+class PromptBuilderV2(PromptPipeline):
     def __str__(self) -> str:
         delim = ""
         lines = map(lambda token: str(token), self.tokens)

@@ -255,13 +255,13 @@ class Commands(utils.HasPrettyRepr):
             self.output_delimiter,
         )
 
-    def get_builder_from(self, use_parser_v2: bool) -> common.PromptBuilder:
+    def get_pipeline_from(self, use_parser_v2: bool) -> common.PromptPipeline:
         delim = self.get_delimiter
         if not use_parser_v2:
-            return delim.create_builder(common.PromptBuilderV1)
-        return delim.create_builder(common.PromptBuilderV2)
+            return delim.create_pipeline(common.PromptBuilderV1)
+        return delim.create_pipeline(common.PromptBuilderV2)
 
-    def get_builder(self) -> common.PromptBuilder:
+    def get_pipeline(self) -> common.PromptPipeline:
         if self.use_parser_v2 and self.subcommand in Subcommand.get_set():
             raise NotImplementedError(
                 f"the '{self.subcommand}' command is not available "
@@ -271,30 +271,32 @@ class Commands(utils.HasPrettyRepr):
         if self.use_parser_v2:
             logger.warning("using parser_v2.")
 
-        builder = self.get_builder_from(self.use_parser_v2)
+        pipeline = self.get_pipeline_from(self.use_parser_v2)
         # always round
-        builder.append_filter(filters.RoundUpCommand(self.roundup))
+        pipeline.append_command(filters.RoundUpCommand(self.roundup))
 
         if self.subcommand == Subcommand.RANDOM:
-            builder.append_filter(filters.RandomCommand())
+            pipeline.append_command(filters.RandomCommand())
 
         if self.subcommand == Subcommand.SORT_ALL:
             sorted_partial = sort_all_factory.apply_from(self.method)
-            builder.append_filter(filters.SortAllCommand(sorted_partial, self.reverse))
+            pipeline.append_command(
+                filters.SortAllCommand(sorted_partial, self.reverse)
+            )
 
         if self.subcommand == Subcommand.SORT:
-            builder.append_filter(filters.SortCommand(self.reverse))
+            pipeline.append_command(filters.SortCommand(self.reverse))
 
         if self.subcommand == Subcommand.UNIQUE:
-            builder.append_filter(filters.UniqueCommand(self.reverse))
+            pipeline.append_command(filters.UniqueCommand(self.reverse))
 
         if self.subcommand == Subcommand.MASK:
-            builder.append_filter(filters.MaskCommand(self.mask, self.replace_to))
+            pipeline.append_command(filters.MaskCommand(self.mask, self.replace_to))
 
         if self.exclude:
-            builder.append_filter(filters.ExcludeCommand(self.exclude))
+            pipeline.append_command(filters.ExcludeCommand(self.exclude))
 
-        return builder
+        return pipeline
 
     @classmethod
     def from_sys_argv(cls, arg_val: Sequence) -> "Commands":

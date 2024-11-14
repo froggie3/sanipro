@@ -8,7 +8,7 @@ from code import InteractiveConsole, InteractiveInterpreter
 from . import cli_hooks, filters, utils
 from .abc import TokenInterface
 from .commands import Commands
-from .common import MutablePrompt, PromptBuilder
+from .common import MutablePrompt, PromptPipeline
 from .parser import TokenInteractive, TokenNonInteractive
 
 logger_root = logging.getLogger()
@@ -18,11 +18,11 @@ logger = logging.getLogger(__name__)
 class Runner(utils.HasPrettyRepr):
     def __init__(
         self,
-        builder: PromptBuilder,
+        pipeline: PromptPipeline,
         ps1: str,
         prpt: type[TokenInterface],
     ) -> None:
-        self.builder = builder
+        self.pipeline = pipeline
         self.ps1 = ps1
         self.prpt = prpt
 
@@ -36,16 +36,16 @@ class Runner(utils.HasPrettyRepr):
 
     @staticmethod
     def from_args(args: Commands) -> "Runner":
-        builder = args.get_builder()
+        pipeline = args.get_pipeline()
         if args.interactive:
             return RunnerInteractive(
-                builder,
+                pipeline,
                 ps1=args.ps1,
                 prpt=TokenInteractive,
             )
         else:
             return RunnerNonInteractive(
-                builder,
+                pipeline,
                 ps1="",
                 prpt=TokenNonInteractive,
             )
@@ -98,11 +98,11 @@ class AnalyzerDiff(Analyzer):
 class RunnerInteractive(Runner, InteractiveConsole):
     def __init__(
         self,
-        builder: PromptBuilder,
+        pipeline: PromptPipeline,
         ps1: str,
         prpt: type[TokenInterface],
     ) -> None:
-        self.builder = builder
+        self.pipeline = pipeline
         self.ps1 = ps1
         self.prpt = prpt
 
@@ -157,14 +157,14 @@ class RunnerInteractive(Runner, InteractiveConsole):
         print(code)
 
     def runsource(self, source, filename="<input>", symbol="single"):
-        tokens_unparsed = self.builder.parse(
+        tokens_unparsed = self.pipeline.execute(
             str(source),
             self.prpt,
             auto_apply=True,
         )
-        tokens = str(self.builder)
+        tokens = str(self.pipeline)
 
-        anal = AnalyzerDiff(tokens_unparsed, self.builder.tokens)
+        anal = AnalyzerDiff(tokens_unparsed, self.pipeline.tokens)
         pprint.pprint(anal.get_stats(), utils.debug_fp)
 
         self.runcode(tokens)  # type: ignore
@@ -185,12 +185,12 @@ class RunnerNonInteractive(Runner):
     def _run_once(self) -> None:
         sentence = input(self.ps1).strip()
         if sentence != "":
-            self.builder.parse(
+            self.pipeline.execute(
                 sentence,
                 self.prpt,
                 auto_apply=True,
             )
-            result = str(self.builder)
+            result = str(self.pipeline)
             print(result)
 
     def run(self):
