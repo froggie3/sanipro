@@ -157,7 +157,7 @@ class RunnerInteractive(Runner, InteractiveConsole):
         print(code)
 
     def runsource(self, source, filename="<input>", symbol="single"):
-        tokens_unparsed = self.pipeline.execute(
+        tokens_unparsed = self.pipeline.parse(
             str(source),
             self.prpt,
             auto_apply=True,
@@ -185,7 +185,7 @@ class RunnerNonInteractive(Runner):
     def _run_once(self) -> None:
         sentence = input(self.ps1).strip()
         if sentence != "":
-            self.pipeline.execute(
+            self.pipeline.parse(
                 sentence,
                 self.prpt,
                 auto_apply=True,

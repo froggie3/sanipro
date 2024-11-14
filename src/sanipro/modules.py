@@ -12,7 +12,7 @@ def parse(
         psr,
         Delimiter(",", sep),
     )
-    pipeline.execute(prompt, TokenInteractive, True)
+    pipeline.parse(prompt, TokenInteractive, True)
 
     return pipeline
 
