@@ -258,8 +258,8 @@ class Commands(utils.HasPrettyRepr):
     def get_pipeline_from(self, use_parser_v2: bool) -> common.PromptPipeline:
         delim = self.get_delimiter
         if not use_parser_v2:
-            return delim.create_pipeline(common.PromptBuilderV1)
-        return delim.create_pipeline(common.PromptBuilderV2)
+            return delim.create_pipeline(common.PromptPipelineV1)
+        return delim.create_pipeline(common.PromptPipelineV2)
 
     def get_pipeline(self) -> common.PromptPipeline:
         if self.use_parser_v2 and self.subcommand in Subcommand.get_set():

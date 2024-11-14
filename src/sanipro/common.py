@@ -19,12 +19,12 @@ class Delimiter(typing.NamedTuple):
     ) -> "PromptPipeline":
         """Creates pipeline from Delimiter object"""
         pipeline = None
-        if cls is PromptBuilderV1:
+        if cls is PromptPipelineV1:
             pipeline = cls(
                 parser.ParserV1,
                 self,
             )
-        elif cls is PromptBuilderV2:
+        elif cls is PromptPipelineV2:
             pipeline = cls(
                 parser.ParserV2,
                 self,
@@ -105,7 +105,7 @@ class PromptPipeline:
         self.funcs.extend(command)
 
 
-class PromptBuilderV1(PromptPipeline):
+class PromptPipelineV1(PromptPipeline):
     def __init__(
         self,
         psr: type[parser.Parser],
@@ -127,7 +127,7 @@ class PromptBuilderV1(PromptPipeline):
         return delim.join(lines)
 
 
-class PromptBuilderV2(PromptPipeline):
+class PromptPipelineV2(PromptPipeline):
     def __str__(self) -> str:
         delim = ""
         lines = map(lambda token: str(token), self.tokens)
