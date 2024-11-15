@@ -5,11 +5,7 @@ from .abc import TokenInterface
 
 logger = logging.getLogger(__name__)
 
-available = (
-    "lexicographical",
-    "length",
-    "strength",
-)
+available = ("lexicographical", "length", "strength")
 
 
 def sort_lexicographically(token: TokenInterface) -> str:
@@ -25,11 +21,7 @@ def sort_by_strength(token: TokenInterface) -> float:
 
 
 def apply_from(sort_law_name: str):
-    funcs = (
-        sort_lexicographically,
-        sort_by_length,
-        sort_by_strength,
-    )
+    funcs = (sort_lexicographically, sort_by_length, sort_by_strength)
 
     for func_name, func in zip(available, funcs):
         logger.debug(f"matching {func_name!r} with {func.__name__!r}")

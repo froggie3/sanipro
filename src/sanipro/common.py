@@ -13,22 +13,13 @@ class Delimiter(typing.NamedTuple):
     sep_input: str
     sep_output: str
 
-    def create_pipeline(
-        self,
-        cls: type["PromptPipeline"],
-    ) -> "PromptPipeline":
+    def create_pipeline(self, cls: type["PromptPipeline"]) -> "PromptPipeline":
         """Creates pipeline from Delimiter object"""
         pipeline = None
         if cls is PromptPipelineV1:
-            pipeline = cls(
-                parser.ParserV1,
-                self,
-            )
+            pipeline = cls(parser.ParserV1, self)
         elif cls is PromptPipelineV2:
-            pipeline = cls(
-                parser.ParserV2,
-                self,
-            )
+            pipeline = cls(parser.ParserV2, self)
         if pipeline is not None:
             return pipeline
 
@@ -43,9 +34,7 @@ class PromptPipeline:
     _parser: type[parser.Parser]
 
     def __init__(
-        self,
-        psr: type[parser.Parser],
-        delimiter: Delimiter | None = None,
+        self, psr: type[parser.Parser], delimiter: Delimiter | None = None
     ) -> None:
         self.pre_funcs = []
         self.funcs = []
@@ -57,20 +46,14 @@ class PromptPipeline:
         raise NotImplementedError
 
     def execute(
-        self,
-        prompts: Prompt,
-        funcs: Sequence[filters.Command] | None = None,
+        self, prompts: Prompt, funcs: Sequence[filters.Command] | None = None
     ) -> None:
         """sequentially applies the filters."""
         if funcs is None:
             funcs = []
         self.append_command(*funcs)
 
-        result = functools.reduce(
-            lambda x, y: y.execute(x),
-            self.funcs,
-            prompts,
-        )
+        result = functools.reduce(lambda x, y: y.execute(x), self.funcs, prompts)
         self.tokens = list(result)
 
     def _execute_pre_hooks(self, sentence: str) -> str:
@@ -78,18 +61,12 @@ class PromptPipeline:
         return functools.reduce(lambda x, y: y(x), self.pre_funcs, sentence)
 
     def parse(
-        self,
-        prompt: str,
-        token_cls: type[TokenInterface],
-        auto_apply=False,
+        self, prompt: str, token_cls: type[TokenInterface], auto_apply=False
     ) -> MutablePrompt:
         """Tokenize the prompt string."""
         prompt = self._execute_pre_hooks(prompt)
-
         delimiter = self.delimiter.sep_input
-
         tokens = list(self._parser.get_token(token_cls, prompt, delimiter))
-
         # pprint.pprint(prompts, debug_fp)
 
         if auto_apply:
@@ -107,9 +84,7 @@ class PromptPipeline:
 
 class PromptPipelineV1(PromptPipeline):
     def __init__(
-        self,
-        psr: type[parser.Parser],
-        delimiter: Delimiter | None = None,
+        self, psr: type[parser.Parser], delimiter: Delimiter | None = None
     ) -> None:
         PromptPipeline.__init__(self, psr, delimiter)
 

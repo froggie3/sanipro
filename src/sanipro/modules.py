@@ -11,20 +11,14 @@ def _create_pipeline_helper(separator: str) -> common.PromptPipeline:
     return pipeline
 
 
-def parse(
-    prompt: str,
-    separator=", ",
-) -> common.PromptPipeline:
+def parse(prompt: str, separator=", ") -> common.PromptPipeline:
     pipeline = _create_pipeline_helper(separator)
     pipeline.parse(prompt, Token)
 
     return pipeline
 
 
-def filter_example(
-    prompt: str,
-    separator=", ",
-):
+def filter_example(prompt: str, separator=", "):
     pipeline = parse(prompt, separator)
     filter_unique = filters.UniqueCommand(reverse=True)
     pipeline.append_command(filter_unique)

@@ -58,7 +58,7 @@ class Commands(utils.HasPrettyRepr):
             raise ValueError("the maximum two -v flags can only be added")
 
     def debug(self) -> None:
-        pprint.pprint(self, utils.debug_fp)
+        pprint.pprint(self, utils.get_debug_fp())
 
     @classmethod
     def prepare_parser(cls) -> argparse.ArgumentParser:
@@ -177,11 +177,7 @@ class Commands(utils.HasPrettyRepr):
             ),
         )
 
-        parser_mask.add_argument(
-            "mask",
-            nargs="*",
-            help="Masks this word.",
-        )
+        parser_mask.add_argument("mask", nargs="*", help="Masks this word.")
 
         parser_mask.add_argument(
             "-t",
@@ -203,10 +199,7 @@ class Commands(utils.HasPrettyRepr):
             epilog="This command reorders tokens with their weights by default.",
         )
         parser_sort.add_argument(
-            "-r",
-            "--reverse",
-            action="store_true",
-            help="With reversed order.",
+            "-r", "--reverse", action="store_true", help="With reversed order."
         )
 
         parser_sort_all = subparsers.add_parser(
@@ -226,10 +219,7 @@ class Commands(utils.HasPrettyRepr):
         )
 
         parser_sort_all.add_argument(
-            "-r",
-            "--reverse",
-            action="store_true",
-            help="With reversed order.",
+            "-r", "--reverse", action="store_true", help="With reversed order."
         )
 
         parser_unique = subparsers.add_parser(
@@ -250,10 +240,7 @@ class Commands(utils.HasPrettyRepr):
 
     @property
     def get_delimiter(self) -> common.Delimiter:
-        return common.Delimiter(
-            self.input_delimiter,
-            self.output_delimiter,
-        )
+        return common.Delimiter(self.input_delimiter, self.output_delimiter)
 
     def get_pipeline_from(self, use_parser_v2: bool) -> common.PromptPipeline:
         delim = self.get_delimiter

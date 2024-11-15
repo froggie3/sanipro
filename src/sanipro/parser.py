@@ -44,10 +44,7 @@ class Token(TokenInterface):
 
     def __repr__(self) -> str:
         items = (f"{v!r}" for v in (self.name, self.strength))
-        return "{}({})".format(
-            type(self).__name__,
-            f"{Tokens.COMMA} ".join(items),
-        )
+        return "{}({})".format(type(self).__name__, f"{Tokens.COMMA} ".join(items))
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, self.__class__):
@@ -93,10 +90,7 @@ class Parser:
 
 class ParserV1(Parser):
     @staticmethod
-    def extract_token(
-        sentence: str,
-        delimiter: str,
-    ) -> list[str]:
+    def extract_token(sentence: str, delimiter: str) -> list[str]:
         """
         split `sentence` at commas and remove parentheses.
 
@@ -164,8 +158,7 @@ class ParserV1(Parser):
 
     @staticmethod
     def parse_line(
-        token_combined: str,
-        token_cls: type[TokenInterface],
+        token_combined: str, token_cls: type[TokenInterface]
     ) -> TokenInterface:
         """
         split `token_combined` into left and right sides with `:`
@@ -192,10 +185,7 @@ class ParserV1(Parser):
         pattern = rf"^{name_pattern}(?::{weight_pattern})?$"
         m = re.match(pattern, token_combined)
         if m:
-            return token_cls(
-                m.group(1),
-                float(m.group(2) or 1.0),
-            )
+            return token_cls(m.group(1), float(m.group(2) or 1.0))
         raise Exception(f"no matched string for {token_combined!r}")
 
     @classmethod

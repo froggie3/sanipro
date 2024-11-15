@@ -1,9 +1,14 @@
-import itertools
 import logging
 import typing
 
+from .abc import TokenInterface
+
+logger = logging.getLogger(__name__)
+
 
 class BufferingLoggerWriter(typing.IO):
+    """Pseudo file object redirected to logger."""
+
     def __init__(self, logger: logging.Logger, level: int):
         self.logger = logger
         self.level = level
@@ -29,34 +34,11 @@ class BufferingLoggerWriter(typing.IO):
         pass
 
 
-def batched(iterable: typing.Iterable, n: int, *, strict: bool = False):
-    # batched('ABCDEFG', 3) → ABC DEF G
-    if n < 1:
-        raise ValueError("n must be at least one")
-    iterator = iter(iterable)
-    while batch := tuple(itertools.islice(iterator, n)):
-        if strict and len(batch) != n:
-            raise ValueError("batched(): incomplete batch")
-        yield batch
-
-
-def capped(iterable, n: int) -> typing.Generator[int, None, None]:
-    return (x % n for x in iterable)
-
-
-def cmp_helper(
-    a: typing.Any,
-    b: typing.Any,
-    key: typing.Callable | None = None,
-    reverse: bool = False,
-):
-    if key is not None:
-        return key(b) <= key(a) if reverse else key(a) <= key(b)
-
-    return b <= a if reverse else a <= b
+__debug_fp = BufferingLoggerWriter(logger, logging.DEBUG)
 
 
 def get_log_level_from(count: int | None) -> int:
+    """Map function that maps the number of options to log level."""
     import logging
 
     if count is None:
@@ -71,14 +53,24 @@ def get_log_level_from(count: int | None) -> int:
         raise ValueError
 
 
-def to_dict(obj):
+def to_dict(obj) -> dict:
+    """Creates a dictionary from the object without magic methods."""
     return {k: v for k, v in vars(obj).items() if not k.startswith("_")}
 
 
 class HasPrettyRepr:
+    """A base class that contains human readable representation of the object."""
+
     def __repr__(self):
         params = ", ".join(f"{k}={v!r}" for k, v in to_dict(self).items())
         return f"{self.__class__.__name__}({params})"
 
 
-debug_fp = BufferingLoggerWriter(logging.getLogger(__name__), logging.DEBUG)
+def round_token_weight(token: TokenInterface, digits: int) -> TokenInterface:
+    """A helper function to round the token weight to `n` digits."""
+    return type(token)(token.name, round(token.strength, digits))
+
+
+def get_debug_fp() -> BufferingLoggerWriter:
+    """Get `BufferingLoggerWriter` instance. Mainly for `pprint.pprint()`."""
+    return __debug_fp

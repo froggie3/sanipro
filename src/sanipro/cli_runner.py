@@ -17,18 +17,13 @@ logger = logging.getLogger(__name__)
 
 class Runner(utils.HasPrettyRepr):
     def __init__(
-        self,
-        pipeline: PromptPipeline,
-        ps1: str,
-        prpt: type[TokenInterface],
+        self, pipeline: PromptPipeline, ps1: str, prpt: type[TokenInterface]
     ) -> None:
         self.pipeline = pipeline
         self.ps1 = ps1
         self.prpt = prpt
 
-    def _run_once(
-        self,
-    ) -> None:
+    def _run_once(self) -> None:
         raise NotImplementedError
 
     def run(self):
@@ -38,17 +33,9 @@ class Runner(utils.HasPrettyRepr):
     def from_args(args: Commands) -> "Runner":
         pipeline = args.get_pipeline()
         if args.interactive:
-            return RunnerInteractive(
-                pipeline,
-                ps1=args.ps1,
-                prpt=TokenInteractive,
-            )
+            return RunnerInteractive(pipeline, ps1=args.ps1, prpt=TokenInteractive)
         else:
-            return RunnerNonInteractive(
-                pipeline,
-                ps1="",
-                prpt=TokenNonInteractive,
-            )
+            return RunnerNonInteractive(pipeline, ps1="", prpt=TokenNonInteractive)
 
 
 class Analyzer:
@@ -79,7 +66,7 @@ class AnalyzerDiff(Analyzer):
                     pair.append(stats)
                 tokens_pairs.append({"pair": pair})
         for pair in tokens_pairs:
-            pprint.pprint(pair, utils.debug_fp)
+            pprint.pprint(pair, utils.get_debug_fp())
             # logger.debug(token)
         return tokens_pairs
 
@@ -97,10 +84,7 @@ class AnalyzerDiff(Analyzer):
 
 class RunnerInteractive(Runner, InteractiveConsole):
     def __init__(
-        self,
-        pipeline: PromptPipeline,
-        ps1: str,
-        prpt: type[TokenInterface],
+        self, pipeline: PromptPipeline, ps1: str, prpt: type[TokenInterface]
     ) -> None:
         self.pipeline = pipeline
         self.ps1 = ps1
@@ -157,15 +141,11 @@ class RunnerInteractive(Runner, InteractiveConsole):
         print(code)
 
     def runsource(self, source, filename="<input>", symbol="single"):
-        tokens_unparsed = self.pipeline.parse(
-            str(source),
-            self.prpt,
-            auto_apply=True,
-        )
+        tokens_unparsed = self.pipeline.parse(str(source), self.prpt, auto_apply=True)
         tokens = str(self.pipeline)
 
         anal = AnalyzerDiff(tokens_unparsed, self.pipeline.tokens)
-        pprint.pprint(anal.get_stats(), utils.debug_fp)
+        pprint.pprint(anal.get_stats(), utils.get_debug_fp())
 
         self.runcode(tokens)  # type: ignore
         return False
@@ -185,11 +165,7 @@ class RunnerNonInteractive(Runner):
     def _run_once(self) -> None:
         sentence = input(self.ps1).strip()
         if sentence != "":
-            self.pipeline.parse(
-                sentence,
-                self.prpt,
-                auto_apply=True,
-            )
+            self.pipeline.parse(sentence, self.prpt, auto_apply=True)
             result = str(self.pipeline)
             print(result)
 
