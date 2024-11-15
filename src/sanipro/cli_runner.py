@@ -67,7 +67,7 @@ class AnalyzerDiff(Analyzer):
     @property
     def duplicates(self) -> MutablePrompt:
         tokens_pairs = []
-        for _, tokens in filters.collect_same_prompt_generator(self.before_process):
+        for tokens in filters.collect_same_tokens(self.before_process).values():
             if len(tokens) > 1:
                 pair = []
                 for token in tokens:

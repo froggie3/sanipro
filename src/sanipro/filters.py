@@ -1,9 +1,11 @@
+import collections
 import functools
+import itertools
 import logging
 import random
 import typing
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 
 from . import sort_all_factory
 from .abc import MutablePrompt, Prompt, TokenInterface
@@ -15,29 +17,29 @@ class Command(ABC):
     @abstractmethod
     def execute(
         self,
-        prompts: Prompt,
+        prompt: Prompt,
     ) -> MutablePrompt:
         raise NotImplementedError
 
 
-def collect_same_prompt(
+def collect_same_tokens(
     prompts: Prompt,
-) -> dict[str, MutablePrompt]:
-    groups = {}
+) -> Mapping[str, MutablePrompt]:
+    groups = collections.defaultdict(list)
     for prompt in prompts:
-        if prompt.name in groups:
-            groups[prompt.name].append(prompt)
-        else:
-            groups[prompt.name] = [prompt]
+        groups[prompt.name].append(prompt)
     return groups
 
 
-def collect_same_prompt_generator(
-    prompts: Prompt,
-) -> typing.Generator[tuple[str, MutablePrompt], None, None]:
-    groups = collect_same_prompt(prompts)
-    for k, v in groups.items():
-        yield k, v
+def collect_same_tokens_sorted(
+    prompt: Prompt,
+    reverse=False,
+) -> typing.Generator[list[TokenInterface], None, None]:
+    f = sort_all_factory.sort_by_strength
+    return (
+        sorted(tokens, key=f, reverse=reverse)
+        for tokens in collect_same_tokens(prompt).values()
+    )
 
 
 class MaskCommand(Command):
@@ -51,7 +53,7 @@ class MaskCommand(Command):
 
     def execute(
         self,
-        prompts: Prompt,
+        prompt: Prompt,
     ) -> MutablePrompt:
         """
         >>> from lib.common import PromptInteractive
@@ -59,15 +61,9 @@ class MaskCommand(Command):
         >>> [x.name for x in p]
         ['%%%', 'thighhighs']
         """
-        filtered_prompts = []
-        for prompt in prompts:
-            for excluded in self.excludes:
-                if excluded in prompt.name:
-                    filtered_prompts.append(prompt.replace(self.replace_to))
-                    break
-            else:
-                filtered_prompts.append(prompt)
-        return filtered_prompts
+        return [
+            t.replace(self.replace_to) if t.name in self.excludes else t for t in prompt
+        ]
 
 
 class ExcludeCommand(Command):
@@ -77,20 +73,14 @@ class ExcludeCommand(Command):
     ):
         self.excludes = excludes
 
-    def execute(self, prompts: Prompt) -> MutablePrompt:
+    def execute(self, prompt: Prompt) -> MutablePrompt:
         """
         >>> from lib.common import PromptInteractive
         >>> p = exclude([PromptInteractive('white hair', 1.2), PromptInteractive('thighhighs', 1.0)], ['white'])
         >>> [x.name for x in p]
         ['thighhighs']
         """
-        filtered_prompts = []
-        for prompt in prompts:
-            for excluded in self.excludes:
-                if excluded not in prompt.name:
-                    filtered_prompts.append(prompt)
-                    break
-        return filtered_prompts
+        return [t for t in prompt if t.name not in self.excludes]
 
 
 class SortAllCommand(Command):
@@ -104,9 +94,9 @@ class SortAllCommand(Command):
 
     def execute(
         self,
-        prompts: Prompt,
+        prompt: Prompt,
     ) -> MutablePrompt:
-        return self.sorted_partial(prompts, reverse=self.reverse)
+        return self.sorted_partial(prompt, reverse=self.reverse)
 
 
 class RoundUpCommand(Command):
@@ -118,24 +108,24 @@ class RoundUpCommand(Command):
 
     def execute(
         self,
-        prompts: Prompt,
+        prompt: Prompt,
     ) -> MutablePrompt:
         def round_prompt(p: TokenInterface) -> TokenInterface:
             return type(p)(p.name, round(p.strength, self.digits))
 
-        return list(map(round_prompt, prompts))
+        return list(map(round_prompt, prompt))
 
 
 class RandomCommand(Command):
     def execute(
         self,
-        prompts: Prompt,
+        prompt: Prompt,
     ) -> MutablePrompt:
-        if isinstance(prompts, typing.MutableSequence):
-            random.shuffle(prompts)
-            return prompts
+        if isinstance(prompt, typing.MutableSequence):
+            random.shuffle(prompt)
+            return prompt
         else:
-            return random.sample(prompts, len(prompts))
+            return random.sample(prompt, len(prompt))
 
 
 class SortCommand(Command):
@@ -147,7 +137,7 @@ class SortCommand(Command):
 
     def execute(
         self,
-        prompts: Prompt,
+        prompt: Prompt,
     ) -> MutablePrompt:
         """
         >>> from lib.common import PromptInteractive
@@ -160,13 +150,8 @@ class SortCommand(Command):
         >>> [(x.name, x.strength) for x in p]
         [('white hair', 1.2), ('white hair', 1.0)]
         """
-        tokens = []
-        for _, v in collect_same_prompt_generator(prompts):
-            v = sorted(v, key=sort_all_factory.sort_by_strength, reverse=self.reverse)
-            for item in v:
-                tokens.append(item)
-
-        return tokens
+        tokens = collect_same_tokens_sorted(prompt, self.reverse)
+        return list(itertools.chain.from_iterable(tokens))
 
 
 class UniqueCommand(Command):
@@ -178,7 +163,7 @@ class UniqueCommand(Command):
 
     def execute(
         self,
-        prompts: Prompt,
+        prompt: Prompt,
     ) -> MutablePrompt:
         """
         >>> from lib.common import PromptInteractive
@@ -191,12 +176,7 @@ class UniqueCommand(Command):
         >>> [(x.name, x.strength) for x in p]
         [('white hair', 1.2)]
         """
-        tokens = []
-        for _, v in collect_same_prompt_generator(prompts):
-            v = sorted(v, key=sort_all_factory.sort_by_strength, reverse=self.reverse)
-            tokens.append(v.pop(0))
-
-        return tokens
+        return [vals[0] for vals in collect_same_tokens_sorted(prompt, self.reverse)]
 
 
 if __name__ == "__main__":
