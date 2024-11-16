@@ -24,6 +24,33 @@ class Subcommand(object):
         return ok
 
 
+class SaniproHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
+    """A help formatter for this application.
+    This features displaying the type name of a metavar, and the default value
+    for the positional/optional arguments.
+
+    `argparse.MetavarTypeHelpFormatter` throws a error
+    when a user does not define the type of the positional/optional argument,
+    which defaults to `None`. Consequently, the original module tries to get
+    the attribute of `None`.
+
+    So it seemed we could not directly inhererit the class.
+
+    Instead, we are now implementing the same features by renewing it."""
+
+    def _get_default_metavar_for_optional(self, action):
+        metavar = action.dest.upper()
+        if action.type is not None:
+            return getattr(action.type, "__name__", metavar)
+        return metavar
+
+    def _get_default_metavar_for_positional(self, action):
+        metavar = action.dest
+        if action.type is not None:
+            return getattr(action.type, "__name__", metavar)
+        return metavar
+
+
 class Commands(utils.HasPrettyRepr):
     # features usable in parser_v1
     mask: Sequence[str]
@@ -68,6 +95,7 @@ class Commands(utils.HasPrettyRepr):
                 "Toolbox for Stable Diffusion prompts. "
                 "'Sanipro' stands for 'pro'mpt 'sani'tizer."
             ),
+            formatter_class=SaniproHelpFormatter,
             epilog="Helps for subcommands are available, respectively.",
         )
 
@@ -84,7 +112,7 @@ class Commands(utils.HasPrettyRepr):
         parser.add_argument(
             "-d",
             "--input-delimiter",
-            metavar="str",
+            type=str,
             default=cls.input_delimiter,
             help=(
                 "Preferred delimiter string for the original prompts. "
@@ -95,8 +123,8 @@ class Commands(utils.HasPrettyRepr):
         parser.add_argument(
             "-s",
             "--output-delimiter",
-            metavar="str",
             default=cls.output_delimiter,
+            type=str,
             help=(
                 "Preferred delimiter string for the processed prompts. "
                 "(default: `%(default)s`)"
@@ -106,8 +134,8 @@ class Commands(utils.HasPrettyRepr):
         parser.add_argument(
             "-p",
             "--ps1",
-            metavar="str",
             default=cls.ps1,
+            type=str,
             help=(
                 "The custom string that is used to wait for the user input"
                 "of the prompts (default: `%(default)s`)"
@@ -127,7 +155,6 @@ class Commands(utils.HasPrettyRepr):
         parser.add_argument(
             "-u",
             "--roundup",
-            metavar="n",
             default=cls.roundup,
             type=int,
             help=(
@@ -139,7 +166,7 @@ class Commands(utils.HasPrettyRepr):
         parser.add_argument(
             "-x",
             "--exclude",
-            metavar="str",
+            type=str,
             nargs="*",
             help=(
                 "Exclude this token from the original prompt. "
@@ -161,10 +188,10 @@ class Commands(utils.HasPrettyRepr):
         subparsers = parser.add_subparsers(
             title="Subcommands",
             description=(
-                "List of available filters that can be applied to the prompt."
+                "List of available filters that can be applied to the prompt. "
+                "Just one filter can be applied at once."
             ),
             dest="subcommand",
-            help=("Just one filter can be applied at once."),
             metavar="FILTER",
         )
 
@@ -180,11 +207,12 @@ class Commands(utils.HasPrettyRepr):
             ),
         )
 
-        parser_mask.add_argument("mask", nargs="*", help="Masks this word.")
+        parser_mask.add_argument("mask", nargs="*", type=str, help="Masks this word.")
 
         parser_mask.add_argument(
             "-t",
             "--replace-to",
+            type=str,
             default=cls.replace_to,
             help="The new character or string replaced to.",
         )
@@ -217,6 +245,7 @@ class Commands(utils.HasPrettyRepr):
             "--method",
             default=cls.method,
             const=cls.method,
+            type=str,
             nargs="?",
             help="Based on this strategy (default: `%(default)s`)",
         )
