@@ -1,3 +1,4 @@
+import abc
 import dataclasses
 import logging
 import pprint
@@ -15,19 +16,19 @@ logger_root = logging.getLogger()
 logger = logging.getLogger(__name__)
 
 
-class Runner(utils.HasPrettyRepr):
+class RunnerInterface(abc.ABC):
+    def _run_once(self) -> None: ...
+
+    def run(self): ...
+
+
+class Runner(utils.HasPrettyRepr, RunnerInterface):
     def __init__(
         self, pipeline: PromptPipeline, ps1: str, prpt: type[TokenInterface]
     ) -> None:
         self.pipeline = pipeline
         self.ps1 = ps1
         self.prpt = prpt
-
-    def _run_once(self) -> None:
-        raise NotImplementedError
-
-    def run(self):
-        raise NotImplementedError
 
     @staticmethod
     def from_args(args: Commands) -> "Runner":
@@ -123,10 +124,6 @@ class RunnerInteractive(Runner, InteractiveConsole):
                         break
                     else:
                         self.push(line)
-                except ValueError as e:
-                    logger.exception(f"error: {e}")
-                except (IndexError, KeyError, AttributeError) as e:
-                    logger.exception(f"error: {e}")
                 except KeyboardInterrupt:
                     self.resetbuffer()
                     break
@@ -163,11 +160,17 @@ class RunnerInteractive(Runner, InteractiveConsole):
 
 class RunnerNonInteractive(Runner):
     def _run_once(self) -> None:
-        sentence = input(self.ps1).strip()
-        if sentence != "":
-            self.pipeline.parse(sentence, self.prpt, auto_apply=True)
-            result = str(self.pipeline)
-            print(result)
+        sentence = None
+        try:
+            sentence = input(self.ps1).strip()
+        except (KeyboardInterrupt, EOFError):
+            sys.stderr.write("\n")
+            sys.exit(1)
+        finally:
+            if sentence is not None:
+                self.pipeline.parse(str(sentence), self.prpt, auto_apply=True)
+                result = str(self.pipeline)
+                print(result)
 
     def run(self):
         self._run_once()

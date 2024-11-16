@@ -20,12 +20,7 @@ def app():
         args.debug()
         runner = Runner.from_args(args)
         runner.run()
-    except (KeyboardInterrupt, EOFError) as e:
-        print()
-        sys.exit(1)
-    except (ValueError, NotImplementedError) as e:
-        logger.error(f"error: {e}")
-        sys.exit(1)
     except Exception as e:
         logger.exception(f"error: {e}")
+    finally:
         sys.exit(1)

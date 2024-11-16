@@ -1,3 +1,4 @@
+import abc
 import functools
 import logging
 import typing
@@ -23,27 +24,30 @@ class Delimiter(typing.NamedTuple):
         if pipeline is not None:
             return pipeline
 
-        raise NotImplementedError
+        raise ValueError(
+            f"failed to match the {cls.__name__} class with any of {PromptPipeline.__name__}"
+        )
 
 
-class PromptPipeline:
+class PromptPipelineInterface(abc.ABC):
+    def __str__(self) -> str: ...
+
+
+class PromptPipeline(PromptPipelineInterface):
     pre_funcs: list[typing.Callable[..., str]]
     funcs: list[filters.Command]
     tokens: MutablePrompt
     delimiter: Delimiter
-    _parser: type[parser.Parser]
+    _parser: type[parser.ParserInterface]
 
     def __init__(
-        self, psr: type[parser.Parser], delimiter: Delimiter | None = None
+        self, psr: type[parser.ParserInterface], delimiter: Delimiter | None = None
     ) -> None:
         self.pre_funcs = []
         self.funcs = []
         self.tokens = []
         self.delimiter = Delimiter("", "") if delimiter is None else delimiter
         self._parser = psr
-
-    def __str__(self) -> str:
-        raise NotImplementedError
 
     def execute(
         self, prompts: Prompt, funcs: Sequence[filters.Command] | None = None
@@ -84,7 +88,7 @@ class PromptPipeline:
 
 class PromptPipelineV1(PromptPipeline):
     def __init__(
-        self, psr: type[parser.Parser], delimiter: Delimiter | None = None
+        self, psr: type[parser.ParserInterface], delimiter: Delimiter | None = None
     ) -> None:
         PromptPipeline.__init__(self, psr, delimiter)
 

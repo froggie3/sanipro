@@ -77,7 +77,7 @@ class Commands(utils.HasPrettyRepr):
             action="count",
             help=(
                 "Switch to display the extra logs for nerds, "
-                "This may be useful for debugging."
+                "This may be useful for debugging. Adding more flags causes your terminal more messier."
             ),
         )
 
@@ -109,8 +109,8 @@ class Commands(utils.HasPrettyRepr):
             metavar="str",
             default=cls.ps1,
             help=(
-                "Custom string that is used when asking user "
-                "for the prompts (default: `%(default)s`)"
+                "The custom string that is used to wait for the user input"
+                "of the prompts (default: `%(default)s`)"
             ),
         )
 
@@ -118,7 +118,10 @@ class Commands(utils.HasPrettyRepr):
             "-i",
             "--interactive",
             action="store_true",
-            help="Provides REPL interface to play with prompts.",
+            help=(
+                "Provides the REPL interface to play with prompts. "
+                "The program behaves like the Python interpreter."
+            ),
         )
 
         parser.add_argument(
@@ -129,7 +132,7 @@ class Commands(utils.HasPrettyRepr):
             type=int,
             help=(
                 "All the token with weights (> 1.0 or < 1.0) "
-                "will be rounded up to n digit(s) in here (default: `%(default)s`)"
+                "will be rounded up to n digit(s) (default: `%(default)s`)"
             ),
         )
 
@@ -139,7 +142,7 @@ class Commands(utils.HasPrettyRepr):
             metavar="str",
             nargs="*",
             help=(
-                "Exclude this token from original prompt. "
+                "Exclude this token from the original prompt. "
                 "Multiple options can be specified."
             ),
         )
@@ -204,8 +207,8 @@ class Commands(utils.HasPrettyRepr):
 
         parser_sort_all = subparsers.add_parser(
             Subcommand.SORT_ALL,
-            help="Reorder all the prompts.",
-            description="Reorder all the prompts.",
+            help="Reorders all the prompts.",
+            description="Reorders all the prompts.",
             epilog="METHOD = { " + ", ".join(sort_all_factory.available) + " }",
         )
 

@@ -15,8 +15,7 @@ logger = logging.getLogger(__name__)
 
 class Command(ABC):
     @abstractmethod
-    def execute(self, prompt: Prompt) -> MutablePrompt:
-        raise NotImplementedError
+    def execute(self, prompt: Prompt) -> MutablePrompt: ...
 
 
 def collect_same_tokens(prompts: Prompt) -> Mapping[str, MutablePrompt]:

@@ -1,3 +1,4 @@
+import abc
 import logging
 import re
 import typing
@@ -48,7 +49,7 @@ class Token(TokenInterface):
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, self.__class__):
-            raise NotImplementedError
+            raise TypeError
         return self._name == other._name and self._strength == other._strength
 
     def __hash__(self) -> int:
@@ -77,18 +78,17 @@ class TokenNonInteractive(Token):
         return f"{self.name}{self._delimiter}{self.strength}"
 
 
-class Parser:
+class ParserInterface(abc.ABC):
     @classmethod
     def get_token(
         cls,
         token_cls: type[TokenInterface],
         sentence: str,
         delimiter: str | None = None,
-    ) -> typing.Generator[TokenInterface, None, None]:
-        raise NotImplementedError("An object must implement this method")
+    ) -> typing.Generator[TokenInterface, None, None]: ...
 
 
-class ParserV1(Parser):
+class ParserV1(ParserInterface):
     @staticmethod
     def extract_token(sentence: str, delimiter: str) -> list[str]:
         """
@@ -201,7 +201,7 @@ class ParserV1(Parser):
                 yield token
 
 
-class ParserV2(Parser):
+class ParserV2(ParserInterface):
     re_attention = re.compile(
         r"""
     \\\(|
