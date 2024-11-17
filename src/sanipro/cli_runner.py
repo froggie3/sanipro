@@ -5,6 +5,7 @@ import pprint
 import sys
 import time
 from code import InteractiveConsole, InteractiveInterpreter
+from collections.abc import MutableSequence
 
 from . import cli_hooks, filters, utils
 from .abc import TokenInterface
@@ -48,7 +49,7 @@ class DiffStatistics:
     before_num: int
     after_num: int
     reduced_num: int
-    duplicated_tokens: list[MutablePrompt]
+    duplicated_tokens: MutableSequence[MutablePrompt]
 
 
 @dataclasses.dataclass
@@ -61,12 +62,10 @@ class AnalyzerDiff(Analyzer):
         return len(self.before_process) - len(self.after_process)
 
     def get_duplicates(self) -> list[MutablePrompt]:
-        tokens_pairs = [
-            tokens
-            for tokens in filters.collect_same_tokens(self.before_process).values()
-            if len(tokens) > 1
-        ]
-        return tokens_pairs
+        threshould = 1
+        dups = filters.collect_same_tokens(self.before_process)
+        tokens = [tokens for tokens in dups.values() if len(tokens) > threshould]
+        return tokens
 
     def get_stats(self) -> DiffStatistics:
         stats = DiffStatistics(
