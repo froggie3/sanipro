@@ -126,7 +126,7 @@ class RunnerInteractive(Runner, InteractiveConsole):
                         self.push(line)
                 except KeyboardInterrupt:
                     self.resetbuffer()
-                    break
+                    self.write("\nKeyboardInterrupt\n")
 
         finally:
             if exitmsg is None:
