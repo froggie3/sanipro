@@ -85,12 +85,19 @@ class RoundUpCommand(Command):
 
 
 class RandomCommand(Command):
+    def __init__(self, seed: int | None = None):
+        self.seed = seed
+
     def execute(self, prompt: Prompt) -> MutablePrompt:
-        if isinstance(prompt, typing.MutableSequence):
-            random.shuffle(prompt)
-            return prompt
-        else:
-            return random.sample(prompt, len(prompt))
+        if self.seed is not None:
+            random.seed(self.seed)
+
+        if not isinstance(prompt, typing.MutableSequence):
+            _prompt = random.sample(prompt, len(prompt))
+            return _prompt
+
+        random.shuffle(prompt)
+        return prompt
 
 
 class SortCommand(Command):

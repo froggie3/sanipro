@@ -73,6 +73,7 @@ class Commands(utils.HasPrettyRepr):
 
     # subcommands options
     reverse = False
+    seed: int | None = None
     method = "lexicographical"
 
     def get_logger_level(self) -> int:
@@ -114,10 +115,7 @@ class Commands(utils.HasPrettyRepr):
             "--input-delimiter",
             type=str,
             default=cls.input_delimiter,
-            help=(
-                "Preferred delimiter string for the original prompts. "
-                "(default: `%(default)s`)"
-            ),
+            help=("Preferred delimiter string for the original prompts. " ""),
         )
 
         parser.add_argument(
@@ -125,10 +123,7 @@ class Commands(utils.HasPrettyRepr):
             "--output-delimiter",
             default=cls.output_delimiter,
             type=str,
-            help=(
-                "Preferred delimiter string for the processed prompts. "
-                "(default: `%(default)s`)"
-            ),
+            help=("Preferred delimiter string for the processed prompts. " ""),
         )
 
         parser.add_argument(
@@ -137,14 +132,15 @@ class Commands(utils.HasPrettyRepr):
             default=cls.ps1,
             type=str,
             help=(
-                "The custom string that is used to wait for the user input"
-                "of the prompts (default: `%(default)s`)"
+                "The custom string that is used to wait for the user input "
+                "of the prompts."
             ),
         )
 
         parser.add_argument(
             "-i",
             "--interactive",
+            default=cls.interactive,
             action="store_true",
             help=(
                 "Provides the REPL interface to play with prompts. "
@@ -158,8 +154,8 @@ class Commands(utils.HasPrettyRepr):
             default=cls.roundup,
             type=int,
             help=(
-                "All the token with weights (> 1.0 or < 1.0) "
-                "will be rounded up to n digit(s) (default: `%(default)s`)"
+                "All the token with weights (x > 1.0 or x < 1.0) "
+                "will be rounded up to n digit(s)."
             ),
         )
 
@@ -192,7 +188,7 @@ class Commands(utils.HasPrettyRepr):
                 "Just one filter can be applied at once."
             ),
             dest="subcommand",
-            metavar="FILTER",
+            metavar="Filters",
         )
 
         parser_mask = subparsers.add_parser(
@@ -223,6 +219,14 @@ class Commands(utils.HasPrettyRepr):
             description="Shuffles all the prompts altogether.",
         )
 
+        parser_random.add_argument(
+            "-b",
+            "--seed",
+            default=cls.seed,
+            type=int,
+            help="Fixed randomness to this value.",
+        )
+
         parser_sort = subparsers.add_parser(
             Subcommand.SORT,
             help="Reorders duplicate tokens.",
@@ -247,7 +251,7 @@ class Commands(utils.HasPrettyRepr):
             const=cls.method,
             type=str,
             nargs="?",
-            help="Based on this strategy (default: `%(default)s`)",
+            help="Based on this strategy.",
         )
 
         parser_sort_all.add_argument(
@@ -295,7 +299,7 @@ class Commands(utils.HasPrettyRepr):
         pipeline.append_command(filters.RoundUpCommand(self.roundup))
 
         if self.subcommand == Subcommand.RANDOM:
-            pipeline.append_command(filters.RandomCommand())
+            pipeline.append_command(filters.RandomCommand(self.seed))
 
         if self.subcommand == Subcommand.SORT_ALL:
             sorted_partial = sort_all_factory.apply_from(self.method)
