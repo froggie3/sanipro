@@ -65,7 +65,7 @@ class Commands(utils.HasPrettyRepr):
     interactive = False
     output_delimiter = ", "
     roundup = 2
-    ps1 = f"{color.default}>>>{color.RESET} "
+    ps1 = f"\001{color.default}\002>>>\001{color.RESET}\002 "
     replace_to = r"%%%"
     subcommand = ""
     use_parser_v2 = False
