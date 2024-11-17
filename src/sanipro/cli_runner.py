@@ -44,6 +44,14 @@ class Analyzer:
 
 
 @dataclasses.dataclass
+class DiffStatistics:
+    before_num: int
+    after_num: int
+    reduced_num: int
+    duplicated_tokens: list[MutablePrompt]
+
+
+@dataclasses.dataclass
 class AnalyzerDiff(Analyzer):
     before_process: MutablePrompt
     after_process: MutablePrompt
@@ -52,35 +60,22 @@ class AnalyzerDiff(Analyzer):
     def len_reduced(self) -> int:
         return len(self.before_process) - len(self.after_process)
 
-    @property
-    def duplicates(self) -> MutablePrompt:
-        tokens_pairs = []
-        for tokens in filters.collect_same_tokens(self.before_process).values():
-            if len(tokens) > 1:
-                pair = []
-                for token in tokens:
-                    stats = {
-                        "token": token,
-                        # "hash": hash(token),
-                        # "id": hex(id(token)),
-                    }
-                    pair.append(stats)
-                tokens_pairs.append({"pair": pair})
-        for pair in tokens_pairs:
-            pprint.pprint(pair, utils.get_debug_fp())
-            # logger.debug(token)
+    def get_duplicates(self) -> list[MutablePrompt]:
+        tokens_pairs = [
+            tokens
+            for tokens in filters.collect_same_tokens(self.before_process).values()
+            if len(tokens) > 1
+        ]
         return tokens_pairs
 
-    def get_stats(self) -> dict[str, dict[str, int]]:
-        self.duplicates
-        stats_number = {
-            "statistics": {
-                "before_process": len(self.before_process),
-                "after_process": len(self.after_process),
-                "reduced_total": self.len_reduced,
-            }
-        }
-        return stats_number
+    def get_stats(self) -> DiffStatistics:
+        stats = DiffStatistics(
+            len(self.before_process),
+            len(self.after_process),
+            self.len_reduced,
+            self.get_duplicates(),
+        )
+        return stats
 
 
 class RunnerInteractive(Runner, InteractiveConsole):
