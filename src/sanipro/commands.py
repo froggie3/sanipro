@@ -275,6 +275,14 @@ class Commands(utils.HasPrettyRepr):
             ),
         )
 
+        parser_similar.add_argument(
+            "-r",
+            "--reverse",
+            default=cls.reverse,
+            action="store_true",
+            help="With reversed order.",
+        )
+
         parser_sort = subparsers.add_parser(
             Subcommand.SORT,
             help="Reorders duplicate tokens.",
@@ -368,7 +376,9 @@ class Commands(utils.HasPrettyRepr):
                     break
             if cls is not None:
                 inst = cls(strategy=fuzzysort.SequenceMatcherSimilarity())
-                pipeline.append_command(filters.SimilarCommand(inst))
+                pipeline.append_command(
+                    filters.SimilarCommand(inst, reverse=self.reverse)
+                )
 
         if self.subcommand == Subcommand.UNIQUE:
             pipeline.append_command(filters.UniqueCommand(self.reverse))

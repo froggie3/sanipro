@@ -122,12 +122,15 @@ class SortCommand(Command):
 
 
 class SimilarCommand(Command):
-    def __init__(self, reorderer: fuzzysort.ReordererStrategy):
+    def __init__(self, reorderer: fuzzysort.ReordererStrategy, *, reverse=False):
         self.reorderer = reorderer
+        self.reverse = reverse
 
     def execute(self, prompt: Prompt) -> MutablePrompt:
         sorted_words_seq = self.reorderer.find_optimal_order(prompt)
-        return sorted_words_seq
+        return (
+            sorted_words_seq if not self.reverse else list(reversed(sorted_words_seq))
+        )
 
 
 class UniqueCommand(Command):
