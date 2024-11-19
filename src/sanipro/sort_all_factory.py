@@ -1,6 +1,7 @@
 import functools
 import logging
 
+from . import utils
 from .abc import TokenInterface
 
 logger = logging.getLogger(__name__)
@@ -24,12 +25,11 @@ def sort_by_strength(token: TokenInterface) -> float:
     return token.strength
 
 
-def apply_from(sort_law_name: str):
+def apply_from(keyword: str):
     funcs = (sort_lexicographically, sort_by_length, sort_by_strength, sort_by_ord_sum)
 
-    for func_name, func in zip(available, funcs):
-        logger.debug(f"matching {func_name!r} with {func.__name__!r}")
-        if func_name.startswith(sort_law_name):
-            return functools.partial(sorted, key=func)
-
-    raise Exception(f"no matched sort law for '{sort_law_name}'")
+    try:
+        matched = utils.ModuleMatcher(available, funcs).match(keyword)
+        return functools.partial(sorted, key=matched)
+    except NotImplementedError:
+        raise NotImplementedError(f"no matched sort law for {keyword!r}")

@@ -7,6 +7,8 @@ from collections.abc import Mapping, Sequence
 from functools import partial
 from itertools import chain
 
+from sanipro import fuzzysort
+
 from . import sort_all_factory, utils
 from .abc import MutablePrompt, Prompt, TokenInterface
 
@@ -117,6 +119,15 @@ class SortCommand(Command):
         [('white hair', 1.2), ('white hair', 1.0)]
         """
         return list(chain(*collect_same_tokens_sorted(prompt, self.reverse)))
+
+
+class SimilarCommand(Command):
+    def __init__(self, reorderer: fuzzysort.ReordererStrategy):
+        self.reorderer = reorderer
+
+    def execute(self, prompt: Prompt) -> MutablePrompt:
+        sorted_words_seq = self.reorderer.find_optimal_order(prompt)
+        return sorted_words_seq
 
 
 class UniqueCommand(Command):

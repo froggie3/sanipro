@@ -3,6 +3,8 @@ import logging
 import pprint
 from collections.abc import Sequence
 
+from sanipro import fuzzysort
+
 from . import color, common, filters, sort_all_factory, utils
 
 logger_root = logging.getLogger()
@@ -16,6 +18,7 @@ class Subcommand(object):
     RANDOM = "random"
     SORT = "sort"
     SORT_ALL = "sort-all"
+    SIMILAR = "similar"
     UNIQUE = "unique"
 
     @classmethod
@@ -57,6 +60,7 @@ class Commands(utils.HasPrettyRepr):
     random = False
     sort = False
     sort_all = False
+    similar = False
     unique = False
 
     # basic functions
@@ -73,7 +77,13 @@ class Commands(utils.HasPrettyRepr):
 
     # subcommands options
     reverse = False
+
     seed: int | None = None
+
+    mst = True
+    naive = False
+    greedy = False
+
     method = "lexicographical"
 
     def get_logger_level(self) -> int:
@@ -227,6 +237,44 @@ class Commands(utils.HasPrettyRepr):
             help="Fixed randomness to this value.",
         )
 
+        parser_similar = subparsers.add_parser(
+            Subcommand.SIMILAR,
+            help="Reorders tokens with their similarity.",
+            description="Reorders tokens with their similarity.",
+        )
+
+        parser_similar_group = parser_similar.add_mutually_exclusive_group()
+
+        parser_similar_group.add_argument(
+            "--naive",
+            action="store_true",
+            default=cls.naive,
+            help=(
+                "Calculates all permutations of a sequence of tokens. "
+                "Not practical at all."
+            ),
+        )
+
+        parser_similar_group.add_argument(
+            "--greedy",
+            action="store_true",
+            default=cls.greedy,
+            help=(
+                "Uses a greedy approach that always chooses the next element "
+                "with the highest similarity."
+            ),
+        )
+
+        parser_similar_group.add_argument(
+            "--mst",
+            action="store_true",
+            default=cls.mst,
+            help=(
+                "Construct a complete graph with tokens as vertices "
+                "and similarities as edge weights."
+            ),
+        )
+
         parser_sort = subparsers.add_parser(
             Subcommand.SORT,
             help="Reorders duplicate tokens.",
@@ -309,6 +357,18 @@ class Commands(utils.HasPrettyRepr):
 
         if self.subcommand == Subcommand.SORT:
             pipeline.append_command(filters.SortCommand(self.reverse))
+
+        if self.subcommand == Subcommand.SIMILAR:
+            cls = None
+            for key, val in zip(
+                fuzzysort.available, (self.naive, self.greedy, self.mst)
+            ):
+                if val:
+                    cls = fuzzysort.apply_from(key)
+                    break
+            if cls is not None:
+                inst = cls(strategy=fuzzysort.SequenceMatcherSimilarity())
+                pipeline.append_command(filters.SimilarCommand(inst))
 
         if self.subcommand == Subcommand.UNIQUE:
             pipeline.append_command(filters.UniqueCommand(self.reverse))

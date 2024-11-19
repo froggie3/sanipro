@@ -1,5 +1,6 @@
 import logging
 import typing
+from collections.abc import Callable, Sequence
 
 from .abc import TokenInterface
 
@@ -74,3 +75,15 @@ def round_token_weight(token: TokenInterface, digits: int) -> TokenInterface:
 def get_debug_fp() -> BufferingLoggerWriter:
     """Get `BufferingLoggerWriter` instance. Mainly for `pprint.pprint()`."""
     return __debug_fp
+
+
+class ModuleMatcher:
+    def __init__(self, key: Sequence[str], values: Sequence[Callable], strict=False):
+        self._map: zip[tuple[str, typing.Any]] = zip(key, values, strict=strict)
+
+    def match(self, keyword: str) -> typing.Any:  # Todo: いい方法はないか？
+        for key, val_callable in self._map:
+            logger.debug(f"matching {key!r} with {val_callable.__name__!r}")
+            if key.startswith(keyword):
+                return val_callable
+        raise NotImplementedError
