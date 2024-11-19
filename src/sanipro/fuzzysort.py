@@ -88,10 +88,9 @@ class GreedyReorderer(ReordererStrategy):
 
     def _find_max_idx(
         self, last_word: str, words: list[TokenInterface], visited: list[bool]
-    ):
+    ) -> int | None:
         tmp = float("-inf")
         idx = None
-        result = None
 
         for i, w in enumerate(words):
             if visited[i]:
@@ -100,9 +99,8 @@ class GreedyReorderer(ReordererStrategy):
             if similarity > tmp:
                 tmp = similarity
                 idx = i
-                result = w
 
-        return idx, result
+        return idx
 
     def find_optimal_order(self, words: Prompt) -> MutablePrompt:
         # シャッフルしてランダムな初期要素を選ぶ
@@ -114,12 +112,13 @@ class GreedyReorderer(ReordererStrategy):
         # 貪欲法で最も似ている単語を選び続ける
         while True:
             last_word = result[-1].name
-            next_idx, next_word = self._find_max_idx(last_word, words, visited)
+            next_idx = self._find_max_idx(last_word, words, visited)
 
             # 探索しても見つからない場合は全部探索しきったということなので
-            if next_idx is None or next_word is None:
+            if next_idx is None:
                 break
-            result.append(next_word)
+
+            result.append(words[next_idx])
             visited[next_idx] = True
 
         return result
