@@ -6,15 +6,15 @@ from abc import ABC, abstractmethod
 from difflib import SequenceMatcher
 
 from . import utils
-from .abc import MutablePrompt, Prompt
+from .abc import MutablePrompt, Prompt, TokenInterface
 
 logger = logging.getLogger(__name__)
 
 available = ("naive", "greedy", "mst")
 
 
-# 類似度計算の戦略インターフェース
 class SimilarityStrategy(ABC):
+    """類似度計算の戦略インターフェース"""
 
     @abstractmethod
     def calculate_similarity(self, word1: str, word2: str) -> float:
@@ -24,8 +24,8 @@ class SimilarityStrategy(ABC):
 try:
     import Levenshtein  # type: ignore
 
-    # Levenshtein距離を利用した類似度計算
     class LevenshteinSimilarity(SimilarityStrategy):
+        """Levenshtein距離を利用した類似度計算"""
 
         def calculate_similarity(self, word1: str, word2: str) -> float:
             distance = Levenshtein.distance(word1, word2)
@@ -36,15 +36,16 @@ except ImportError:
     pass
 
 
-# SequenceMatcherを利用した類似度計算
 class SequenceMatcherSimilarity(SimilarityStrategy):
+    """SequenceMatcherを利用した類似度計算"""
 
     def calculate_similarity(self, word1: str, word2: str) -> float:
         return SequenceMatcher(None, word1, word2).ratio()
 
 
-# 並べ替えの戦略インターフェース
 class ReordererStrategy(ABC):
+    """並べ替えの戦略インターフェース"""
+
     @abstractmethod
     def __init__(self, strategy: SimilarityStrategy):
         pass
@@ -54,8 +55,8 @@ class ReordererStrategy(ABC):
         """2つの文字列の類似度を計算する"""
 
 
-# 並べ替えを行うクラス
 class NaiveReorderer(ReordererStrategy):
+    """トークンの配列の全順列を試し、類似度順に並べ替えを行うクラス"""
 
     def __init__(self, strategy: SimilarityStrategy):
         self.strategy = strategy
@@ -79,27 +80,47 @@ class NaiveReorderer(ReordererStrategy):
         return list(best_order)
 
 
-# 貪欲法による並べ替えクラス
 class GreedyReorderer(ReordererStrategy):
+    """貪欲法による並べ替えを試行する。"""
 
     def __init__(self, strategy: SimilarityStrategy):
         self.strategy = strategy
+
+    def _find_max_idx(
+        self, last_word: str, words: list[TokenInterface], visited: list[bool]
+    ):
+        tmp = float("-inf")
+        idx = None
+        result = None
+
+        for i, w in enumerate(words):
+            if visited[i]:
+                continue
+            similarity = self.strategy.calculate_similarity(last_word, w.name)
+            if similarity > tmp:
+                tmp = similarity
+                idx = i
+                result = w
+
+        return idx, result
 
     def find_optimal_order(self, words: Prompt) -> MutablePrompt:
         # シャッフルしてランダムな初期要素を選ぶ
         words = list(words[:])
         random.shuffle(words)
         result = [words.pop()]
+        visited = [False] * len(words)
 
         # 貪欲法で最も似ている単語を選び続ける
-        while words:
+        while True:
             last_word = result[-1].name
-            next_word = max(
-                words,
-                key=lambda w: self.strategy.calculate_similarity(last_word, w.name),
-            )
+            next_idx, next_word = self._find_max_idx(last_word, words, visited)
+
+            # 探索しても見つからない場合は全部探索しきったということなので
+            if next_idx is None or next_word is None:
+                break
             result.append(next_word)
-            words.remove(next_word)
+            visited[next_idx] = True
 
         return result
 
@@ -113,8 +134,9 @@ AdjacencyList = list[list[int]]
 AdjacencyListWeighted = list[list[WeightedVertice]]
 
 
-# MSTによる並べ替え戦略
 class MSTReorderer(ReordererStrategy):
+    """最小全域木による並べ替え戦略"""
+
     def __init__(self, strategy: SimilarityStrategy):
         self.strategy = strategy
 
