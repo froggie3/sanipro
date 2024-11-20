@@ -3,7 +3,7 @@ import sys
 
 from . import cli_hooks
 from .cli_runner import Runner
-from .commands import Commands
+from .filters.commands import Commands
 
 logger_root = logging.getLogger()
 logger = logging.getLogger(__name__)

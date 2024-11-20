@@ -1,4 +1,6 @@
-from . import common, filters, parser
+from sanipro.filters.unique import UniqueCommand
+
+from . import common, parser
 
 Token = parser.TokenInteractive
 
@@ -20,7 +22,7 @@ def parse(prompt: str, separator=", ") -> common.PromptPipeline:
 
 def filter_example(prompt: str, separator=", "):
     pipeline = parse(prompt, separator)
-    filter_unique = filters.UniqueCommand(reverse=True)
+    filter_unique = UniqueCommand(reverse=True)
     pipeline.append_command(filter_unique)
     pipeline.execute(pipeline.tokens)
     return pipeline

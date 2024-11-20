@@ -3,9 +3,19 @@ import logging
 import pprint
 from collections.abc import Sequence
 
-from . import color, common, filters, fuzzysort, sort_all, utils
-from .filters import Filter
-from .help_formatter import SaniproHelpFormatter
+from sanipro.filters.exclude import ExcludeCommand
+from sanipro.filters.mask import MaskCommand
+from sanipro.filters.random import RandomCommand
+from sanipro.filters.roundup import RoundUpCommand
+from sanipro.filters.similar import SimilarCommand
+from sanipro.filters.sort import SortCommand
+from sanipro.filters.sort_all import SortAllCommand
+from sanipro.filters.unique import UniqueCommand
+from sanipro.utils import HasPrettyRepr, get_debug_fp, get_log_level_from
+
+from .. import color, common, sort_all
+from ..help_formatter import SaniproHelpFormatter
+from .filter import Filter
 
 logger_root = logging.getLogger()
 
@@ -21,7 +31,7 @@ class Similar:
     greedy = False
 
 
-class Commands(utils.HasPrettyRepr):
+class Commands(HasPrettyRepr):
     # features usable in parser_v1
     mask: Sequence[str]
     random = False
@@ -58,13 +68,13 @@ class Commands(utils.HasPrettyRepr):
         if self.verbose is None:
             return logging.WARNING
         try:
-            log_level = utils.get_log_level_from(self.verbose)
+            log_level = get_log_level_from(self.verbose)
             return log_level
         except ValueError:
             raise ValueError("the maximum two -v flags can only be added")
 
     def debug(self) -> None:
-        pprint.pprint(self, utils.get_debug_fp())
+        pprint.pprint(self, get_debug_fp())
 
     @classmethod
     def prepare_parser(cls) -> argparse.ArgumentParser:
@@ -169,12 +179,12 @@ class Commands(utils.HasPrettyRepr):
             metavar="FILTER",
         )
 
-        filters.UniqueCommand.inject_subparser(subparser)
-        filters.SortCommand.inject_subparser(subparser)
-        filters.SortAllCommand.inject_subparser(subparser)
-        filters.SimilarCommand.inject_subparser(subparser)
-        filters.RandomCommand.inject_subparser(subparser)
-        filters.MaskCommand.inject_subparser(subparser)
+        UniqueCommand.inject_subparser(subparser)
+        SortCommand.inject_subparser(subparser)
+        SortAllCommand.inject_subparser(subparser)
+        SimilarCommand.inject_subparser(subparser)
+        RandomCommand.inject_subparser(subparser)
+        MaskCommand.inject_subparser(subparser)
 
         return parser
 
@@ -199,56 +209,31 @@ class Commands(utils.HasPrettyRepr):
 
         pipeline = self.get_pipeline_from(self.use_parser_v2)
         # always round
-        pipeline.append_command(filters.RoundUpCommand(self.roundup))
+        pipeline.append_command(RoundUpCommand(self.roundup))
 
         if self.filter == Filter.RANDOM:
-            pipeline.append_command(filters.RandomCommand(self.seed))
+            pipeline.append_command(RandomCommand(self.seed))
 
         if self.filter == Filter.SORT_ALL:
             sorted_partial = sort_all.apply_from(method=self.sort_all_method)
-            pipeline.append_command(
-                filters.SortAllCommand(sorted_partial, self.reverse)
-            )
+            pipeline.append_command(SortAllCommand(sorted_partial, self.reverse))
 
         if self.filter == Filter.SORT:
-            pipeline.append_command(filters.SortCommand(self.reverse))
+            pipeline.append_command(SortCommand(self.reverse))
 
         if self.filter == Filter.SIMILAR:
-            cls = None
+            inst = SimilarCommand.get_instance(self)
 
-            query = self.similar_method
-            if query == "mst":
-                adapters = [
-                    [self.kruskal, fuzzysort.Available.KRUSKAL],
-                    [self.prim, fuzzysort.Available.PRIM],
-                ]
-                _, fallback_cls = adapters[0]
-                for _flag, _cls in adapters:
-                    if _flag:
-                        # when --kruskal or --prim flag is specified
-                        cls = _cls.val
-                        break
-                else:
-                    cls = fallback_cls.val
-            else:
-                cls = fuzzysort.apply_from(method=query)
-
-            logger.debug(f"selected module: {cls.__name__}")
-
-            if cls is not None:
-                inst = cls(strategy=fuzzysort.SequenceMatcherSimilarity())
-                pipeline.append_command(
-                    filters.SimilarCommand(inst, reverse=self.reverse)
-                )
+            pipeline.append_command(SimilarCommand(inst, reverse=self.reverse))
 
         if self.filter == Filter.UNIQUE:
-            pipeline.append_command(filters.UniqueCommand(self.reverse))
+            pipeline.append_command(UniqueCommand(self.reverse))
 
         if self.filter == Filter.MASK:
-            pipeline.append_command(filters.MaskCommand(self.mask, self.replace_to))
+            pipeline.append_command(MaskCommand(self.mask, self.replace_to))
 
         if self.exclude:
-            pipeline.append_command(filters.ExcludeCommand(self.exclude))
+            pipeline.append_command(ExcludeCommand(self.exclude))
 
         return pipeline
 

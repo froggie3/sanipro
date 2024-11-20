@@ -7,10 +7,13 @@ import time
 from code import InteractiveConsole, InteractiveInterpreter
 from collections.abc import MutableSequence
 
-from . import cli_hooks, filters, utils
+from sanipro.utils import HasPrettyRepr, get_debug_fp
+
+from . import cli_hooks
 from .abc import TokenInterface
-from .commands import Commands
 from .common import MutablePrompt, PromptPipeline
+from .filters.commands import Commands
+from .filters.utils import collect_same_tokens
 from .parser import TokenInteractive, TokenNonInteractive
 
 logger_root = logging.getLogger()
@@ -23,7 +26,7 @@ class RunnerInterface(abc.ABC):
     def run(self): ...
 
 
-class Runner(utils.HasPrettyRepr, RunnerInterface):
+class Runner(HasPrettyRepr, RunnerInterface):
     def __init__(
         self, pipeline: PromptPipeline, ps1: str, prpt: type[TokenInterface]
     ) -> None:
@@ -63,7 +66,7 @@ class AnalyzerDiff(Analyzer):
 
     def get_duplicates(self) -> list[MutablePrompt]:
         threshould = 1
-        dups = filters.collect_same_tokens(self.before_process)
+        dups = collect_same_tokens(self.before_process)
         tokens = [tokens for tokens in dups.values() if len(tokens) > threshould]
         return tokens
 
@@ -136,7 +139,7 @@ class RunnerInteractive(Runner, InteractiveConsole):
         tokens = str(self.pipeline)
 
         anal = AnalyzerDiff(tokens_unparsed, self.pipeline.tokens)
-        pprint.pprint(anal.get_stats(), utils.get_debug_fp())
+        pprint.pprint(anal.get_stats(), get_debug_fp())
 
         self.runcode(tokens)  # type: ignore
         return False

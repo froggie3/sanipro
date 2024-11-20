@@ -4,7 +4,9 @@ import logging
 import typing
 from collections.abc import Sequence
 
-from . import filters, parser
+from sanipro.filters.abc import Command
+
+from . import parser
 from .abc import MutablePrompt, Prompt, TokenInterface
 
 logger = logging.getLogger(__name__)
@@ -35,7 +37,7 @@ class PromptPipelineInterface(abc.ABC):
 
 class PromptPipeline(PromptPipelineInterface):
     pre_funcs: list[typing.Callable[..., str]]
-    funcs: list[filters.Command]
+    funcs: list[Command]
     tokens: MutablePrompt
     delimiter: Delimiter
     _parser: type[parser.ParserInterface]
@@ -49,9 +51,7 @@ class PromptPipeline(PromptPipelineInterface):
         self.delimiter = Delimiter("", "") if delimiter is None else delimiter
         self._parser = psr
 
-    def execute(
-        self, prompts: Prompt, funcs: Sequence[filters.Command] | None = None
-    ) -> None:
+    def execute(self, prompts: Prompt, funcs: Sequence[Command] | None = None) -> None:
         """sequentially applies the filters."""
         if funcs is None:
             funcs = []
@@ -82,7 +82,7 @@ class PromptPipeline(PromptPipelineInterface):
         """処理前のプロンプトに対して実行されるコールバック関数を追加"""
         self.pre_funcs.extend(funcs)
 
-    def append_command(self, *command: filters.Command) -> None:
+    def append_command(self, *command: Command) -> None:
         self.funcs.extend(command)
 
 
