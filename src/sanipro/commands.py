@@ -3,55 +3,22 @@ import logging
 import pprint
 from collections.abc import Sequence
 
-from sanipro import fuzzysort
-
-from . import color, common, filters, sort_all_factory, utils
+from . import color, common, filters, fuzzysort, sort_all, utils
+from .filters import Filter
+from .help_formatter import SaniproHelpFormatter
 
 logger_root = logging.getLogger()
+
 logger = logging.getLogger(__name__)
 
 
-class Subcommand(object):
-    """the name definition for the subcommands"""
+class Similar:
+    mst = True
+    kruskal = False
+    prim = False
 
-    MASK = "mask"
-    RANDOM = "random"
-    SORT = "sort"
-    SORT_ALL = "sort-all"
-    SIMILAR = "similar"
-    UNIQUE = "unique"
-
-    @classmethod
-    def get_set(cls) -> set:
-        ok = set([val for val in cls.__dict__.keys() if val.isupper()])
-        return ok
-
-
-class SaniproHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
-    """A help formatter for this application.
-    This features displaying the type name of a metavar, and the default value
-    for the positional/optional arguments.
-
-    `argparse.MetavarTypeHelpFormatter` throws a error
-    when a user does not define the type of the positional/optional argument,
-    which defaults to `None`. Consequently, the original module tries to get
-    the attribute of `None`.
-
-    So it seemed we could not directly inhererit the class.
-
-    Instead, we are now implementing the same features by renewing it."""
-
-    def _get_default_metavar_for_optional(self, action):
-        metavar = action.dest.upper()
-        if action.type is not None:
-            return getattr(action.type, "__name__", metavar)
-        return metavar
-
-    def _get_default_metavar_for_positional(self, action):
-        metavar = action.dest
-        if action.type is not None:
-            return getattr(action.type, "__name__", metavar)
-        return metavar
+    naive = False
+    greedy = False
 
 
 class Commands(utils.HasPrettyRepr):
@@ -70,8 +37,9 @@ class Commands(utils.HasPrettyRepr):
     output_delimiter = ", "
     roundup = 2
     ps1 = f"\001{color.default}\002>>>\001{color.RESET}\002 "
-    replace_to = r"%%%"
-    subcommand = ""
+
+    replace_to = ""
+    filter = None
     use_parser_v2 = False
     verbose: int | None = None
 
@@ -80,11 +48,11 @@ class Commands(utils.HasPrettyRepr):
 
     seed: int | None = None
 
-    mst = True
-    naive = False
-    greedy = False
+    similar_method = None
+    sort_all_method = None
 
-    method = "lexicographical"
+    kruskal = None
+    prim = None
 
     def get_logger_level(self) -> int:
         if self.verbose is None:
@@ -107,7 +75,7 @@ class Commands(utils.HasPrettyRepr):
                 "'Sanipro' stands for 'pro'mpt 'sani'tizer."
             ),
             formatter_class=SaniproHelpFormatter,
-            epilog="Helps for subcommands are available, respectively.",
+            epilog="Help for each filter is available, respectively.",
         )
 
         parser.add_argument(
@@ -191,142 +159,22 @@ class Commands(utils.HasPrettyRepr):
             ),
         )
 
-        subparsers = parser.add_subparsers(
-            title="Subcommands",
+        subparser = parser.add_subparsers(
+            title="filter",
             description=(
                 "List of available filters that can be applied to the prompt. "
                 "Just one filter can be applied at once."
             ),
-            dest="subcommand",
-            metavar="Filters",
+            dest="filter",
+            metavar="FILTER",
         )
 
-        parser_mask = subparsers.add_parser(
-            Subcommand.MASK,
-            help="Mask tokens with words.",
-            description="Mask words specified with another word (optional).",
-            epilog=(
-                (
-                    "Note that you can still use the global `--exclude` option"
-                    "as well as this filter."
-                )
-            ),
-        )
-
-        parser_mask.add_argument("mask", nargs="*", type=str, help="Masks this word.")
-
-        parser_mask.add_argument(
-            "-t",
-            "--replace-to",
-            type=str,
-            default=cls.replace_to,
-            help="The new character or string replaced to.",
-        )
-
-        parser_random = subparsers.add_parser(
-            Subcommand.RANDOM,
-            help="Shuffles all the prompts altogether.",
-            description="Shuffles all the prompts altogether.",
-        )
-
-        parser_random.add_argument(
-            "-b",
-            "--seed",
-            default=cls.seed,
-            type=int,
-            help="Fixed randomness to this value.",
-        )
-
-        parser_similar = subparsers.add_parser(
-            Subcommand.SIMILAR,
-            help="Reorders tokens with their similarity.",
-            description="Reorders tokens with their similarity.",
-        )
-
-        parser_similar_group = parser_similar.add_mutually_exclusive_group()
-
-        parser_similar_group.add_argument(
-            "--naive",
-            action="store_true",
-            default=cls.naive,
-            help=(
-                "Calculates all permutations of a sequence of tokens. "
-                "Not practical at all."
-            ),
-        )
-
-        parser_similar_group.add_argument(
-            "--greedy",
-            action="store_true",
-            default=cls.greedy,
-            help=(
-                "Uses a greedy approach that always chooses the next element "
-                "with the highest similarity."
-            ),
-        )
-
-        parser_similar_group.add_argument(
-            "--mst",
-            action="store_true",
-            default=cls.mst,
-            help=(
-                "Construct a complete graph with tokens as vertices "
-                "and similarities as edge weights."
-            ),
-        )
-
-        parser_similar.add_argument(
-            "-r",
-            "--reverse",
-            default=cls.reverse,
-            action="store_true",
-            help="With reversed order.",
-        )
-
-        parser_sort = subparsers.add_parser(
-            Subcommand.SORT,
-            help="Reorders duplicate tokens.",
-            description="Reorders duplicate tokens.",
-            epilog="This command reorders tokens with their weights by default.",
-        )
-        parser_sort.add_argument(
-            "-r", "--reverse", action="store_true", help="With reversed order."
-        )
-
-        parser_sort_all = subparsers.add_parser(
-            Subcommand.SORT_ALL,
-            help="Reorders all the prompts.",
-            description="Reorders all the prompts.",
-            epilog="METHOD = { " + ", ".join(sort_all_factory.available) + " }",
-        )
-
-        parser_sort_all.add_argument(
-            "-m",
-            "--method",
-            default=cls.method,
-            const=cls.method,
-            type=str,
-            nargs="?",
-            help="Based on this strategy.",
-        )
-
-        parser_sort_all.add_argument(
-            "-r", "--reverse", action="store_true", help="With reversed order."
-        )
-
-        parser_unique = subparsers.add_parser(
-            Subcommand.UNIQUE,
-            help="Removes duplicated tokens, and uniquify them.",
-            description="Removes duplicated tokens, and uniquify them.",
-            epilog="",
-        )
-
-        parser_unique.add_argument(
-            "-r",
-            "--reverse",
-            action="store_true",
-            help="Make the token with the heaviest weight survived.",
-        )
+        filters.UniqueCommand.inject_subparser(subparser)
+        filters.SortCommand.inject_subparser(subparser)
+        filters.SortAllCommand.inject_subparser(subparser)
+        filters.SimilarCommand.inject_subparser(subparser)
+        filters.RandomCommand.inject_subparser(subparser)
+        filters.MaskCommand.inject_subparser(subparser)
 
         return parser
 
@@ -341,10 +189,9 @@ class Commands(utils.HasPrettyRepr):
         return delim.create_pipeline(common.PromptPipelineV2)
 
     def get_pipeline(self) -> common.PromptPipeline:
-        if self.use_parser_v2 and self.subcommand in Subcommand.get_set():
+        if self.use_parser_v2 and self.filter in Filter.list_commands():
             raise NotImplementedError(
-                f"the '{self.subcommand}' command is not available "
-                "when using parse_v2."
+                f"the '{self.filter}' command is not available " "when using parse_v2."
             )
 
         if self.use_parser_v2:
@@ -354,36 +201,50 @@ class Commands(utils.HasPrettyRepr):
         # always round
         pipeline.append_command(filters.RoundUpCommand(self.roundup))
 
-        if self.subcommand == Subcommand.RANDOM:
+        if self.filter == Filter.RANDOM:
             pipeline.append_command(filters.RandomCommand(self.seed))
 
-        if self.subcommand == Subcommand.SORT_ALL:
-            sorted_partial = sort_all_factory.apply_from(self.method)
+        if self.filter == Filter.SORT_ALL:
+            sorted_partial = sort_all.apply_from(method=self.sort_all_method)
             pipeline.append_command(
                 filters.SortAllCommand(sorted_partial, self.reverse)
             )
 
-        if self.subcommand == Subcommand.SORT:
+        if self.filter == Filter.SORT:
             pipeline.append_command(filters.SortCommand(self.reverse))
 
-        if self.subcommand == Subcommand.SIMILAR:
+        if self.filter == Filter.SIMILAR:
             cls = None
-            for key, val in zip(
-                fuzzysort.available, (self.naive, self.greedy, self.mst)
-            ):
-                if val:
-                    cls = fuzzysort.apply_from(key)
-                    break
+
+            query = self.similar_method
+            if query == "mst":
+                adapters = [
+                    [self.kruskal, fuzzysort.Available.KRUSKAL],
+                    [self.prim, fuzzysort.Available.PRIM],
+                ]
+                _, fallback_cls = adapters[0]
+                for _flag, _cls in adapters:
+                    if _flag:
+                        # when --kruskal or --prim flag is specified
+                        cls = _cls.val
+                        break
+                else:
+                    cls = fallback_cls.val
+            else:
+                cls = fuzzysort.apply_from(method=query)
+
+            logger.debug(f"selected module: {cls.__name__}")
+
             if cls is not None:
                 inst = cls(strategy=fuzzysort.SequenceMatcherSimilarity())
                 pipeline.append_command(
                     filters.SimilarCommand(inst, reverse=self.reverse)
                 )
 
-        if self.subcommand == Subcommand.UNIQUE:
+        if self.filter == Filter.UNIQUE:
             pipeline.append_command(filters.UniqueCommand(self.reverse))
 
-        if self.subcommand == Subcommand.MASK:
+        if self.filter == Filter.MASK:
             pipeline.append_command(filters.MaskCommand(self.mask, self.replace_to))
 
         if self.exclude:

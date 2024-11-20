@@ -10,8 +10,6 @@ from .abc import MutablePrompt, Prompt, TokenInterface
 
 logger = logging.getLogger(__name__)
 
-available = ("naive", "greedy", "mst")
-
 
 class SimilarityStrategy(ABC):
     """類似度計算の戦略インターフェース"""
@@ -133,24 +131,110 @@ AdjacencyList = list[list[int]]
 AdjacencyListWeighted = list[list[WeightedVertice]]
 
 
-class MSTReorderer(ReordererStrategy):
-    """最小全域木による並べ替え戦略"""
+class MSTBuilder(ABC):
+    """MSTを構築する戦略のインターフェース"""
 
-    def __init__(self, strategy: SimilarityStrategy):
-        self.strategy = strategy
+    @abstractmethod
+    def build_mst(self, n: int, edges: list[WeightedEdge]) -> AdjacencyList:
+        pass
 
-    def _convert_to_adjacency_list(
-        self, edges: list[WeightedEdge], num_vertices: int
-    ) -> AdjacencyListWeighted:
-        # 隣接リストを初期化
-        graph = [[] for _ in range(num_vertices)]
 
-        # グラフの構築（無向グラフ）
+class PrimMSTBuilder(MSTBuilder):
+    def build_mst(self, n: int, edges: list[WeightedEdge]) -> AdjacencyList:
+        # エッジリストを隣接リストに変換
+        graph = [[] for _ in range(n)]
         for weight, (u, v) in edges:
             graph[u].append((weight, v))
             graph[v].append((weight, u))
 
-        return graph
+        # 最小全域木のエッジを格納するリスト
+        mst_edges: list[tuple[int, int]] = []
+        visited = set()
+        min_heap = []
+
+        # 開始ノードを0とする
+        start_node = 0
+        visited.add(start_node)
+
+        # 開始ノードから到達可能なエッジをヒープに追加
+        for weight, neighbor in graph[start_node]:
+            heapq.heappush(min_heap, (weight, start_node, neighbor))
+
+        # Prim法のメインループ
+        while min_heap and len(visited) < n:
+            weight, u, v = heapq.heappop(min_heap)
+            if v in visited:
+                continue
+            mst_edges.append((u, v))
+            visited.add(v)
+            for next_weight, next_node in graph[v]:
+                if next_node not in visited:
+                    heapq.heappush(min_heap, (next_weight, v, next_node))
+
+        # グラフの構築（無向グラフ）
+        mst = [[] for _ in range(n)]
+        for u, v in mst_edges:
+            mst[u].append(v)
+            mst[v].append(u)
+
+        return mst
+
+
+class UnionFind:
+    """Union-Find構造のヘルパークラス"""
+
+    def __init__(self, size):
+        self.parent = list(range(size))
+        self.rank = [0] * size
+
+    def find(self, node):
+        if self.parent[node] != node:
+            self.parent[node] = self.find(self.parent[node])
+        return self.parent[node]
+
+    def union(self, u, v):
+        root_u = self.find(u)
+        root_v = self.find(v)
+        if root_u != root_v:
+            if self.rank[root_u] > self.rank[root_v]:
+                self.parent[root_v] = root_u
+            elif self.rank[root_u] < self.rank[root_v]:
+                self.parent[root_u] = root_v
+            else:
+                self.parent[root_v] = root_u
+                self.rank[root_u] += 1
+
+
+class KruskalMSTBuilder(MSTBuilder):
+    def build_mst(self, n: int, edges: list[WeightedEdge]) -> AdjacencyList:
+        # 重みの昇順にエッジをソート
+        edges.sort()
+        uf = UnionFind(n)
+        mst_edges = []
+
+        for weight, (u, v) in edges:
+            if uf.find(u) != uf.find(v):
+                uf.union(u, v)
+                mst_edges.append((u, v))
+                if len(mst_edges) == n - 1:
+                    break
+
+        # グラフの構築（無向グラフ）
+        mst = [[] for _ in range(n)]
+        for u, v in mst_edges:
+            mst[u].append(v)
+            mst[v].append(u)
+
+        return mst
+
+
+class MSTReorderer(ReordererStrategy):
+    """最小全域木による並べ替え戦略"""
+
+    mst_builder: MSTBuilder
+
+    def __init__(self, strategy: SimilarityStrategy):
+        self.strategy = strategy
 
     def find_optimal_order(self, words: Prompt) -> MutablePrompt:
         words = list(words[:])
@@ -166,8 +250,8 @@ class MSTReorderer(ReordererStrategy):
                 weight = 1 - similarity  # 類似度が高いほど重みは低くする
                 edges.append((weight, (i, j)))
 
-        # 最小全域木の構築（Prim'sアルゴリズムを使用）
-        mst = self._build_mst(n, self._convert_to_adjacency_list(edges, n))
+        # MSTを構築
+        mst = self.mst_builder.build_mst(n, edges)
 
         # 最小全域木をDFSで探索し、順序を決定
         visited = [False] * n
@@ -183,57 +267,40 @@ class MSTReorderer(ReordererStrategy):
         dfs(0)  # 0番目の頂点から探索開始
         return order
 
-    def _build_mst(self, n: int, graph: AdjacencyListWeighted) -> AdjacencyList:
-        # 最小全域木のエッジを格納するリスト
-        mst_edges: list[Edge] = []
 
-        # 訪問済みノードの集合
-        visited = set()
-        # 最小ヒープ（weight, from_node, to_node）
-        min_heap = []
-
-        # 開始ノードを0とする
-        start_node = 0
-        visited.add(start_node)
-
-        # 開始ノードから到達可能なエッジをヒープに追加
-        for weight, neighbor in graph[start_node]:
-            heapq.heappush(min_heap, (weight, start_node, neighbor))
-
-        # Prim法のメインループ
-        while min_heap and len(visited) < n:
-            weight, u, v = heapq.heappop(min_heap)
-
-            # ノードvが訪問済みならスキップ
-            if v in visited:
-                continue
-
-            # エッジ (u, v) を最小全域木に追加
-            mst_edges.append((u, v))
-            visited.add(v)
-
-            # 新たに訪問したノードからのエッジをヒープに追加
-            for next_weight, next_node in graph[v]:
-                if next_node not in visited:
-                    heapq.heappush(min_heap, (next_weight, v, next_node))
-
-        mst: AdjacencyList = [[] for _ in range(n)]
-
-        # グラフの構築（無向グラフ）
-        for u, v in mst_edges:
-            mst[u].append(v)
-            mst[v].append(u)
-
-        return mst
+class KruskalMSTReorderer(MSTReorderer):
+    def __init__(self, strategy: SimilarityStrategy):
+        super().__init__(strategy)
+        self.mst_builder = KruskalMSTBuilder()
 
 
-funcs = (NaiveReorderer, GreedyReorderer, MSTReorderer)
+class PrimMSTReorderer(MSTReorderer):
+    def __init__(self, strategy: SimilarityStrategy):
+        super().__init__(strategy)
+        self.mst_builder = PrimMSTBuilder()
 
 
-def apply_from(keyword: str) -> type[ReordererStrategy]:
+class Available(utils.CommandModuleMap):
+    NAIVE = utils.KeyVal("naive", NaiveReorderer)
+    GREEDY = utils.KeyVal("greedy", GreedyReorderer)
+    KRUSKAL = utils.KeyVal("kruskal", KruskalMSTReorderer)
+    PRIM = utils.KeyVal("prim", PrimMSTReorderer)
+
+
+def apply_from(*, method: str | None = None) -> type[MSTReorderer]:
+    """
+    method を具体的なクラスの名前にマッチングさせる。
+
+    Argument:
+        method: コマンドラインで指定された方法.
+    """
+    # set default
+    default = Available.GREEDY.key
+    if method is None:
+        method = default
+
+    mapper = utils.ModuleMatcher(Available)
     try:
-        matcher = utils.ModuleMatcher(available, funcs)
-        matched: type[ReordererStrategy] = matcher.match(keyword)
-        return matched
-    except NotImplementedError:
-        raise NotImplementedError(f"no matched fuzzysort law for {keyword!r}")
+        return mapper.match(method)
+    except KeyError:
+        raise ValueError("method name is not found.")

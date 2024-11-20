@@ -1,6 +1,6 @@
 import logging
 import typing
-from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 
 from .abc import TokenInterface
 
@@ -77,13 +77,42 @@ def get_debug_fp() -> BufferingLoggerWriter:
     return __debug_fp
 
 
-class ModuleMatcher:
-    def __init__(self, key: Sequence[str], values: Sequence[Callable], strict=False):
-        self._map: zip[tuple[str, typing.Any]] = zip(key, values, strict=strict)
+@dataclass
+class KeyVal:
+    """
+    Arguments:
+        key: コマンド名
+        val: 呼び出し可能なモジュール名
+    """
 
-    def match(self, keyword: str) -> typing.Any:  # Todo: いい方法はないか？
-        for key, val_callable in self._map:
-            logger.debug(f"matching {key!r} with {val_callable.__name__!r}")
-            if key.startswith(keyword):
-                return val_callable
-        raise NotImplementedError
+    key: str
+    val: typing.Any
+
+
+class CommandModuleMap:
+    """The name definition for the subcommands."""
+
+    @classmethod
+    def list_commands(cls) -> list:
+        """利用可能なサブコマンドの表現の一覧を取得する"""
+        return [val for key, val in cls.__dict__.items() if key.isupper()]
+
+
+class ModuleMatcher:
+    def __init__(self, mapping: type[CommandModuleMap]):
+        if not issubclass(mapping, CommandModuleMap):
+            raise TypeError("invalid command module map was given!")
+        self.commands = {
+            val.key: val.val for key, val in mapping.__dict__.items() if key.isupper()
+        }
+
+    def match(self, method: str) -> typing.Any:
+        # Todo: typing.Any を利用しないいい方法はないか？
+        result = self.commands.get(method)
+        if result is None:
+            raise KeyError
+        return result
+
+
+class FuncMatcher(ModuleMatcher):
+    pass
