@@ -1,4 +1,3 @@
-import abc
 import dataclasses
 import logging
 import pprint
@@ -7,7 +6,7 @@ import time
 from code import InteractiveConsole, InteractiveInterpreter
 from collections.abc import MutableSequence
 
-from sanipro.abc import TokenInterface
+from sanipro.abc import RunnerInterface, TokenInterface
 from sanipro.commandline import cli_hooks
 from sanipro.common import MutablePrompt, PromptPipeline
 from sanipro.filters.utils import collect_same_tokens
@@ -19,12 +18,6 @@ from .utils import get_debug_fp
 
 logger_root = logging.getLogger()
 logger = logging.getLogger(__name__)
-
-
-class RunnerInterface(abc.ABC):
-    def _run_once(self) -> None: ...
-
-    def run(self): ...
 
 
 class Runner(HasPrettyRepr, RunnerInterface):

@@ -1,4 +1,3 @@
-import abc
 import functools
 import logging
 import typing
@@ -7,7 +6,7 @@ from collections.abc import Sequence
 from sanipro.filters.abc import Command
 
 from . import parser
-from .abc import MutablePrompt, Prompt, TokenInterface
+from .abc import MutablePrompt, Prompt, PromptPipelineInterface, TokenInterface
 
 logger = logging.getLogger(__name__)
 
@@ -29,10 +28,6 @@ class Delimiter(typing.NamedTuple):
         raise ValueError(
             f"failed to match the {cls.__name__} class with any of {PromptPipeline.__name__}"
         )
-
-
-class PromptPipelineInterface(abc.ABC):
-    def __str__(self) -> str: ...
 
 
 class PromptPipeline(PromptPipelineInterface):

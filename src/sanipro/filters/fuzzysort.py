@@ -3,7 +3,6 @@ import heapq
 import itertools
 import logging
 import random
-from abc import ABC, abstractmethod
 from difflib import SequenceMatcher
 
 from sanipro.abc import MutablePrompt, Prompt, TokenInterface
@@ -11,18 +10,17 @@ from sanipro.commandline import commands
 from sanipro.commandline.help_formatter import SaniproHelpFormatter
 from sanipro.utils import CommandModuleMap, KeyVal, ModuleMatcher
 
-from .abc import Command
+from .abc import (
+    AdjacencyList,
+    Command,
+    MSTBuilder,
+    ReordererStrategy,
+    SimilarityStrategy,
+    WeightedEdge,
+)
 from .filter import Filter
 
 logger = logging.getLogger(__name__)
-
-
-class SimilarityStrategy(ABC):
-    """類似度計算の戦略インターフェース"""
-
-    @abstractmethod
-    def calculate_similarity(self, word1: str, word2: str) -> float:
-        """2つの文字列の類似度を計算する"""
 
 
 try:
@@ -45,18 +43,6 @@ class SequenceMatcherSimilarity(SimilarityStrategy):
 
     def calculate_similarity(self, word1: str, word2: str) -> float:
         return SequenceMatcher(None, word1, word2).ratio()
-
-
-class ReordererStrategy(ABC):
-    """並べ替えの戦略インターフェース"""
-
-    @abstractmethod
-    def __init__(self, strategy: SimilarityStrategy):
-        pass
-
-    @abstractmethod
-    def find_optimal_order(self, words: Prompt) -> MutablePrompt:
-        """2つの文字列の類似度を計算する"""
 
 
 class NaiveReorderer(ReordererStrategy):
@@ -126,23 +112,6 @@ class GreedyReorderer(ReordererStrategy):
             visited[next_idx] = True
 
         return result
-
-
-Edge = tuple[int, int]
-
-WeightedEdge = tuple[float, Edge]
-WeightedVertice = tuple[float, int]
-
-AdjacencyList = list[list[int]]
-AdjacencyListWeighted = list[list[WeightedVertice]]
-
-
-class MSTBuilder(ABC):
-    """MSTを構築する戦略のインターフェース"""
-
-    @abstractmethod
-    def build_mst(self, n: int, edges: list[WeightedEdge]) -> AdjacencyList:
-        pass
 
 
 class PrimMSTBuilder(MSTBuilder):

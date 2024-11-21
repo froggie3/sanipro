@@ -1,4 +1,5 @@
 import logging
+import typing
 from abc import ABC, abstractmethod
 from collections.abc import MutableSequence, Sequence
 
@@ -36,6 +37,26 @@ class TokenInterface(ABC):
     @abstractmethod
     def __str__(self) -> str:
         pass
+
+
+class ParserInterface(ABC):
+    @classmethod
+    def get_token(
+        cls,
+        token_cls: type[TokenInterface],
+        sentence: str,
+        delimiter: str | None = None,
+    ) -> typing.Generator[TokenInterface, None, None]: ...
+
+
+class PromptPipelineInterface(ABC):
+    def __str__(self) -> str: ...
+
+
+class RunnerInterface(ABC):
+    def _run_once(self) -> None: ...
+
+    def run(self): ...
 
 
 Prompt = Sequence[TokenInterface]

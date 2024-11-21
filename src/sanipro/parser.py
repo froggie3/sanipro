@@ -1,9 +1,8 @@
-import abc
 import logging
 import re
 import typing
 
-from .abc import TokenInterface
+from .abc import ParserInterface, TokenInterface
 
 try:
     from typing import Self
@@ -76,16 +75,6 @@ class TokenNonInteractive(Token):
 
     def __str__(self) -> str:
         return f"{self.name}{self._delimiter}{self.strength}"
-
-
-class ParserInterface(abc.ABC):
-    @classmethod
-    def get_token(
-        cls,
-        token_cls: type[TokenInterface],
-        sentence: str,
-        delimiter: str | None = None,
-    ) -> typing.Generator[TokenInterface, None, None]: ...
 
 
 class ParserV1(ParserInterface):
