@@ -1,15 +1,59 @@
 import argparse
+import functools
 import logging
 from functools import partial
 
-from sanipro import sort_all
-from sanipro.abc import MutablePrompt, Prompt
-from sanipro.help_formatter import SaniproHelpFormatter
+from sanipro.abc import MutablePrompt, Prompt, TokenInterface
+from sanipro.commandline.help_formatter import SaniproHelpFormatter
+from sanipro.utils import CommandModuleMap, KeyVal, ModuleMatcher
 
 from .abc import Command
 from .filter import Filter
 
 logger = logging.getLogger(__name__)
+
+
+def sort_lexicographically(token: TokenInterface) -> str:
+    return token.name
+
+
+def sort_by_ord_sum(token: TokenInterface) -> int:
+    return sum(ord(char) for char in token.name)
+
+
+def sort_by_length(token: TokenInterface) -> int:
+    return token.length
+
+
+def sort_by_strength(token: TokenInterface) -> float:
+    return token.strength
+
+
+def apply_from(*, method: str | None = None) -> functools.partial:
+    """
+    method を具体的なクラスの名前にマッチングさせる。
+
+    Argument:
+        method: コマンドラインで指定された方法.
+    """
+    # set default
+    default = Available.LEXICOGRAPHICAL.key
+    if method is None:
+        method = default
+
+    mapper = ModuleMatcher(Available)
+    try:
+        partial = functools.partial(sorted, key=mapper.match(method))
+        return partial
+    except KeyError:
+        raise ValueError("method name is not found.")
+
+
+class Available(CommandModuleMap):
+    LEXICOGRAPHICAL = KeyVal("lexicographical", sort_lexicographically)
+    LENGTH = KeyVal("length", sort_by_length)
+    STRENGTH = KeyVal("strength", sort_by_strength)
+    ORD_SUM = KeyVal("ord-sum", sort_by_ord_sum)
 
 
 class SortAllCommand(Command):
@@ -41,12 +85,12 @@ class SortAllCommand(Command):
         )
 
         subcommand.add_parser(
-            sort_all.Available.LEXICOGRAPHICAL.key,
+            Available.LEXICOGRAPHICAL.key,
             help="Sort the prompt with lexicographical order. Familiar sort method.",
         )
 
         subcommand.add_parser(
-            sort_all.Available.LENGTH.key,
+            Available.LENGTH.key,
             help=(
                 "Reorder the token length."
                 "This behaves slightly similar as 'ord-sum' method."
@@ -54,11 +98,11 @@ class SortAllCommand(Command):
         )
 
         subcommand.add_parser(
-            sort_all.Available.STRENGTH.key, help="Reorder the tokens by their weights."
+            Available.STRENGTH.key, help="Reorder the tokens by their weights."
         )
 
         subcommand.add_parser(
-            sort_all.Available.ORD_SUM.key,
+            Available.ORD_SUM.key,
             help=(
                 "Reorder the tokens by its sum of character codes."
                 "This behaves slightly similar as 'length' method."

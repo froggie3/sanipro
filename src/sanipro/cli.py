@@ -1,9 +1,9 @@
 import logging
 import sys
 
-from . import cli_hooks
-from .cli_runner import Runner
-from .filters.commands import Commands
+from .commandline import cli_hooks
+from .commandline.cli_runner import Runner
+from .commandline.commands import Commands
 
 logger_root = logging.getLogger()
 logger = logging.getLogger(__name__)

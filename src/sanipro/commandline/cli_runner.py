@@ -7,14 +7,15 @@ import time
 from code import InteractiveConsole, InteractiveInterpreter
 from collections.abc import MutableSequence
 
-from sanipro.utils import HasPrettyRepr, get_debug_fp
+from sanipro.abc import TokenInterface
+from sanipro.commandline import cli_hooks
+from sanipro.common import MutablePrompt, PromptPipeline
+from sanipro.filters.utils import collect_same_tokens
+from sanipro.parser import TokenInteractive, TokenNonInteractive
+from sanipro.utils import HasPrettyRepr
 
-from . import cli_hooks
-from .abc import TokenInterface
-from .common import MutablePrompt, PromptPipeline
-from .filters.commands import Commands
-from .filters.utils import collect_same_tokens
-from .parser import TokenInteractive, TokenNonInteractive
+from .commands import Commands
+from .utils import get_debug_fp
 
 logger_root = logging.getLogger()
 logger = logging.getLogger(__name__)

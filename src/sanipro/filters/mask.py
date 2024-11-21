@@ -3,7 +3,7 @@ import logging
 from collections.abc import Sequence
 
 from sanipro.abc import MutablePrompt, Prompt
-from sanipro.help_formatter import SaniproHelpFormatter
+from sanipro.commandline.help_formatter import SaniproHelpFormatter
 
 from .abc import Command
 from .filter import Filter

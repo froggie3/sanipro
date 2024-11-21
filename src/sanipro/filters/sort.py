@@ -3,8 +3,8 @@ import logging
 from itertools import chain
 
 from sanipro.abc import MutablePrompt, Prompt
+from sanipro.commandline.help_formatter import SaniproHelpFormatter
 from sanipro.filters.utils import collect_same_tokens_sorted
-from sanipro.help_formatter import SaniproHelpFormatter
 
 from .abc import Command
 from .filter import Filter

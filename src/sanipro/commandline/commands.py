@@ -3,32 +3,26 @@ import logging
 import pprint
 from collections.abc import Sequence
 
+from sanipro import common
+from sanipro.filters import sort_all
 from sanipro.filters.exclude import ExcludeCommand
+from sanipro.filters.filter import Filter
+from sanipro.filters.fuzzysort import SimilarCommand
 from sanipro.filters.mask import MaskCommand
 from sanipro.filters.random import RandomCommand
 from sanipro.filters.roundup import RoundUpCommand
-from sanipro.filters.similar import SimilarCommand
 from sanipro.filters.sort import SortCommand
 from sanipro.filters.sort_all import SortAllCommand
 from sanipro.filters.unique import UniqueCommand
-from sanipro.utils import HasPrettyRepr, get_debug_fp, get_log_level_from
+from sanipro.utils import HasPrettyRepr
 
-from .. import color, common, sort_all
-from ..help_formatter import SaniproHelpFormatter
-from .filter import Filter
+from . import color
+from .help_formatter import SaniproHelpFormatter
+from .utils import get_debug_fp, get_log_level_from
 
 logger_root = logging.getLogger()
 
 logger = logging.getLogger(__name__)
-
-
-class Similar:
-    mst = True
-    kruskal = False
-    prim = False
-
-    naive = False
-    greedy = False
 
 
 class Commands(HasPrettyRepr):
