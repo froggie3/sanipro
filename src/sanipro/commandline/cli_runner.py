@@ -115,6 +115,9 @@ class RunnerInteractive(Runner, InteractiveConsole):
                         break
                     else:
                         self.push(line)
+                except ValueError as e:  # like unclosed parentheses
+                    logger.fatal(f"error: {e}")
+                    self.resetbuffer()
                 except KeyboardInterrupt:
                     self.resetbuffer()
                     self.write("\nKeyboardInterrupt\n")

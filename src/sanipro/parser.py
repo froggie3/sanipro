@@ -179,7 +179,7 @@ class ParserV1(ParserInterface):
         if m:
             name = m.group(1)
             logger.debug(f"{name=!r}")
-            
+
             new_name = None
             new_weight = None
             weight = m.group(2)
