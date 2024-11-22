@@ -162,11 +162,14 @@ class ParserV1(ParserInterface):
         >>> parse_line('1girl', PromptInteractive)
         PromptInteractive('1girl', 1.0)
 
-        >>> parse_line('brown:hair:1.2', PromptInteractive)
-        PromptInteractive('brown:hair', 1.2)
+        >>> parse_line(':3', PromptInteractive)
+        PromptInteractive(':3', 1.2)
 
-        >>> parse_line('brown:hair', PromptInteractive)
-        PromptInteractive('brown:hair', 1.0)
+        >>> parse_line('re:zero kara hajimeru isekai seikatsu:1.2', PromptInteractive)
+        PromptInteractive('re:zero kara hajimeru isekai seikatsu', 1.2)
+
+        >>> parse_line('re:zero kara hajimeru isekai seikatsu', PromptInteractive)
+        PromptInteractive('re:zero kara hajimeru isekai seikatsu', 1.0)
         """
 
         name_pattern = r"(.*?)"
@@ -174,7 +177,28 @@ class ParserV1(ParserInterface):
         pattern = rf"^{name_pattern}(?::{weight_pattern})?$"
         m = re.match(pattern, token_combined)
         if m:
-            return token_cls(m.group(1), float(m.group(2) or 1.0))
+            name = m.group(1)
+            logger.debug(f"{name=!r}")
+            
+            new_name = None
+            new_weight = None
+            weight = m.group(2)
+
+            # edge cases
+            default = weight is None
+            regex_failed = name == ""  # such as ':3'
+
+            if default:
+                new_name = name
+                new_weight = 1.0
+            elif regex_failed:
+                new_name = token_combined
+                new_weight = 1.0
+            else:
+                new_name = name
+                new_weight = float(weight)
+
+            return token_cls(new_name, new_weight)
         raise Exception(f"no matched string for {token_combined!r}")
 
     @classmethod
