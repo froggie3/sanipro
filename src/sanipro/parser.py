@@ -13,8 +13,8 @@ logger = logging.getLogger(__name__)
 
 
 class Tokens:
-    PARENSIS_LEFT: str = "("
-    PARENSIS_RIGHT: str = ")"
+    PARENTHESIS_LEFT: str = "("
+    PARENTHESIS_RIGHT: str = ")"
     COLON: str = ":"
     COMMA: str = ","
     SPACE: str = " "
@@ -103,7 +103,7 @@ class ParserV1(ParserInterface):
 
         index = 0
         while index < len(sentence):
-            if sentence[index] == Tokens.PARENSIS_LEFT:
+            if sentence[index] == Tokens.PARENTHESIS_LEFT:
                 if index >= 1:
                     if sentence[index - 1] == Tokens.BACKSLASH:
                         partial.append(sentence[index])
@@ -113,7 +113,7 @@ class ParserV1(ParserInterface):
                     parenthesis.append(index)
                 index += 1
 
-            elif sentence[index] == Tokens.PARENSIS_RIGHT:
+            elif sentence[index] == Tokens.PARENTHESIS_RIGHT:
                 if index >= 1:
                     if sentence[index - 1] == Tokens.BACKSLASH:
                         partial.append(sentence[index])
