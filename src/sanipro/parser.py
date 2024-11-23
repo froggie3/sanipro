@@ -115,10 +115,14 @@ class ParserV1(ParserInterface):
                     if sentence[index - 1] == Tokens.BACKSLASH:
                         partial.append(sentence[index])
                     else:
-                        if len(parenthesis) == 0:
-                            parenthesis.append(index)
-                        else:
-                            partial.append(sentence[index])
+                        parenthesis.append(index)
+                        # 1 階層のみ認める実装も可能.
+                        # cons: カッコがネストしたときに内側の weight はそのままになる
+                        # その場合は以下.
+                        # if len(parenthesis) == 0:
+                        #     parenthesis.append(index)
+                        # else:
+                        #     partial.append(sentence[index])
                 elif index == 0:
                     parenthesis.append(index)
                 index += 1
@@ -128,10 +132,11 @@ class ParserV1(ParserInterface):
                     if sentence[index - 1] == Tokens.BACKSLASH:
                         partial.append(sentence[index])
                     else:
-                        if len(parenthesis) == 1:
-                            parenthesis.pop()
-                        else:
-                            partial.append(sentence[index])
+                        parenthesis.pop()
+                        # if len(parenthesis) == 1:
+                        #     parenthesis.pop()
+                        # else:
+                        #     partial.append(sentence[index])
                 elif index == 0:
                     partial.append(sentence[index])
                 index += 1
