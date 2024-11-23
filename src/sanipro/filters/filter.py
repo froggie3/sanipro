@@ -8,3 +8,4 @@ class Filter(utils.CommandModuleMap):
     SORT_ALL = "sort-all"
     SIMILAR = "similar"
     UNIQUE = "unique"
+    RESET = "reset"

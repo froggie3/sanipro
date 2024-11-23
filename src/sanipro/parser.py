@@ -39,8 +39,15 @@ class Token(TokenInterface):
     def length(self) -> int:
         return len(self.name)
 
-    def replace(self, replace: str) -> Self:
-        return type(self)(replace, self._strength)
+    def replace(
+        self, *, new_name: str | None = None, new_strength: float | None = None
+    ) -> Self:
+        if new_name is None:
+            new_name = self._name
+        if new_strength is None:
+            new_strength = self._strength
+
+        return type(self)(new_name, new_strength)
 
     def __repr__(self) -> str:
         items = (f"{v!r}" for v in (self.name, self.strength))
@@ -108,7 +115,10 @@ class ParserV1(ParserInterface):
                     if sentence[index - 1] == Tokens.BACKSLASH:
                         partial.append(sentence[index])
                     else:
-                        parenthesis.append(index)
+                        if len(parenthesis) == 0:
+                            parenthesis.append(index)
+                        else:
+                            partial.append(sentence[index])
                 elif index == 0:
                     parenthesis.append(index)
                 index += 1
@@ -118,7 +128,10 @@ class ParserV1(ParserInterface):
                     if sentence[index - 1] == Tokens.BACKSLASH:
                         partial.append(sentence[index])
                     else:
-                        parenthesis.pop()
+                        if len(parenthesis) == 1:
+                            parenthesis.pop()
+                        else:
+                            partial.append(sentence[index])
                 elif index == 0:
                     partial.append(sentence[index])
                 index += 1
@@ -178,7 +191,6 @@ class ParserV1(ParserInterface):
         m = re.match(pattern, token_combined)
         if m:
             name = m.group(1)
-            logger.debug(f"{name=!r}")
 
             new_name = None
             new_weight = None

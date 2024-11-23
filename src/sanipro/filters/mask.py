@@ -24,7 +24,11 @@ class MaskCommand(Command):
         ['%%%', 'thighhighs']
         """
         return [
-            token.replace(self.replace_to) if token.name in self.excludes else token
+            (
+                token.replace(new_name=self.replace_to)
+                if token.name in self.excludes
+                else token
+            )
             for token in prompt
         ]
 

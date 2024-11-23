@@ -27,7 +27,9 @@ class TokenInterface(ABC):
         pass
 
     @abstractmethod
-    def replace(self, replace: str) -> "TokenInterface":
+    def replace(
+        self, *, new_name: str | None = None, new_strength: float | None = None
+    ) -> "TokenInterface":
         pass
 
     @abstractmethod

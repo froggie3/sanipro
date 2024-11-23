@@ -10,6 +10,7 @@ from sanipro.filters.filter import Filter
 from sanipro.filters.fuzzysort import SimilarCommand
 from sanipro.filters.mask import MaskCommand
 from sanipro.filters.random import RandomCommand
+from sanipro.filters.reset import ResetCommand
 from sanipro.filters.roundup import RoundUpCommand
 from sanipro.filters.sort import SortCommand
 from sanipro.filters.sort_all import SortAllCommand
@@ -51,6 +52,8 @@ class Commands(HasPrettyRepr):
     reverse = False
 
     seed: int | None = None
+
+    value: float | None = None
 
     similar_method = None
     sort_all_method = None
@@ -173,12 +176,13 @@ class Commands(HasPrettyRepr):
             metavar="FILTER",
         )
 
-        UniqueCommand.inject_subparser(subparser)
-        SortCommand.inject_subparser(subparser)
-        SortAllCommand.inject_subparser(subparser)
-        SimilarCommand.inject_subparser(subparser)
-        RandomCommand.inject_subparser(subparser)
         MaskCommand.inject_subparser(subparser)
+        RandomCommand.inject_subparser(subparser)
+        ResetCommand.inject_subparser(subparser)
+        SimilarCommand.inject_subparser(subparser)
+        SortAllCommand.inject_subparser(subparser)
+        SortCommand.inject_subparser(subparser)
+        UniqueCommand.inject_subparser(subparser)
 
         return parser
 
@@ -207,6 +211,9 @@ class Commands(HasPrettyRepr):
 
         if self.filter == Filter.RANDOM:
             pipeline.append_command(RandomCommand(self.seed))
+
+        if self.filter == Filter.RESET:
+            pipeline.append_command(ResetCommand(self.value))
 
         if self.filter == Filter.SORT_ALL:
             sorted_partial = sort_all.apply_from(method=self.sort_all_method)
