@@ -10,14 +10,8 @@ from sanipro.commandline import commands
 from sanipro.commandline.help_formatter import SaniproHelpFormatter
 from sanipro.utils import CommandModuleMap, KeyVal, ModuleMatcher
 
-from .abc import (
-    AdjacencyList,
-    Command,
-    MSTBuilder,
-    ReordererStrategy,
-    SimilarityStrategy,
-    WeightedEdge,
-)
+from .abc import (AdjacencyList, Command, MSTBuilder, ReordererStrategy,
+                  SimilarityStrategy, WeightedEdge)
 from .filter import Filter
 
 logger = logging.getLogger(__name__)

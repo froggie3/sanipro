@@ -109,37 +109,33 @@ class ParserV1(ParserInterface):
         partial = []
 
         index = 0
+        is_escaped = False
+
         while index < len(sentence):
-            if sentence[index] == Tokens.PARENTHESIS_LEFT:
-                if index >= 1:
-                    if sentence[index - 1] == Tokens.BACKSLASH:
-                        partial.append(sentence[index])
-                    else:
-                        parenthesis.append(index)
-                        # 1 階層のみ認める実装も可能.
-                        # cons: カッコがネストしたときに内側の weight はそのままになる
-                        # その場合は以下.
-                        # if len(parenthesis) == 0:
-                        #     parenthesis.append(index)
-                        # else:
-                        #     partial.append(sentence[index])
-                elif index == 0:
+            if sentence[index] == Tokens.BACKSLASH:
+                partial.append(sentence[index])
+                is_escaped = True
+
+            elif sentence[index] == Tokens.PARENTHESIS_LEFT:
+                if is_escaped:
+                    partial.append(sentence[index])
+                    is_escaped = False
+                elif parenthesis:
                     parenthesis.append(index)
-                index += 1
+                    # nested parentheses will be intact
+                    partial.append(sentence[index])
+                else:
+                    parenthesis.append(index)
 
             elif sentence[index] == Tokens.PARENTHESIS_RIGHT:
-                if index >= 1:
-                    if sentence[index - 1] == Tokens.BACKSLASH:
-                        partial.append(sentence[index])
-                    else:
-                        parenthesis.pop()
-                        # if len(parenthesis) == 1:
-                        #     parenthesis.pop()
-                        # else:
-                        #     partial.append(sentence[index])
-                elif index == 0:
+                if is_escaped:
                     partial.append(sentence[index])
-                index += 1
+                    is_escaped = False
+                elif len(parenthesis) > 1:
+                    partial.append(sentence[index])
+                    parenthesis.pop()
+                else:
+                    parenthesis.pop()
 
             elif sentence[index] == delimiter:
                 if parenthesis:
@@ -148,11 +144,10 @@ class ParserV1(ParserInterface):
                     element = "".join(partial).strip()
                     partial.clear()
                     product.append(element)
-                index += 1
-
             else:
                 partial.append(sentence[index])
-                index += 1
+
+            index += 1
 
         if parenthesis:
             first_parenthesis_index = parenthesis[0]
@@ -355,6 +350,142 @@ class ParserV2(ParserInterface):
             token_cls(text, weight)
             for text, weight in cls.parse_prompt_attention(sentence)
         )
+
+
+class ParserV3(ParserInterface):
+    @staticmethod
+    def extract_token(sentence: str, delimiter: str) -> list[str]:
+        """
+        split `sentence` at commas and remove parentheses.
+
+        >>> list(extract_token('1girl,'))
+        ['1girl']
+
+        >>> list(extract_token('(brown hair:1.2),'))
+        ['brown hair:1.2']
+
+        >>> list(extract_token('\(foo\)'))
+        ['\\(foo\\)']
+
+        >>> list(extract_token('1girl, (brown hair:1.2), school uniform, smile,'))
+        ['1girl', 'brown hair:1.2', 'school uniform', 'smile']
+        """
+        # final product
+        product = []
+        parenthesis: list[int] = []
+        # consumed chararater will be accumurated before next ','
+        partial = []
+
+        index = 0
+        while index < len(sentence):
+            if sentence[index] == Tokens.PARENTHESIS_LEFT:
+                if index >= 1:
+                    if sentence[index - 1] == Tokens.BACKSLASH:
+                        partial.append(sentence[index])
+                    else:
+                        parenthesis.append(index)
+                elif index == 0:
+                    parenthesis.append(index)
+                index += 1
+
+            elif sentence[index] == Tokens.PARENTHESIS_RIGHT:
+                if index >= 1:
+                    if sentence[index - 1] == Tokens.BACKSLASH:
+                        partial.append(sentence[index])
+                    else:
+                        parenthesis.pop()
+                elif index == 0:
+                    partial.append(sentence[index])
+                index += 1
+
+            elif sentence[index] == delimiter:
+                if parenthesis:
+                    partial.append(sentence[index])
+                else:
+                    element = "".join(partial).strip()
+                    partial.clear()
+                    product.append(element)
+                index += 1
+
+            else:
+                partial.append(sentence[index])
+                index += 1
+
+        if parenthesis:
+            first_parenthesis_index = parenthesis[0]
+            ok_partial = sentence[0:first_parenthesis_index]
+            raise ValueError(
+                f"first unclosed parenthesis was found after {ok_partial!r}"
+            )
+
+        return product
+
+    @staticmethod
+    def parse_line(
+        token_combined: str, token_cls: type[TokenInterface]
+    ) -> TokenInterface:
+        """
+        split `token_combined` into left and right sides with `:`
+        when there are three or more elements,
+        the right side separated by the last colon is adopted as the weight.
+
+        >>> from lib.common import PromptInteractive, PromptNonInteractive
+
+        >>> parse_line('brown hair:1.2', PromptInteractive)
+        PromptInteractive('brown hair', 1.2)
+
+        >>> parse_line('1girl', PromptInteractive)
+        PromptInteractive('1girl', 1.0)
+
+        >>> parse_line(':3', PromptInteractive)
+        PromptInteractive(':3', 1.2)
+
+        >>> parse_line('re:zero kara hajimeru isekai seikatsu:1.2', PromptInteractive)
+        PromptInteractive('re:zero kara hajimeru isekai seikatsu', 1.2)
+
+        >>> parse_line('re:zero kara hajimeru isekai seikatsu', PromptInteractive)
+        PromptInteractive('re:zero kara hajimeru isekai seikatsu', 1.0)
+        """
+
+        name_pattern = r"(.*?)"
+        weight_pattern = r"(\d+(?:\.\d+)?)"
+        pattern = rf"^{name_pattern}(?::{weight_pattern})?$"
+        m = re.match(pattern, token_combined)
+        if m:
+            name = m.group(1)
+
+            new_name = None
+            new_weight = None
+            weight = m.group(2)
+
+            # edge cases
+            default = weight is None
+            regex_failed = name == ""  # such as ':3'
+
+            if default:
+                new_name = name
+                new_weight = 1.0
+            elif regex_failed:
+                new_name = token_combined
+                new_weight = 1.0
+            else:
+                new_name = name
+                new_weight = float(weight)
+
+            return token_cls(new_name, new_weight)
+        raise Exception(f"no matched string for {token_combined!r}")
+
+    @classmethod
+    def get_token(
+        cls,
+        token_cls: type[TokenInterface],
+        sentence: str,
+        delimiter: str | None = None,
+    ) -> typing.Generator[TokenInterface, None, None]:
+        if delimiter is not None:
+            for element in cls.extract_token(sentence, delimiter):
+                token = cls.parse_line(element, token_cls)
+                yield token
 
 
 if __name__ == "__main__":
