@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 class TokenInterface(ABC):
     @abstractmethod
-    def __init__(self, name: str, strength: float) -> None:
+    def __init__(self, name: str, weight: float) -> None:
         pass
 
     @property
@@ -18,7 +18,7 @@ class TokenInterface(ABC):
 
     @property
     @abstractmethod
-    def strength(self) -> float:
+    def weight(self) -> float:
         pass
 
     @property
@@ -28,7 +28,7 @@ class TokenInterface(ABC):
 
     @abstractmethod
     def replace(
-        self, *, new_name: str | None = None, new_strength: float | None = None
+        self, *, new_name: str | None = None, new_weight: float | None = None
     ) -> "TokenInterface":
         pass
 

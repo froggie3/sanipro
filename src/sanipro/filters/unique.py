@@ -19,12 +19,12 @@ class UniqueCommand(Command):
         """
         >>> from lib.common import PromptInteractive
         >>> p = unique([PromptInteractive('white hair', 1.2), PromptInteractive('white hair', 1.0)])
-        >>> [(x.name, x.strength) for x in p]
+        >>> [(x.name, x.weight) for x in p]
         [('white hair', 1.0)]
 
         >>> from lib.common import PromptInteractive
         >>> p = unique([PromptInteractive('white hair', 1.2), PromptInteractive('white hair', 1.0)], True)
-        >>> [(x.name, x.strength) for x in p]
+        >>> [(x.name, x.weight) for x in p]
         [('white hair', 1.2)]
         """
         return [vals[0] for vals in collect_same_tokens_sorted(prompt, self.reverse)]

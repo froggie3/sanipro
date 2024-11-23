@@ -20,7 +20,7 @@ def collect_same_tokens(prompts: Prompt) -> Mapping[str, MutablePrompt]:
 def collect_same_tokens_sorted(
     prompt: Prompt, reverse=False
 ) -> typing.Generator[list[TokenInterface], None, None]:
-    f = sort_all.sort_by_strength
+    f = sort_all.sort_by_weight
     return (
         sorted(token, key=f, reverse=reverse)
         for token in collect_same_tokens(prompt).values()

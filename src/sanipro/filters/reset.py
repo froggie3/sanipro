@@ -21,7 +21,7 @@ class ResetCommand(Command):
             self.new_value = new_value
 
     def execute(self, prompt: Prompt) -> MutablePrompt:
-        return [token.replace(new_strength=self.new_value) for token in prompt]
+        return [token.replace(new_weight=self.new_value) for token in prompt]
 
     @staticmethod
     def inject_subparser(subparser: argparse._SubParsersAction):

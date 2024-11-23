@@ -22,9 +22,9 @@ class Tokens:
 
 
 class Token(TokenInterface):
-    def __init__(self, name: str, strength: float) -> None:
+    def __init__(self, name: str, weight: float) -> None:
         self._name = name
-        self._strength = float(strength)
+        self._weight = float(weight)
         self._delimiter = None
 
     @property
@@ -32,56 +32,56 @@ class Token(TokenInterface):
         return self._name
 
     @property
-    def strength(self) -> float:
-        return self._strength
+    def weight(self) -> float:
+        return self._weight
 
     @property
     def length(self) -> int:
         return len(self.name)
 
     def replace(
-        self, *, new_name: str | None = None, new_strength: float | None = None
+        self, *, new_name: str | None = None, new_weight: float | None = None
     ) -> Self:
         if new_name is None:
             new_name = self._name
-        if new_strength is None:
-            new_strength = self._strength
+        if new_weight is None:
+            new_weight = self._weight
 
-        return type(self)(new_name, new_strength)
+        return type(self)(new_name, new_weight)
 
     def __repr__(self) -> str:
-        items = (f"{v!r}" for v in (self.name, self.strength))
+        items = (f"{v!r}" for v in (self.name, self.weight))
         return "{}({})".format(type(self).__name__, f"{Tokens.COMMA} ".join(items))
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, self.__class__):
             raise TypeError
-        return self._name == other._name and self._strength == other._strength
+        return self._name == other._name and self._weight == other._weight
 
     def __hash__(self) -> int:
-        return hash((self._name, self._strength))
+        return hash((self._name, self._weight))
 
 
 class TokenInteractive(Token):
-    def __init__(self, name: str, strength: float) -> None:
-        Token.__init__(self, name, strength)
+    def __init__(self, name: str, weight: float) -> None:
+        Token.__init__(self, name, weight)
         self._delimiter = Tokens.COLON
 
     def __str__(self) -> str:
-        if self.strength != 1.0:
-            return f"({self.name}{self._delimiter}{self.strength})"
+        if self.weight != 1.0:
+            return f"({self.name}{self._delimiter}{self.weight})"
         return self.name
 
 
 class TokenNonInteractive(Token):
-    def __init__(self, name: str, strength: float) -> None:
-        Token.__init__(self, name, strength)
+    def __init__(self, name: str, weight: float) -> None:
+        Token.__init__(self, name, weight)
         # defining 'delimiter' between token and weight helps to
         # pass the result of this command to like `column -t -s"\t"`
         self._delimiter = "\t"
 
     def __str__(self) -> str:
-        return f"{self.name}{self._delimiter}{self.strength}"
+        return f"{self.name}{self._delimiter}{self.weight}"
 
 
 class ParserV1(ParserInterface):
@@ -165,7 +165,7 @@ class ParserV1(ParserInterface):
         """
         split `token_combined` into left and right sides with `:`
         when there are three or more elements,
-        the right side separated by the last colon is adopted as the strength.
+        the right side separated by the last colon is adopted as the weight.
 
         >>> from lib.common import PromptInteractive, PromptNonInteractive
 

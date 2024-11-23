@@ -22,7 +22,7 @@ class HasPrettyRepr:
 
 def round_token_weight(token: TokenInterface, digits: int) -> TokenInterface:
     """A helper function to round the token weight to `n` digits."""
-    return type(token)(token.name, round(token.strength, digits))
+    return type(token)(token.name, round(token.weight, digits))
 
 
 @dataclass

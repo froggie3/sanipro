@@ -25,8 +25,8 @@ def sort_by_length(token: TokenInterface) -> int:
     return token.length
 
 
-def sort_by_strength(token: TokenInterface) -> float:
-    return token.strength
+def sort_by_weight(token: TokenInterface) -> float:
+    return token.weight
 
 
 def apply_from(*, method: str | None = None) -> functools.partial:
@@ -52,7 +52,7 @@ def apply_from(*, method: str | None = None) -> functools.partial:
 class Available(CommandModuleMap):
     LEXICOGRAPHICAL = KeyVal("lexicographical", sort_lexicographically)
     LENGTH = KeyVal("length", sort_by_length)
-    STRENGTH = KeyVal("strength", sort_by_strength)
+    STRENGTH = KeyVal("weight", sort_by_weight)
     ORD_SUM = KeyVal("ord-sum", sort_by_ord_sum)
 
 
