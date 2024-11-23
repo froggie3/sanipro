@@ -35,7 +35,7 @@ class ResetCommand(Command):
         subcommand.add_argument(
             "-v",
             "--value",
-            default=None,
-            type=int,
-            help="Fixed randomness to this value.",
+            default=1.0,
+            type=float,
+            help="Fixes the weight to this value.",
         )
