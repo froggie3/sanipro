@@ -1,17 +1,18 @@
 import argparse
-import heapq
 import itertools
 import logging
 import random
 from difflib import SequenceMatcher
+
+import networkx as nx
+from networkx import traversal
 
 from sanipro.abc import MutablePrompt, Prompt, TokenInterface
 from sanipro.commandline import commands
 from sanipro.commandline.help_formatter import SaniproHelpFormatter
 from sanipro.utils import CommandModuleMap, KeyVal, ModuleMatcher
 
-from .abc import (AdjacencyList, Command, MSTBuilder, ReordererStrategy,
-                  SimilarityStrategy, WeightedEdge)
+from .abc import Command, MSTBuilder, ReordererStrategy, SimilarityStrategy
 from .filter import Filter
 
 logger = logging.getLogger(__name__)
@@ -109,92 +110,16 @@ class GreedyReorderer(ReordererStrategy):
 
 
 class PrimMSTBuilder(MSTBuilder):
-    def build_mst(self, n: int, edges: list[WeightedEdge]) -> AdjacencyList:
-        # エッジリストを隣接リストに変換
-        graph = [[] for _ in range(n)]
-        for weight, (u, v) in edges:
-            graph[u].append((weight, v))
-            graph[v].append((weight, u))
-
-        # 最小全域木のエッジを格納するリスト
-        mst_edges: list[tuple[int, int]] = []
-        visited = set()
-        min_heap = []
-
-        # 開始ノードを0とする
-        start_node = 0
-        visited.add(start_node)
-
-        # 開始ノードから到達可能なエッジをヒープに追加
-        for weight, neighbor in graph[start_node]:
-            heapq.heappush(min_heap, (weight, start_node, neighbor))
-
-        # Prim法のメインループ
-        while min_heap and len(visited) < n:
-            weight, u, v = heapq.heappop(min_heap)
-            if v in visited:
-                continue
-            mst_edges.append((u, v))
-            visited.add(v)
-            for next_weight, next_node in graph[v]:
-                if next_node not in visited:
-                    heapq.heappush(min_heap, (next_weight, v, next_node))
-
-        # グラフの構築（無向グラフ）
-        mst = [[] for _ in range(n)]
-        for u, v in mst_edges:
-            mst[u].append(v)
-            mst[v].append(u)
-
-        return mst
-
-
-class UnionFind:
-    """Union-Find構造のヘルパークラス"""
-
-    def __init__(self, size):
-        self.parent = list(range(size))
-        self.rank = [0] * size
-
-    def find(self, node):
-        if self.parent[node] != node:
-            self.parent[node] = self.find(self.parent[node])
-        return self.parent[node]
-
-    def union(self, u, v):
-        root_u = self.find(u)
-        root_v = self.find(v)
-        if root_u != root_v:
-            if self.rank[root_u] > self.rank[root_v]:
-                self.parent[root_v] = root_u
-            elif self.rank[root_u] < self.rank[root_v]:
-                self.parent[root_u] = root_v
-            else:
-                self.parent[root_v] = root_u
-                self.rank[root_u] += 1
+    def build_mst(self, graph: nx.Graph) -> nx.Graph:
+        return nx.minimum_spanning_tree(graph, algorithm="prim")
 
 
 class KruskalMSTBuilder(MSTBuilder):
-    def build_mst(self, n: int, edges: list[WeightedEdge]) -> AdjacencyList:
-        # 重みの昇順にエッジをソート
-        edges.sort()
-        uf = UnionFind(n)
-        mst_edges = []
+    def build_mst(self, graph: nx.Graph) -> nx.Graph:
+        return nx.minimum_spanning_tree(graph)
 
-        for weight, (u, v) in edges:
-            if uf.find(u) != uf.find(v):
-                uf.union(u, v)
-                mst_edges.append((u, v))
-                if len(mst_edges) == n - 1:
-                    break
 
-        # グラフの構築（無向グラフ）
-        mst = [[] for _ in range(n)]
-        for u, v in mst_edges:
-            mst[u].append(v)
-            mst[v].append(u)
-
-        return mst
+import itertools
 
 
 class MSTReorderer(ReordererStrategy):
@@ -206,35 +131,25 @@ class MSTReorderer(ReordererStrategy):
         self.strategy = strategy
 
     def find_optimal_order(self, words: Prompt) -> MutablePrompt:
-        words = list(words[:])
-        n = len(words)
-
         # 完全グラフのエッジリストを構築
-        edges: list[WeightedEdge] = []
-        for i in range(n):
-            for j in range(i + 1, n):
-                similarity = self.strategy.calculate_similarity(
-                    words[i].name, words[j].name
-                )
-                weight = 1 - similarity  # 類似度が高いほど重みは低くする
-                edges.append((weight, (i, j)))
+        graph = nx.Graph()
+
+        for (u, _p), (v, _q) in itertools.combinations(enumerate(words), 2):
+            similarity = self.strategy.calculate_similarity(_p.name, _q.name)
+            # 類似度が高いほど重みは低くする
+            graph.add_edge(u, v, weight=1 - similarity)
 
         # MSTを構築
-        mst = self.mst_builder.build_mst(n, edges)
+        mst = self.mst_builder.build_mst(graph)
 
         # 最小全域木をDFSで探索し、順序を決定
-        visited = [False] * n
-        order = []
+        def mapper(node: int):
+            token = words[node]
+            return token
 
-        def dfs(node):
-            visited[node] = True
-            order.append(words[node])
-            for neighbor in mst[node]:
-                if not visited[neighbor]:
-                    dfs(neighbor)
+        order = map(mapper, traversal.dfs_preorder_nodes(mst))
 
-        dfs(0)  # 0番目の頂点から探索開始
-        return order
+        return list(order)
 
 
 class KruskalMSTReorderer(MSTReorderer):
