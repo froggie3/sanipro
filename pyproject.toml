@@ -11,9 +11,6 @@ python = "^3.10"
 typing-extensions = "^4.12.2"
 networkx = "^3.4.2"
 
-[tool.poetry.scripts]
-sanipro = "saniproclidemo.cli:app"
-
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
