@@ -2,14 +2,13 @@ import logging
 from functools import partial
 
 from sanipro.abc import MutablePrompt, Prompt
-from sanipro.compatible import Self
 from sanipro.filters.utils import (
     sort_by_length,
     sort_by_ord_sum,
     sort_by_weight,
     sort_lexicographically,
 )
-from sanipro.utils import CommandModuleMap, KeyVal, ModuleMatcher
+from sanipro.utils import CommandModuleMap, KeyVal
 
 from .abc import Command
 

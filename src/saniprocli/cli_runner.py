@@ -13,7 +13,7 @@ from sanipro.parser import TokenInteractive, TokenNonInteractive
 from sanipro.utils import HasPrettyRepr
 from saniprocli import cli_hooks
 
-from .commands import Commands
+from .commands import CommandsBase
 from .utils import get_debug_fp
 
 logger_root = logging.getLogger()
@@ -29,7 +29,7 @@ class Runner(HasPrettyRepr, RunnerInterface):
         self.prpt = prpt
 
     @staticmethod
-    def from_args(args: Commands) -> "Runner":
+    def from_args(args: CommandsBase) -> "Runner":
         pipeline = args.get_pipeline()
         if args.interactive:
             return RunnerInteractive(pipeline, ps1=args.ps1, prpt=TokenInteractive)

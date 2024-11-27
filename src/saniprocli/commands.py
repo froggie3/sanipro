@@ -15,7 +15,7 @@ logger_root = logging.getLogger()
 logger = logging.getLogger(__name__)
 
 
-class Commands(HasPrettyRepr):
+class CommandsBase(HasPrettyRepr):
     input_delimiter = ","
     interactive = False
     output_delimiter = ", "
@@ -114,7 +114,7 @@ class Commands(HasPrettyRepr):
     def append_subparser(cls, parser: argparse.ArgumentParser): ...
 
     @classmethod
-    def from_sys_argv(cls, arg_val: Sequence) -> "Commands":
+    def from_sys_argv(cls, arg_val: Sequence) -> "CommandsBase":
         parser = cls.prepare_parser()
         args = parser.parse_args(arg_val, namespace=cls())
 

@@ -1,4 +1,3 @@
-import argparse
 import logging
 from itertools import chain
 
