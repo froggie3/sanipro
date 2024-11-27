@@ -202,17 +202,16 @@ class Commands(HasPrettyRepr):
         return delim.create_pipeline(common.PromptPipelineV2)
 
     def get_pipeline(self) -> common.PromptPipeline:
-
         command_ids = [cmd.command_id for cmd in self.command_classes]
         command_funcs = (
+            lambda: ExcludeCommand(self.exclude),
+            lambda: MaskCommand(self.mask, self.replace_to),
             lambda: RandomCommand(self.seed),
             lambda: ResetCommand(self.value),
+            lambda: SimilarCommand.create_from_cmd(cmd=self, reverse=self.reverse),
             lambda: SortAllCommand.create_from_cmd(cmd=self, reverse=self.reverse),
             lambda: SortCommand(self.reverse),
-            lambda: SimilarCommand.create_from_cmd(cmd=self, reverse=self.reverse),
             lambda: UniqueCommand(self.reverse),
-            lambda: MaskCommand(self.mask, self.replace_to),
-            lambda: ExcludeCommand(self.exclude),
         )
         command_map = dict(zip(command_ids, command_funcs))
 
