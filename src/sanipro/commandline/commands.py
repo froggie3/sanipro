@@ -4,9 +4,7 @@ import pprint
 from collections.abc import Sequence
 
 from sanipro import common
-from sanipro.filters import sort_all
 from sanipro.filters.exclude import ExcludeCommand
-from sanipro.filters.filter import Filter
 from sanipro.filters.fuzzysort import SimilarCommand
 from sanipro.filters.mask import MaskCommand
 from sanipro.filters.random import RandomCommand
@@ -44,7 +42,7 @@ class Commands(HasPrettyRepr):
     ps1 = f"\001{color.default}\002>>>\001{color.RESET}\002 "
 
     replace_to = ""
-    filter = None
+    filter: str | None = None
     use_parser_v2 = False
     verbose: int | None = None
 
@@ -60,6 +58,18 @@ class Commands(HasPrettyRepr):
 
     kruskal = None
     prim = None
+
+    command_classes = (
+        ExcludeCommand,
+        MaskCommand,
+        RandomCommand,
+        ResetCommand,
+        RoundUpCommand,
+        SimilarCommand,
+        SortAllCommand,
+        SortCommand,
+        UniqueCommand,
+    )
 
     def get_logger_level(self) -> int:
         if self.verbose is None:
@@ -176,13 +186,8 @@ class Commands(HasPrettyRepr):
             metavar="FILTER",
         )
 
-        MaskCommand.inject_subparser(subparser)
-        RandomCommand.inject_subparser(subparser)
-        ResetCommand.inject_subparser(subparser)
-        SimilarCommand.inject_subparser(subparser)
-        SortAllCommand.inject_subparser(subparser)
-        SortCommand.inject_subparser(subparser)
-        UniqueCommand.inject_subparser(subparser)
+        for cmd in cls.command_classes:
+            cmd.inject_subparser(subparser)
 
         return parser
 
@@ -197,44 +202,36 @@ class Commands(HasPrettyRepr):
         return delim.create_pipeline(common.PromptPipelineV2)
 
     def get_pipeline(self) -> common.PromptPipeline:
-        if self.use_parser_v2 and self.filter in Filter.list_commands():
-            raise NotImplementedError(
-                f"the '{self.filter}' command is not available " "when using parse_v2."
-            )
+
+        command_ids = [cmd.command_id for cmd in self.command_classes]
+        command_funcs = (
+            lambda: RandomCommand(self.seed),
+            lambda: ResetCommand(self.value),
+            lambda: SortAllCommand.create_from_cmd(cmd=self, reverse=self.reverse),
+            lambda: SortCommand(self.reverse),
+            lambda: SimilarCommand.create_from_cmd(cmd=self, reverse=self.reverse),
+            lambda: UniqueCommand(self.reverse),
+            lambda: MaskCommand(self.mask, self.replace_to),
+            lambda: ExcludeCommand(self.exclude),
+        )
+        command_map = dict(zip(command_ids, command_funcs))
 
         if self.use_parser_v2:
+            if self.filter in command_ids:
+                raise NotImplementedError(
+                    f"the '{self.filter}' command is not available "
+                    "when using parse_v2."
+                )
+
             logger.warning("using parser_v2.")
 
         pipeline = self.get_pipeline_from(self.use_parser_v2)
         # always round
         pipeline.append_command(RoundUpCommand(self.roundup))
 
-        if self.filter == Filter.RANDOM:
-            pipeline.append_command(RandomCommand(self.seed))
-
-        if self.filter == Filter.RESET:
-            pipeline.append_command(ResetCommand(self.value))
-
-        if self.filter == Filter.SORT_ALL:
-            sorted_partial = sort_all.apply_from(method=self.sort_all_method)
-            pipeline.append_command(SortAllCommand(sorted_partial, self.reverse))
-
-        if self.filter == Filter.SORT:
-            pipeline.append_command(SortCommand(self.reverse))
-
-        if self.filter == Filter.SIMILAR:
-            inst = SimilarCommand.get_instance(self)
-
-            pipeline.append_command(SimilarCommand(inst, reverse=self.reverse))
-
-        if self.filter == Filter.UNIQUE:
-            pipeline.append_command(UniqueCommand(self.reverse))
-
-        if self.filter == Filter.MASK:
-            pipeline.append_command(MaskCommand(self.mask, self.replace_to))
-
-        if self.exclude:
-            pipeline.append_command(ExcludeCommand(self.exclude))
+        if self.filter is not None:
+            lambd = command_map[self.filter]
+            pipeline.append_command(lambd())
 
         return pipeline
 

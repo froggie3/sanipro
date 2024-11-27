@@ -6,12 +6,13 @@ from sanipro.abc import MutablePrompt, Prompt
 from sanipro.commandline.help_formatter import SaniproHelpFormatter
 
 from .abc import Command
-from .filter import Filter
 
 logger = logging.getLogger(__name__)
 
 
 class MaskCommand(Command):
+    command_id: str = "mask"
+
     def __init__(self, excludes: Sequence[str], replace_to: str):
         self.excludes = excludes
         self.replace_to = replace_to
@@ -32,10 +33,10 @@ class MaskCommand(Command):
             for token in prompt
         ]
 
-    @staticmethod
-    def inject_subparser(subparser: argparse._SubParsersAction):
+    @classmethod
+    def inject_subparser(cls, subparser: argparse._SubParsersAction):
         subcommand = subparser.add_parser(
-            Filter.MASK,
+            cls.command_id,
             help="Mask tokens with words.",
             description="Mask words specified with another word (optional).",
             formatter_class=SaniproHelpFormatter,

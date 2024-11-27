@@ -2,12 +2,9 @@ import logging
 import re
 import typing
 
-from .abc import ParserInterface, TokenInterface
+from sanipro.compatible import Self
 
-try:
-    from typing import Self
-except ImportError:
-    from typing_extensions import Self
+from .abc import ParserInterface, TokenInterface
 
 logger = logging.getLogger(__name__)
 

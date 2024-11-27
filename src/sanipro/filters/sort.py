@@ -7,12 +7,13 @@ from sanipro.commandline.help_formatter import SaniproHelpFormatter
 from sanipro.filters.utils import collect_same_tokens_sorted
 
 from .abc import Command
-from .filter import Filter
 
 logger = logging.getLogger(__name__)
 
 
 class SortCommand(Command):
+    command_id: str = "sort"
+
     def __init__(self, reverse: bool = False):
         self.reverse = reverse
 
@@ -30,10 +31,10 @@ class SortCommand(Command):
         """
         return list(chain(*collect_same_tokens_sorted(prompt, self.reverse)))
 
-    @staticmethod
-    def inject_subparser(subparser: argparse._SubParsersAction):
+    @classmethod
+    def inject_subparser(cls, subparser: argparse._SubParsersAction):
         subcommand = subparser.add_parser(
-            Filter.SORT,
+            cls.command_id,
             formatter_class=SaniproHelpFormatter,
             help="Reorders duplicate tokens.",
             description="Reorders duplicate tokens.",

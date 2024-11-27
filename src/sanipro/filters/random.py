@@ -7,12 +7,13 @@ from sanipro.abc import MutablePrompt, Prompt
 from sanipro.commandline.help_formatter import SaniproHelpFormatter
 
 from .abc import Command
-from .filter import Filter
 
 logger = logging.getLogger(__name__)
 
 
 class RandomCommand(Command):
+    command_id: str = "random"
+
     def __init__(self, seed: int | None = None):
         self.seed = seed
 
@@ -27,10 +28,10 @@ class RandomCommand(Command):
         random.shuffle(prompt)
         return prompt
 
-    @staticmethod
-    def inject_subparser(subparser: argparse._SubParsersAction):
+    @classmethod
+    def inject_subparser(cls, subparser: argparse._SubParsersAction):
         subcommand = subparser.add_parser(
-            Filter.RANDOM,
+            cls.command_id,
             formatter_class=SaniproHelpFormatter,
             help="Shuffles all the prompts altogether.",
             description="Shuffles all the prompts altogether.",

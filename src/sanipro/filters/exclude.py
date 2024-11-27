@@ -10,6 +10,8 @@ logger = logging.getLogger(__name__)
 
 
 class ExcludeCommand(Command):
+    command_id: str = "exclude"
+
     def __init__(self, excludes: Sequence[str]):
         self.excludes = excludes
 
@@ -22,6 +24,6 @@ class ExcludeCommand(Command):
         """
         return [token for token in prompt if token.name not in self.excludes]
 
-    @staticmethod
-    def inject_subparser(subparser: argparse._SubParsersAction):
+    @classmethod
+    def inject_subparser(cls, subparser: argparse._SubParsersAction):
         pass

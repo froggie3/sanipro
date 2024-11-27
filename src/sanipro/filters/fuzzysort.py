@@ -13,7 +13,6 @@ from sanipro.commandline.help_formatter import SaniproHelpFormatter
 from sanipro.utils import CommandModuleMap, KeyVal, ModuleMatcher
 
 from .abc import Command, MSTBuilder, ReordererStrategy, SimilarityStrategy
-from .filter import Filter
 
 logger = logging.getLogger(__name__)
 
@@ -191,6 +190,8 @@ def apply_from(*, method: str | None = None) -> type[MSTReorderer]:
 
 
 class SimilarCommand(Command):
+    command_id: str = "similar"
+
     def __init__(self, reorderer: ReordererStrategy, *, reverse=False):
         self.reorderer = reorderer
         self.reverse = reverse
@@ -201,10 +202,10 @@ class SimilarCommand(Command):
             sorted_words_seq if not self.reverse else list(reversed(sorted_words_seq))
         )
 
-    @staticmethod
-    def inject_subparser(subparser: argparse._SubParsersAction):
+    @classmethod
+    def inject_subparser(cls, subparser: argparse._SubParsersAction):
         subparser_similar = subparser.add_parser(
-            Filter.SIMILAR,
+            cls.command_id,
             formatter_class=SaniproHelpFormatter,
             help="Reorders tokens with their similarity.",
             description="Reorders tokens with their similarity.",
@@ -219,7 +220,7 @@ class SimilarCommand(Command):
         )
 
         subcommand = subparser_similar.add_subparsers(
-            title=Filter.SIMILAR,
+            title=cls.command_id,
             help="With what method is used to reorder the tokens.",
             description="Reorders tokens with their similarity.",
             dest="similar_method",
@@ -265,7 +266,7 @@ class SimilarCommand(Command):
         )
 
     @staticmethod
-    def get_instance(cmd: "commands.Commands") -> ReordererStrategy:
+    def get_reorderer(cmd: "commands.Commands") -> ReordererStrategy:
         """Instanciate one reorder function from the parsed result."""
 
         def get_class(cmd: "commands.Commands"):
@@ -289,3 +290,10 @@ class SimilarCommand(Command):
             raise KeyError
 
         return cls(strategy=SequenceMatcherSimilarity())
+
+    @classmethod
+    def create_from_cmd(
+        cls, cmd: "commands.Commands", *, reverse=False
+    ) -> "SimilarCommand":
+        """Alternative method."""
+        return cls(reorderer=cls.get_reorderer(cmd), reverse=reverse)

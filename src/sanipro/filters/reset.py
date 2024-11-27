@@ -5,12 +5,12 @@ from sanipro.abc import MutablePrompt, Prompt
 from sanipro.commandline.help_formatter import SaniproHelpFormatter
 
 from .abc import Command
-from .filter import Filter
 
 logger = logging.getLogger(__name__)
 
 
 class ResetCommand(Command):
+    command_id: str = "reset"
     new_value: float
 
     def __init__(self, new_value: float | None = None) -> None:
@@ -23,10 +23,10 @@ class ResetCommand(Command):
     def execute(self, prompt: Prompt) -> MutablePrompt:
         return [token.replace(new_weight=self.new_value) for token in prompt]
 
-    @staticmethod
-    def inject_subparser(subparser: argparse._SubParsersAction):
+    @classmethod
+    def inject_subparser(cls, subparser: argparse._SubParsersAction):
         subcommand = subparser.add_parser(
-            Filter.RESET,
+            cls.command_id,
             formatter_class=SaniproHelpFormatter,
             help="Initializes all the weight of the tokens.",
             description="Initializes all the weight of the tokens.",

@@ -6,12 +6,13 @@ from sanipro.commandline.help_formatter import SaniproHelpFormatter
 from sanipro.filters.utils import collect_same_tokens_sorted
 
 from .abc import Command
-from .filter import Filter
 
 logger = logging.getLogger(__name__)
 
 
 class UniqueCommand(Command):
+    command_id: str = "unique"
+
     def __init__(self, reverse: bool = False):
         self.reverse = reverse
 
@@ -29,10 +30,10 @@ class UniqueCommand(Command):
         """
         return [vals[0] for vals in collect_same_tokens_sorted(prompt, self.reverse)]
 
-    @staticmethod
-    def inject_subparser(subparser: argparse._SubParsersAction):
+    @classmethod
+    def inject_subparser(cls, subparser: argparse._SubParsersAction):
         subparser_unique = subparser.add_parser(
-            Filter.UNIQUE,
+            cls.command_id,
             formatter_class=SaniproHelpFormatter,
             help="Removes duplicated tokens, and uniquify them.",
             description="Removes duplicated tokens, and uniquify them.",
