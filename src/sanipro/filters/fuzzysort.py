@@ -1,4 +1,3 @@
-import argparse
 import itertools
 import logging
 import random
@@ -8,9 +7,6 @@ import networkx as nx
 from networkx import traversal
 
 from sanipro.abc import MutablePrompt, Prompt, TokenInterface
-from sanipro.commandline import commands
-from sanipro.commandline.help_formatter import SaniproHelpFormatter
-from sanipro.utils import CommandModuleMap, KeyVal, ModuleMatcher
 
 from .abc import Command, MSTBuilder, ReordererStrategy, SimilarityStrategy
 
@@ -118,9 +114,6 @@ class KruskalMSTBuilder(MSTBuilder):
         return nx.minimum_spanning_tree(graph)
 
 
-import itertools
-
-
 class MSTReorderer(ReordererStrategy):
     """最小全域木による並べ替え戦略"""
 
@@ -163,32 +156,6 @@ class PrimMSTReorderer(MSTReorderer):
         self.mst_builder = PrimMSTBuilder()
 
 
-class Available(CommandModuleMap):
-    NAIVE = KeyVal("naive", NaiveReorderer)
-    GREEDY = KeyVal("greedy", GreedyReorderer)
-    KRUSKAL = KeyVal("kruskal", KruskalMSTReorderer)
-    PRIM = KeyVal("prim", PrimMSTReorderer)
-
-
-def apply_from(*, method: str | None = None) -> type[MSTReorderer]:
-    """
-    method を具体的なクラスの名前にマッチングさせる。
-
-    Argument:
-        method: コマンドラインで指定された方法.
-    """
-    # set default
-    default = Available.GREEDY.key
-    if method is None:
-        method = default
-
-    mapper = ModuleMatcher(Available)
-    try:
-        return mapper.match(method)
-    except KeyError:
-        raise ValueError("method name is not found.")
-
-
 class SimilarCommand(Command):
     command_id: str = "similar"
 
@@ -201,99 +168,3 @@ class SimilarCommand(Command):
         return (
             sorted_words_seq if not self.reverse else list(reversed(sorted_words_seq))
         )
-
-    @classmethod
-    def inject_subparser(cls, subparser: argparse._SubParsersAction):
-        subparser_similar = subparser.add_parser(
-            cls.command_id,
-            formatter_class=SaniproHelpFormatter,
-            help="Reorders tokens with their similarity.",
-            description="Reorders tokens with their similarity.",
-        )
-
-        subparser_similar.add_argument(
-            "-r",
-            "--reverse",
-            default=False,
-            action="store_true",
-            help="With reversed order.",
-        )
-
-        subcommand = subparser_similar.add_subparsers(
-            title=cls.command_id,
-            help="With what method is used to reorder the tokens.",
-            description="Reorders tokens with their similarity.",
-            dest="similar_method",
-            metavar="METHOD",
-        )
-
-        subcommand.add_parser(
-            Available.NAIVE.key,
-            formatter_class=SaniproHelpFormatter,
-            help=(
-                "Calculates all permutations of a sequence of tokens. "
-                "Not practical at all."
-            ),
-        )
-
-        subcommand.add_parser(
-            Available.GREEDY.key,
-            formatter_class=SaniproHelpFormatter,
-            help=(
-                "Uses a greedy approach that always chooses the next element "
-                "with the highest similarity."
-            ),
-        )
-
-        mst_parser = subcommand.add_parser(
-            "mst",
-            formatter_class=SaniproHelpFormatter,
-            help=("Construct a complete graph with tokens as vertices."),
-            description=(
-                "Construct a complete graph with tokens as vertices "
-                "and similarities as edge weights."
-            ),
-        )
-
-        mst_group = mst_parser.add_mutually_exclusive_group()
-
-        mst_group.add_argument(
-            "-k", "--kruskal", action="store_true", help=("Uses Kruskal's algorithm.")
-        )
-
-        mst_group.add_argument(
-            "-p", "--prim", action="store_true", help=("Uses Prim's algorithm.")
-        )
-
-    @staticmethod
-    def get_reorderer(cmd: "commands.Commands") -> ReordererStrategy:
-        """Instanciate one reorder function from the parsed result."""
-
-        def get_class(cmd: "commands.Commands"):
-            query = cmd.similar_method
-            if query != "mst":
-                return apply_from(method=query)
-
-            adapters = [[cmd.kruskal, Available.KRUSKAL], [cmd.prim, Available.PRIM]]
-            for _flag, _cls in adapters:
-                if _flag:
-                    # when --kruskal or --prim flag is specified
-                    return _cls.val
-
-            _, fallback_cls = adapters[0]
-            return fallback_cls.val
-
-        cls = get_class(cmd)
-        logger.debug(f"selected module: {cls.__name__}")
-
-        if cls is None:
-            raise KeyError
-
-        return cls(strategy=SequenceMatcherSimilarity())
-
-    @classmethod
-    def create_from_cmd(
-        cls, cmd: "commands.Commands", *, reverse=False
-    ) -> "SimilarCommand":
-        """Alternative method."""
-        return cls(reorderer=cls.get_reorderer(cmd), reverse=reverse)

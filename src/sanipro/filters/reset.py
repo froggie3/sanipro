@@ -1,8 +1,6 @@
-import argparse
 import logging
 
 from sanipro.abc import MutablePrompt, Prompt
-from sanipro.commandline.help_formatter import SaniproHelpFormatter
 
 from .abc import Command
 
@@ -22,20 +20,3 @@ class ResetCommand(Command):
 
     def execute(self, prompt: Prompt) -> MutablePrompt:
         return [token.replace(new_weight=self.new_value) for token in prompt]
-
-    @classmethod
-    def inject_subparser(cls, subparser: argparse._SubParsersAction):
-        subcommand = subparser.add_parser(
-            cls.command_id,
-            formatter_class=SaniproHelpFormatter,
-            help="Initializes all the weight of the tokens.",
-            description="Initializes all the weight of the tokens.",
-        )
-
-        subcommand.add_argument(
-            "-v",
-            "--value",
-            default=1.0,
-            type=float,
-            help="Fixes the weight to this value.",
-        )

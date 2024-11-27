@@ -1,9 +1,10 @@
 import logging
 import sys
 
-from .commandline import cli_hooks
-from .commandline.cli_runner import Runner
-from .commandline.commands import Commands
+from saniprocli.cli_demo import DemoCommands
+from saniprocli.cli_runner import Runner
+
+from . import cli_hooks
 
 logger_root = logging.getLogger()
 logger = logging.getLogger(__name__)
@@ -11,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 def app():
     try:
-        args = Commands.from_sys_argv(sys.argv[1:])
+        args = DemoCommands.from_sys_argv(sys.argv[1:])
         cli_hooks.execute(cli_hooks.init)
 
         log_level = args.get_logger_level()

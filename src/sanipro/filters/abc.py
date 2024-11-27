@@ -15,10 +15,6 @@ class Command(ABC):
     @abstractmethod
     def execute(self, prompt: Prompt) -> MutablePrompt: ...
 
-    @classmethod
-    @abstractmethod
-    def inject_subparser(cls, subparser: argparse._SubParsersAction): ...
-
 
 class SimilarityStrategy(ABC):
     """類似度計算の戦略インターフェース"""

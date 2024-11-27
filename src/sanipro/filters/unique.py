@@ -2,7 +2,6 @@ import argparse
 import logging
 
 from sanipro.abc import MutablePrompt, Prompt
-from sanipro.commandline.help_formatter import SaniproHelpFormatter
 from sanipro.filters.utils import collect_same_tokens_sorted
 
 from .abc import Command
@@ -29,20 +28,3 @@ class UniqueCommand(Command):
         [('white hair', 1.2)]
         """
         return [vals[0] for vals in collect_same_tokens_sorted(prompt, self.reverse)]
-
-    @classmethod
-    def inject_subparser(cls, subparser: argparse._SubParsersAction):
-        subparser_unique = subparser.add_parser(
-            cls.command_id,
-            formatter_class=SaniproHelpFormatter,
-            help="Removes duplicated tokens, and uniquify them.",
-            description="Removes duplicated tokens, and uniquify them.",
-            epilog="",
-        )
-
-        subparser_unique.add_argument(
-            "-r",
-            "--reverse",
-            action="store_true",
-            help="Make the token with the heaviest weight survived.",
-        )

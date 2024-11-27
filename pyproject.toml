@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Sanitizes prompts."
 authors = ["Yokkin"]
 readme = "README.md"
-package-mode = false
+package-mode = true
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -12,7 +12,7 @@ typing-extensions = "^4.12.2"
 networkx = "^3.4.2"
 
 [tool.poetry.scripts]
-sanipro = "sanipro.cli:app"
+sanipro = "saniprocli.cli:app"
 
 [build-system]
 requires = ["poetry-core"]

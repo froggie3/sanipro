@@ -1,10 +1,8 @@
-import argparse
 import logging
 import random
 import typing
 
 from sanipro.abc import MutablePrompt, Prompt
-from sanipro.commandline.help_formatter import SaniproHelpFormatter
 
 from .abc import Command
 
@@ -27,20 +25,3 @@ class RandomCommand(Command):
 
         random.shuffle(prompt)
         return prompt
-
-    @classmethod
-    def inject_subparser(cls, subparser: argparse._SubParsersAction):
-        subcommand = subparser.add_parser(
-            cls.command_id,
-            formatter_class=SaniproHelpFormatter,
-            help="Shuffles all the prompts altogether.",
-            description="Shuffles all the prompts altogether.",
-        )
-
-        subcommand.add_argument(
-            "-b",
-            "--seed",
-            default=None,
-            type=int,
-            help="Fixed randomness to this value.",
-        )

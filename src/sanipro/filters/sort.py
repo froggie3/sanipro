@@ -3,7 +3,6 @@ import logging
 from itertools import chain
 
 from sanipro.abc import MutablePrompt, Prompt
-from sanipro.commandline.help_formatter import SaniproHelpFormatter
 from sanipro.filters.utils import collect_same_tokens_sorted
 
 from .abc import Command
@@ -30,17 +29,3 @@ class SortCommand(Command):
         [('white hair', 1.2), ('white hair', 1.0)]
         """
         return list(chain(*collect_same_tokens_sorted(prompt, self.reverse)))
-
-    @classmethod
-    def inject_subparser(cls, subparser: argparse._SubParsersAction):
-        subcommand = subparser.add_parser(
-            cls.command_id,
-            formatter_class=SaniproHelpFormatter,
-            help="Reorders duplicate tokens.",
-            description="Reorders duplicate tokens.",
-            epilog="This command reorders tokens with their weights by default.",
-        )
-
-        subcommand.add_argument(
-            "-r", "--reverse", action="store_true", help="With reversed order."
-        )

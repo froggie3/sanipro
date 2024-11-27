@@ -1,4 +1,3 @@
-import argparse
 import logging
 from collections.abc import Sequence
 
@@ -23,7 +22,3 @@ class ExcludeCommand(Command):
         ['thighhighs']
         """
         return [token for token in prompt if token.name not in self.excludes]
-
-    @classmethod
-    def inject_subparser(cls, subparser: argparse._SubParsersAction):
-        pass

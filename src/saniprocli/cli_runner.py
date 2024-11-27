@@ -7,11 +7,11 @@ from code import InteractiveConsole, InteractiveInterpreter
 from collections.abc import MutableSequence
 
 from sanipro.abc import RunnerInterface, TokenInterface
-from sanipro.commandline import cli_hooks
 from sanipro.common import MutablePrompt, PromptPipeline
 from sanipro.filters.utils import collect_same_tokens
 from sanipro.parser import TokenInteractive, TokenNonInteractive
 from sanipro.utils import HasPrettyRepr
+from saniprocli import cli_hooks
 
 from .commands import Commands
 from .utils import get_debug_fp

@@ -1,9 +1,7 @@
-import argparse
 import logging
 from collections.abc import Sequence
 
 from sanipro.abc import MutablePrompt, Prompt
-from sanipro.commandline.help_formatter import SaniproHelpFormatter
 
 from .abc import Command
 
@@ -32,28 +30,3 @@ class MaskCommand(Command):
             )
             for token in prompt
         ]
-
-    @classmethod
-    def inject_subparser(cls, subparser: argparse._SubParsersAction):
-        subcommand = subparser.add_parser(
-            cls.command_id,
-            help="Mask tokens with words.",
-            description="Mask words specified with another word (optional).",
-            formatter_class=SaniproHelpFormatter,
-            epilog=(
-                (
-                    "Note that you can still use the global `--exclude` option"
-                    "as well as this filter."
-                )
-            ),
-        )
-
-        subcommand.add_argument("mask", nargs="*", type=str, help="Masks this word.")
-
-        subcommand.add_argument(
-            "-t",
-            "--replace-to",
-            type=str,
-            default=r"%%%",
-            help="The new character or string replaced to.",
-        )

@@ -1,4 +1,3 @@
-import argparse
 import logging
 
 from sanipro import utils
@@ -17,6 +16,3 @@ class RoundUpCommand(Command):
 
     def execute(self, prompt: Prompt) -> MutablePrompt:
         return [utils.round_token_weight(token, self.digits) for token in prompt]
-
-    @classmethod
-    def inject_subparser(cls, subparser: argparse._SubParsersAction): ...

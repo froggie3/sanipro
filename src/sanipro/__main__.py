@@ -1,4 +1,4 @@
 if __name__ == "__main__":
-    from .cli import app
+    from ..saniprocli.cli import app
 
     app()
