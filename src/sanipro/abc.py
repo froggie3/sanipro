@@ -43,6 +43,7 @@ class TokenInterface(ABC):
 
 class ParserInterface(ABC):
     @classmethod
+    @abstractmethod
     def get_token(
         cls,
         token_cls: type[TokenInterface],
@@ -52,12 +53,12 @@ class ParserInterface(ABC):
 
 
 class PromptPipelineInterface(ABC):
+    @abstractmethod
     def __str__(self) -> str: ...
 
 
 class RunnerInterface(ABC):
-    def _run_once(self) -> None: ...
-
+    @abstractmethod
     def run(self): ...
 
 
