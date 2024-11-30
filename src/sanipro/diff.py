@@ -1,10 +1,12 @@
+from collections.abc import Set
+
 from sanipro.common import MutablePrompt
 from sanipro.filters.utils import collect_same_tokens
-from collections.abc import Set
 
 
 class PromptDifferenceDetector:
     """Detects the difference between the two prompts."""
+
     before_num: int
     after_num: int
     reduced_num: int

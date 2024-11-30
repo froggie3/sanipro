@@ -3,6 +3,8 @@ import typing
 from abc import ABC, abstractmethod
 from collections.abc import MutableSequence, Sequence
 
+from sanipro.common import Delimiter
+
 logger = logging.getLogger(__name__)
 
 
@@ -54,12 +56,12 @@ class ParserInterface(ABC):
 
 class PromptPipelineInterface(ABC):
     @abstractmethod
-    def __str__(self) -> str: ...
+    def __init__(
+        self, psr: type[ParserInterface], delimiter: Delimiter | None = None
+    ): ...
 
-
-class RunnerInterface(ABC):
     @abstractmethod
-    def run(self): ...
+    def __str__(self) -> str: ...
 
 
 Prompt = Sequence[TokenInterface]
