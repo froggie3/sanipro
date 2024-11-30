@@ -1,19 +1,36 @@
+import sanipro.delimiter
+from sanipro import parser
+from sanipro.delimiter import Delimiter
 from sanipro.filters.unique import UniqueCommand
-
-from . import common, parser
+from sanipro.pipeline import PromptPipeline, PromptPipelineV1, PromptPipelineV2
 
 Token = parser.TokenInteractive
 
 
-def _create_pipeline_helper(separator: str) -> common.PromptPipeline:
+def create_pipeline(delimiter: Delimiter, cls: type[PromptPipeline]) -> PromptPipeline:
+    """Creates pipeline."""
+    pipe = None
+    if cls is PromptPipelineV1:
+        pipe = cls(parser.ParserV1, delimiter)
+    elif cls is PromptPipelineV2:
+        pipe = cls(parser.ParserV2, delimiter)
+    if pipe is not None:
+        return pipe
+
+    raise ValueError(
+        f"failed to match the {cls.__name__} class with any of {PromptPipeline.__name__}"
+    )
+
+
+def _create_pipeline_helper(separator: str) -> PromptPipeline:
     """Helper function to create the pipeline."""
-    delimiter = common.Delimiter(",", separator)
-    pipeline = delimiter.create_pipeline(common.PromptPipelineV1)
+    delimiter = sanipro.delimiter.Delimiter(",", separator)
+    pipeline = create_pipeline(delimiter, PromptPipelineV1)
 
     return pipeline
 
 
-def parse(prompt: str, separator=", ") -> common.PromptPipeline:
+def parse(prompt: str, separator=", ") -> PromptPipeline:
     pipeline = _create_pipeline_helper(separator)
     pipeline.parse(prompt, Token)
 

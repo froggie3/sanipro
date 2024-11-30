@@ -3,8 +3,7 @@ import random
 import typing
 
 from sanipro.abc import MutablePrompt, Prompt
-
-from .abc import Command
+from sanipro.filters.abc import Command
 
 logger = logging.getLogger(__name__)
 

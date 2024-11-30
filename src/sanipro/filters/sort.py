@@ -2,9 +2,8 @@ import logging
 from itertools import chain
 
 from sanipro.abc import MutablePrompt, Prompt
+from sanipro.filters.abc import Command
 from sanipro.filters.utils import collect_same_tokens_sorted
-
-from .abc import Command
 
 logger = logging.getLogger(__name__)
 

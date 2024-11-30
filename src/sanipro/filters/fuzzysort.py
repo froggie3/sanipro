@@ -5,10 +5,13 @@ from difflib import SequenceMatcher
 
 import networkx as nx
 from networkx import traversal
-
 from sanipro.abc import MutablePrompt, Prompt, TokenInterface
-
-from .abc import Command, MSTBuilder, ReordererStrategy, SimilarityStrategy
+from sanipro.filters.abc import (
+    Command,
+    MSTBuilder,
+    ReordererStrategy,
+    SimilarityStrategy,
+)
 
 logger = logging.getLogger(__name__)
 

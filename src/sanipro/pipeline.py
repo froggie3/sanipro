@@ -3,31 +3,12 @@ import logging
 import typing
 from collections.abc import Sequence
 
+from sanipro import parser
+from sanipro.abc import MutablePrompt, Prompt, PromptPipelineInterface, TokenInterface
+from sanipro.delimiter import Delimiter
 from sanipro.filters.abc import Command
 
-from . import parser
-from .abc import MutablePrompt, Prompt, PromptPipelineInterface, TokenInterface
-
 logger = logging.getLogger(__name__)
-
-
-class Delimiter(typing.NamedTuple):
-    sep_input: str
-    sep_output: str
-
-    def create_pipeline(self, cls: type["PromptPipeline"]) -> "PromptPipeline":
-        """Creates pipeline from Delimiter object"""
-        pipeline = None
-        if cls is PromptPipelineV1:
-            pipeline = cls(parser.ParserV1, self)
-        elif cls is PromptPipelineV2:
-            pipeline = cls(parser.ParserV2, self)
-        if pipeline is not None:
-            return pipeline
-
-        raise ValueError(
-            f"failed to match the {cls.__name__} class with any of {PromptPipeline.__name__}"
-        )
 
 
 class PromptPipeline(PromptPipelineInterface):

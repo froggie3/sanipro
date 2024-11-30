@@ -2,9 +2,8 @@ import logging
 import re
 import typing
 
+from sanipro.abc import ParserInterface, TokenInterface
 from sanipro.compatible import Self
-
-from .abc import ParserInterface, TokenInterface
 
 logger = logging.getLogger(__name__)
 

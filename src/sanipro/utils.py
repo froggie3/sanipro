@@ -1,6 +1,6 @@
 import logging
 
-from .abc import TokenInterface
+from sanipro.abc import TokenInterface
 
 logger = logging.getLogger(__name__)
 

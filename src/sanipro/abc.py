@@ -3,7 +3,8 @@ import typing
 from abc import ABC, abstractmethod
 from collections.abc import MutableSequence, Sequence
 
-from sanipro.common import Delimiter
+from sanipro.compatible import Self
+from sanipro.delimiter import Delimiter
 
 logger = logging.getLogger(__name__)
 
@@ -15,32 +16,26 @@ class TokenInterface(ABC):
 
     @property
     @abstractmethod
-    def name(self) -> str:
-        pass
+    def name(self) -> str: ...
 
     @property
     @abstractmethod
-    def weight(self) -> float:
-        pass
+    def weight(self) -> float: ...
 
     @property
     @abstractmethod
-    def length(self) -> int:
-        pass
+    def length(self) -> int: ...
 
     @abstractmethod
     def replace(
         self, *, new_name: str | None = None, new_weight: float | None = None
-    ) -> "TokenInterface":
-        pass
+    ) -> Self: ...
 
     @abstractmethod
-    def __repr__(self) -> str:
-        pass
+    def __repr__(self) -> str: ...
 
     @abstractmethod
-    def __str__(self) -> str:
-        pass
+    def __str__(self) -> str: ...
 
 
 class ParserInterface(ABC):
