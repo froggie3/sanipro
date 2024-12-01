@@ -8,8 +8,6 @@ logger = logging.getLogger(__name__)
 
 
 class UniqueCommand(Command):
-    command_id: str = "unique"
-
     def __init__(self, reverse: bool = False):
         self.reverse = reverse
 

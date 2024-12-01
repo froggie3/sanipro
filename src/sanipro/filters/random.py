@@ -9,8 +9,6 @@ logger = logging.getLogger(__name__)
 
 
 class RandomCommand(Command):
-    command_id: str = "random"
-
     def __init__(self, seed: int | None = None):
         self.seed = seed
 

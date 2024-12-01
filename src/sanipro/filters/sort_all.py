@@ -8,8 +8,6 @@ logger = logging.getLogger(__name__)
 
 
 class SortAllCommand(Command):
-    command_id: str = "sort-all"
-
     def __init__(self, sorted_partial: partial, reverse: bool = False):
         self.sorted_partial = sorted_partial
         self.reverse = reverse

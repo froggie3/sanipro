@@ -8,8 +8,6 @@ logger = logging.getLogger(__name__)
 
 
 class MaskCommand(Command):
-    command_id: str = "mask"
-
     def __init__(self, excludes: Sequence[str], replace_to: str):
         self.excludes = excludes
         self.replace_to = replace_to

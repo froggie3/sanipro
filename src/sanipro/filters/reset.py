@@ -7,7 +7,6 @@ logger = logging.getLogger(__name__)
 
 
 class ResetCommand(Command):
-    command_id: str = "reset"
     new_value: float
 
     def __init__(self, new_value: float | None = None) -> None:

@@ -8,8 +8,6 @@ logger = logging.getLogger(__name__)
 
 
 class ExcludeCommand(Command):
-    command_id: str = "exclude"
-
     def __init__(self, excludes: Sequence[str]):
         self.excludes = excludes
 

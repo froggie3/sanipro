@@ -8,8 +8,6 @@ logger = logging.getLogger(__name__)
 
 
 class RoundUpCommand(Command):
-    command_id: str = "mask"
-
     def __init__(self, digits: int):
         self.digits = digits
 

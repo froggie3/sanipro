@@ -10,7 +10,7 @@ from sanipro.filters.abc import (
     Command,
     MSTBuilder,
     ReordererStrategy,
-    SimilarityStrategy
+    SimilarityStrategy,
 )
 
 logger = logging.getLogger(__name__)
@@ -45,7 +45,7 @@ class NaiveReorderer(ReordererStrategy):
         self.strategy = strategy
 
     def find_optimal_order(self, words: Prompt) -> MutablePrompt:
-        best_order = tuple()
+        best_order: tuple[TokenInterface, ...] = tuple()
         best_score = float("-inf")
 
         # 全順列を試して最もスコアが高い順序を見つける
@@ -160,8 +160,6 @@ class PrimMSTReorderer(MSTReorderer):
 
 
 class SimilarCommand(Command):
-    command_id: str = "similar"
-
     def __init__(self, reorderer: ReordererStrategy, *, reverse=False):
         self.reorderer = reorderer
         self.reverse = reverse

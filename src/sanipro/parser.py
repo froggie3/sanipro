@@ -18,10 +18,11 @@ class Tokens:
 
 
 class Token(TokenInterface):
+    _delimiter: str
+
     def __init__(self, name: str, weight: float) -> None:
         self._name = name
         self._weight = float(weight)
-        self._delimiter = None
 
     @property
     def name(self) -> str:
@@ -281,7 +282,7 @@ class ParserV2(ParserInterface):
         ['.', 1.1]]
         """
 
-        res = []
+        res: list = []
         round_brackets = []
         square_brackets = []
 

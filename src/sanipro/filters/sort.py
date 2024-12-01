@@ -9,8 +9,6 @@ logger = logging.getLogger(__name__)
 
 
 class SortCommand(Command):
-    command_id: str = "sort"
-
     def __init__(self, reverse: bool = False):
         self.reverse = reverse
 
