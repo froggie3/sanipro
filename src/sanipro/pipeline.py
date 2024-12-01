@@ -4,7 +4,12 @@ import typing
 from collections.abc import Sequence
 
 from sanipro import parser
-from sanipro.abc import MutablePrompt, Prompt, PromptPipelineInterface, TokenInterface
+from sanipro.abc import (
+    MutablePrompt,
+    Prompt,
+    PromptPipelineInterface,
+    TokenInterface
+)
 from sanipro.delimiter import Delimiter
 from sanipro.filters.abc import Command
 

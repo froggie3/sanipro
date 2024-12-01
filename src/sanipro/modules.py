@@ -6,6 +6,11 @@ from sanipro.pipeline import PromptPipeline, PromptPipelineV1, PromptPipelineV2
 
 Token = parser.TokenInteractive
 
+"""
+this module offers several interfaces intended for this module to be used as a library,
+currently work in progress
+"""
+
 
 def create_pipeline(delimiter: Delimiter, cls: type[PromptPipeline]) -> PromptPipeline:
     """Creates pipeline."""
@@ -45,10 +50,7 @@ def filter_example(prompt: str, separator=", "):
     return pipeline
 
 
-pipeline = filter_example("aiueo")
-parsed = str(pipeline)
-print(parsed)
-
-
-# this module offers several interfaces intended for this module to be used as a library,
-# currently work in progress
+if __name__ == "__main__":
+    pipeline = filter_example("aiueo")
+    parsed = str(pipeline)
+    print(parsed)

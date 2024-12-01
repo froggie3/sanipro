@@ -10,7 +10,7 @@ from sanipro.filters.abc import (
     Command,
     MSTBuilder,
     ReordererStrategy,
-    SimilarityStrategy,
+    SimilarityStrategy
 )
 
 logger = logging.getLogger(__name__)
