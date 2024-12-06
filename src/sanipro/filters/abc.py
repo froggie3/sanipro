@@ -8,8 +8,6 @@ logger = logging.getLogger(__name__)
 
 
 class Command(ABC):
-    command_id: str
-
     @abstractmethod
     def execute(self, prompt: Prompt) -> MutablePrompt: ...
 
