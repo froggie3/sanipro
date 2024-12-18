@@ -96,6 +96,9 @@ class ParserV1(ParserInterface):
         >>> list(extract_token('\(foo\)'))
         ['\\(foo\\)']
 
+        >>> list(extract_token('\, (foo:1.2)'))
+        ['\\, a:1.2']
+
         >>> list(extract_token('1girl, (brown hair:1.2), school uniform, smile,'))
         ['1girl', 'brown hair:1.2', 'school uniform', 'smile']
         """
@@ -138,10 +141,14 @@ class ParserV1(ParserInterface):
                 if parenthesis:
                     partial.append(sentence[index])
                 else:
+                    if is_escaped:
+                        is_escaped = False
                     element = "".join(partial).strip()
                     partial.clear()
                     product.append(element)
             else:
+                if is_escaped:
+                    is_escaped = False
                 partial.append(sentence[index])
 
             index += 1
