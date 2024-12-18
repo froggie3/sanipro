@@ -12,19 +12,19 @@ logger = logging.getLogger(__name__)
 
 
 class PromptPipeline(PromptPipelineInterface):
-    pre_funcs: list[typing.Callable[..., str]]
-    funcs: list[Command]
-    tokens: MutablePrompt
-    delimiter: Delimiter
+    __pre_funcs: list[typing.Callable[..., str]]
+    __funcs: list[Command]
+    __tokens: MutablePrompt
+    __delimiter: Delimiter
     _parser: type[parser.ParserInterface]
 
     def __init__(
         self, psr: type[parser.ParserInterface], delimiter: Delimiter | None = None
     ) -> None:
-        self.pre_funcs = []
-        self.funcs = []
-        self.tokens = []
-        self.delimiter = Delimiter("", "") if delimiter is None else delimiter
+        self.__pre_funcs = []
+        self.__funcs = []
+        self.__tokens = []
+        self.__delimiter = Delimiter("", "") if delimiter is None else delimiter
         self._parser = psr
 
     def execute(self, prompts: Prompt, funcs: Sequence[Command] | None = None) -> None:
@@ -33,19 +33,19 @@ class PromptPipeline(PromptPipelineInterface):
             funcs = []
         self.append_command(*funcs)
 
-        result = functools.reduce(lambda x, y: y.execute(x), self.funcs, prompts)
-        self.tokens = list(result)
+        result = functools.reduce(lambda x, y: y.execute(x), self.__funcs, prompts)
+        self.__tokens = list(result)
 
     def _execute_pre_hooks(self, sentence: str) -> str:
         """Executes hooks bound."""
-        return functools.reduce(lambda x, y: y(x), self.pre_funcs, sentence)
+        return functools.reduce(lambda x, y: y(x), self.__pre_funcs, sentence)
 
     def parse(
         self, prompt: str, token_cls: type[TokenInterface], auto_apply=False
     ) -> MutablePrompt:
         """Tokenize the prompt string."""
         prompt = self._execute_pre_hooks(prompt)
-        delimiter = self.delimiter.sep_input
+        delimiter = self.__delimiter.sep_input
         tokens = list(self._parser.get_token(token_cls, prompt, delimiter))
         # pprint.pprint(prompts, debug_fp)
 
@@ -56,10 +56,18 @@ class PromptPipeline(PromptPipelineInterface):
 
     def append_pre_hook(self, *funcs: typing.Callable[..., str]) -> None:
         """処理前のプロンプトに対して実行されるコールバック関数を追加"""
-        self.pre_funcs.extend(funcs)
+        self.__pre_funcs.extend(funcs)
 
     def append_command(self, *command: Command) -> None:
-        self.funcs.extend(command)
+        self.__funcs.extend(command)
+
+    @property
+    def delimiter(self) -> Delimiter:
+        return self.__delimiter
+
+    @property
+    def tokens(self) -> MutablePrompt:
+        return self.__tokens
 
 
 class PromptPipelineV1(PromptPipeline):
