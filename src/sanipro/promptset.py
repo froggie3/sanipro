@@ -20,6 +20,12 @@ class SetCalculatorWrapper:
     Executes a set operation to the two prompt,
     having two prompt instances."""
 
+    # calculator symbols
+    union = "union"
+    intersection = "inter"
+    difference = "diff"
+    symmetric_difference = "symdiff"
+
     def __init__(self, calcurator: SetCalculator) -> None:
         self._calcurator = calcurator
 
@@ -33,10 +39,10 @@ class SetCalculatorWrapper:
         """Creates the instance from the key"""
 
         calculator_classes = {
-            "union": UnionCalculator,
-            "diff": DifferenceCalculator,
-            "intersection": IntersectionCalculator,
-            "xor": SymmetricDifferenceCalculator,
+            cls.union: UnionCalculator,
+            cls.intersection: IntersectionCalculator,
+            cls.difference: DifferenceCalculator,
+            cls.symmetric_difference: SymmetricDifferenceCalculator,
         }
         try:
             calculator_cls = calculator_classes[key]
