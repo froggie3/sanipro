@@ -1,12 +1,12 @@
 import logging
 
 from sanipro.abc import MutablePrompt, Prompt
-from sanipro.filters.abc import Command
+from sanipro.filters.abc import ExecutePrompt
 
 logger = logging.getLogger(__name__)
 
 
-class ResetCommand(Command):
+class ResetCommand(ExecutePrompt):
     new_value: float
 
     def __init__(self, new_value: float | None = None) -> None:
@@ -16,5 +16,5 @@ class ResetCommand(Command):
         else:
             self.new_value = new_value
 
-    def execute(self, prompt: Prompt) -> MutablePrompt:
+    def execute_prompt(self, prompt: Prompt) -> MutablePrompt:
         return [token.replace(new_weight=self.new_value) for token in prompt]

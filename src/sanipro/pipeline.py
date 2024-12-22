@@ -6,14 +6,14 @@ from collections.abc import Sequence
 from sanipro import parser
 from sanipro.abc import MutablePrompt, Prompt, PromptPipelineInterface, TokenInterface
 from sanipro.delimiter import Delimiter
-from sanipro.filters.abc import Command
+from sanipro.filters.abc import ExecutePrompt
 
 logger = logging.getLogger(__name__)
 
 
 class PromptPipeline(PromptPipelineInterface):
     __pre_funcs: list[typing.Callable[..., str]]
-    __funcs: list[Command]
+    __funcs: list[ExecutePrompt]
     __tokens: MutablePrompt
     __delimiter: Delimiter
     _parser: type[parser.ParserInterface]
@@ -27,13 +27,17 @@ class PromptPipeline(PromptPipelineInterface):
         self.__delimiter = Delimiter("", "") if delimiter is None else delimiter
         self._parser = psr
 
-    def execute(self, prompts: Prompt, funcs: Sequence[Command] | None = None) -> None:
+    def execute(
+        self, prompts: Prompt, funcs: Sequence[ExecutePrompt] | None = None
+    ) -> None:
         """sequentially applies the filters."""
         if funcs is None:
             funcs = []
         self.append_command(*funcs)
 
-        result = functools.reduce(lambda x, y: y.execute(x), self.__funcs, prompts)
+        result = functools.reduce(
+            lambda x, y: y.execute_prompt(x), self.__funcs, prompts
+        )
         self.__tokens = list(result)
 
     def _execute_pre_hooks(self, sentence: str) -> str:
@@ -58,7 +62,7 @@ class PromptPipeline(PromptPipelineInterface):
         """処理前のプロンプトに対して実行されるコールバック関数を追加"""
         self.__pre_funcs.extend(funcs)
 
-    def append_command(self, *command: Command) -> None:
+    def append_command(self, *command: ExecutePrompt) -> None:
         self.__funcs.extend(command)
 
     @property

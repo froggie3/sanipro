@@ -2,14 +2,14 @@ import logging
 
 from sanipro import utils
 from sanipro.abc import MutablePrompt, Prompt
-from sanipro.filters.abc import Command
+from sanipro.filters.abc import ExecutePrompt
 
 logger = logging.getLogger(__name__)
 
 
-class RoundUpCommand(Command):
+class RoundUpCommand(ExecutePrompt):
     def __init__(self, digits: int):
         self.digits = digits
 
-    def execute(self, prompt: Prompt) -> MutablePrompt:
+    def execute_prompt(self, prompt: Prompt) -> MutablePrompt:
         return [utils.round_token_weight(token, self.digits) for token in prompt]

@@ -3,16 +3,16 @@ import random
 import typing
 
 from sanipro.abc import MutablePrompt, Prompt
-from sanipro.filters.abc import Command
+from sanipro.filters.abc import ExecutePrompt
 
 logger = logging.getLogger(__name__)
 
 
-class RandomCommand(Command):
+class RandomCommand(ExecutePrompt):
     def __init__(self, seed: int | None = None):
         self.seed = seed
 
-    def execute(self, prompt: Prompt) -> MutablePrompt:
+    def execute_prompt(self, prompt: Prompt) -> MutablePrompt:
         if self.seed is not None:
             random.seed(self.seed)
 

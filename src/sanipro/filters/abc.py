@@ -7,9 +7,10 @@ from sanipro.abc import MutablePrompt, Prompt
 logger = logging.getLogger(__name__)
 
 
-class Command(ABC):
+class ExecutePrompt(ABC):
     @abstractmethod
-    def execute(self, prompt: Prompt) -> MutablePrompt: ...
+    def execute_prompt(self, prompt: Prompt) -> MutablePrompt:
+        """Processes the prompt from the input, and returns another mutable prompt."""
 
 
 class SimilarityStrategy(ABC):

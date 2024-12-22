@@ -7,7 +7,7 @@ import networkx as nx
 from networkx import traversal
 from sanipro.abc import MutablePrompt, Prompt, TokenInterface
 from sanipro.filters.abc import (
-    Command,
+    ExecutePrompt,
     MSTBuilder,
     ReordererStrategy,
     SimilarityStrategy,
@@ -159,12 +159,12 @@ class PrimMSTReorderer(MSTReorderer):
         self.mst_builder = PrimMSTBuilder()
 
 
-class SimilarCommand(Command):
+class SimilarCommand(ExecutePrompt):
     def __init__(self, reorderer: ReordererStrategy, *, reverse=False):
         self.reorderer = reorderer
         self.reverse = reverse
 
-    def execute(self, prompt: Prompt) -> MutablePrompt:
+    def execute_prompt(self, prompt: Prompt) -> MutablePrompt:
         sorted_words_seq = self.reorderer.find_optimal_order(prompt)
         return (
             sorted_words_seq if not self.reverse else list(reversed(sorted_words_seq))

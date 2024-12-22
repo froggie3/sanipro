@@ -2,17 +2,17 @@ import logging
 from collections.abc import Sequence
 
 from sanipro.abc import MutablePrompt, Prompt
-from sanipro.filters.abc import Command
+from sanipro.filters.abc import ExecutePrompt
 
 logger = logging.getLogger(__name__)
 
 
-class MaskCommand(Command):
+class MaskCommand(ExecutePrompt):
     def __init__(self, excludes: Sequence[str], replace_to: str):
         self.excludes = excludes
         self.replace_to = replace_to
 
-    def execute(self, prompt: Prompt) -> MutablePrompt:
+    def execute_prompt(self, prompt: Prompt) -> MutablePrompt:
         """
         >>> from lib.common import PromptInteractive
         >>> p = mask([PromptInteractive('white hair', 1.2), PromptInteractive('thighhighs', 1.0)], ['white'])
