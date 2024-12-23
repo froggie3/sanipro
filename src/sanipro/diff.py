@@ -1,7 +1,10 @@
+import logging
 from collections.abc import Set
 
 from sanipro.filters.utils import collect_same_tokens
 from sanipro.pipeline import MutablePrompt
+
+logger = logging.getLogger(__name__)
 
 
 class PromptDifferenceDetector:

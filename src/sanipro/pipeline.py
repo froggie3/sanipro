@@ -1,92 +1,74 @@
-import functools
 import logging
-import typing
-from collections.abc import Sequence
 
-from sanipro import parser
-from sanipro.abc import MutablePrompt, Prompt, PromptPipelineInterface, TokenInterface
+from sanipro.abc import IPromptPipeline, IPromptTokenizer, MutablePrompt, TokenInterface
 from sanipro.delimiter import Delimiter
-from sanipro.filters.abc import ExecutePrompt
+from sanipro.filter_exec import IFilterExecutor
 
 logger = logging.getLogger(__name__)
 
 
-class PromptPipeline(PromptPipelineInterface):
-    __pre_funcs: list[typing.Callable[..., str]]
-    __funcs: list[ExecutePrompt]
-    __tokens: MutablePrompt
-    __delimiter: Delimiter
-    _parser: type[parser.ParserInterface]
+class PromptPipeline(IPromptPipeline):
+    """Automated interface."""
+
+    _tokens: MutablePrompt
+    _tokenizer: IPromptTokenizer
+    _filter_executor: IFilterExecutor
 
     def __init__(
-        self, psr: type[parser.ParserInterface], delimiter: Delimiter | None = None
+        self, tokenizer: IPromptTokenizer, filterexecutor: IFilterExecutor
     ) -> None:
-        self.__pre_funcs = []
-        self.__funcs = []
-        self.__tokens = []
-        self.__delimiter = Delimiter("", "") if delimiter is None else delimiter
-        self._parser = psr
+        self._tokens = []
+        self._tokenizer = tokenizer
+        self._filter_executor = filterexecutor
+        logger.debug(f"{type(self).__name__} initialized.")
 
-    def execute(
-        self, prompts: Prompt, funcs: Sequence[ExecutePrompt] | None = None
-    ) -> None:
-        """sequentially applies the filters."""
-        if funcs is None:
-            funcs = []
-        self.append_command(*funcs)
+    def tokenize(self, source: str) -> MutablePrompt:
+        return self._tokenizer.tokenize_prompt(source)
 
-        result = functools.reduce(
-            lambda x, y: y.execute_prompt(x), self.__funcs, prompts
-        )
-        self.__tokens = list(result)
+    def execute(self, prompt: str) -> MutablePrompt:
+        tokenized = self._tokenizer.tokenize_prompt(prompt)
+        self._tokens = self._filter_executor.execute_filter_all(tokenized)
+        return self._tokens
 
-    def _execute_pre_hooks(self, sentence: str) -> str:
-        """Executes hooks bound."""
-        return functools.reduce(lambda x, y: y(x), self.__pre_funcs, sentence)
+    def reset(self) -> None:
+        self._tokens.clear()
+        self._filter_executor.clear_commands()
 
-    def parse(
-        self, prompt: str, token_cls: type[TokenInterface], auto_apply=False
-    ) -> MutablePrompt:
-        """Tokenize the prompt string."""
-        prompt = self._execute_pre_hooks(prompt)
-        delimiter = self.__delimiter.sep_input
-        tokens = list(self._parser.get_token(token_cls, prompt, delimiter))
-        # pprint.pprint(prompts, debug_fp)
+    def get_state(self) -> dict:
+        return {
+            "tokens": self._tokens,
+            "filters": self._filter_executor.get_commands(),
+            "delimiter": self._tokenizer.delimiter,
+        }
 
-        if auto_apply:
-            self.execute(tokens)
+    def update_delimiter(self, delimiter: Delimiter) -> None:
+        self._tokenizer.delimiter = delimiter
 
-        return tokens
-
-    def append_pre_hook(self, *funcs: typing.Callable[..., str]) -> None:
-        """処理前のプロンプトに対して実行されるコールバック関数を追加"""
-        self.__pre_funcs.extend(funcs)
-
-    def append_command(self, *command: ExecutePrompt) -> None:
-        self.__funcs.extend(command)
+    def update_tokenizer(self, tokenizer: IPromptTokenizer) -> None:
+        self._tokenizer = tokenizer
 
     @property
-    def delimiter(self) -> Delimiter:
-        return self.__delimiter
+    def token_cls(self) -> type[TokenInterface]:
+        return self._tokenizer.token_cls
 
     @property
     def tokens(self) -> MutablePrompt:
-        return self.__tokens
+        return self._tokens
+
+    @property
+    def delimiter(self) -> Delimiter:
+        return self._tokenizer.delimiter
+
+    @property
+    def tokenizer(self) -> IPromptTokenizer:
+        return self._tokenizer
+
+    @property
+    def filter_executor(self) -> IFilterExecutor:
+        return self._filter_executor
 
 
 class PromptPipelineV1(PromptPipeline):
-    def __init__(
-        self, psr: type[parser.ParserInterface], delimiter: Delimiter | None = None
-    ) -> None:
-        PromptPipeline.__init__(self, psr, delimiter)
-
-        def add_last_comma(sentence: str) -> str:
-            if not sentence.endswith(self.delimiter.sep_input):
-                sentence += self.delimiter.sep_input
-            return sentence
-
-        self.append_pre_hook(add_last_comma)
-
     def __str__(self) -> str:
         delim = self.delimiter.sep_output
         lines = map(lambda token: str(token), self.tokens)

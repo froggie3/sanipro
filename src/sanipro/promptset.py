@@ -1,3 +1,4 @@
+import logging
 from abc import ABC, abstractmethod
 from collections.abc import Set
 
@@ -5,6 +6,8 @@ from sanipro.abc import MutablePrompt, TokenInterface
 from sanipro.compatible import Self
 
 PromptSet = Set[TokenInterface]
+
+logger = logging.getLogger(__name__)
 
 
 class SetCalculator(ABC):

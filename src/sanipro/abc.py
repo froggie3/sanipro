@@ -10,6 +10,8 @@ logger = logging.getLogger(__name__)
 
 
 class TokenInterface(ABC):
+    """Interface for the token."""
+
     @abstractmethod
     def __init__(self, name: str, weight: float) -> None:
         pass
@@ -39,6 +41,8 @@ class TokenInterface(ABC):
 
 
 class ParserInterface(ABC):
+    """Interface for the parser."""
+
     @classmethod
     @abstractmethod
     def get_token(
@@ -46,19 +50,42 @@ class ParserInterface(ABC):
         token_cls: type[TokenInterface],
         sentence: str,
         delimiter: str | None = None,
-    ) -> typing.Generator[TokenInterface, None, None]: ...
-
-
-class PromptPipelineInterface(ABC):
-    @abstractmethod
-    def __init__(
-        self, psr: type[ParserInterface], delimiter: Delimiter | None = None
-    ): ...
-
-    @abstractmethod
-    def __str__(self) -> str: ...
+    ) -> typing.Generator[TokenInterface, None, None]:
+        """Get the token from the sentence."""
 
 
 Prompt = Sequence[TokenInterface]
 
 MutablePrompt = MutableSequence[TokenInterface]
+
+
+class IPromptTokenizer(ABC):
+    """Interface for the prompt tokenizer."""
+
+    @abstractmethod
+    def tokenize_prompt(self, prompt: str) -> MutablePrompt:
+        """Tokenize the prompt string using the parser."""
+
+    @property
+    def token_cls(self) -> type[TokenInterface]: ...
+
+    @property
+    @abstractmethod
+    def delimiter(self) -> Delimiter: ...
+
+    @delimiter.setter
+    @abstractmethod
+    def delimiter(self, value: Delimiter) -> None: ...
+
+
+class IPromptPipeline(ABC):
+    """Interface for the prompt pipeline."""
+
+    @abstractmethod
+    def execute(self, prompt: str) -> MutablePrompt:
+        """Tokenize the prompt string using the parser interface."""
+
+    @abstractmethod
+    def __str__(self) -> str:
+        """Stringify the pipeline."""
+        ...

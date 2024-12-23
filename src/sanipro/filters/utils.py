@@ -3,7 +3,7 @@ import logging
 import typing
 from collections.abc import Mapping
 
-from ..abc import MutablePrompt, Prompt, TokenInterface
+from sanipro.abc import MutablePrompt, Prompt, TokenInterface
 
 logger = logging.getLogger(__name__)
 
