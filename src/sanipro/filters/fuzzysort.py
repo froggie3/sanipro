@@ -20,7 +20,7 @@ try:
     import Levenshtein  # type: ignore
 
     class LevenshteinSimilarity(SimilarityStrategy):
-        """Levenshtein距離を利用した類似度計算"""
+        """Similarity calculation using Levenshtein distance."""
 
         def calculate_similarity(self, word1: str, word2: str) -> float:
             distance = Levenshtein.distance(word1, word2)
@@ -32,14 +32,15 @@ except ImportError:
 
 
 class SequenceMatcherSimilarity(SimilarityStrategy):
-    """SequenceMatcherを利用した類似度計算"""
+    """Similarity calculation using Python built-in SequenceMatcher"""
 
     def calculate_similarity(self, word1: str, word2: str) -> float:
         return SequenceMatcher(None, word1, word2).ratio()
 
 
 class NaiveReorderer(ReordererStrategy):
-    """トークンの配列の全順列を試し、類似度順に並べ替えを行うクラス"""
+    """Tries all permutations of a token array,
+    and sorts it by similarity."""
 
     def __init__(self, strategy: SimilarityStrategy):
         self.strategy = strategy
@@ -48,7 +49,7 @@ class NaiveReorderer(ReordererStrategy):
         best_order: tuple[TokenInterface, ...] = tuple()
         best_score = float("-inf")
 
-        # 全順列を試して最もスコアが高い順序を見つける
+        # try all permutations to find the order with the highest score
         for permutation in itertools.permutations(words):
             total_score = sum(
                 self.strategy.calculate_similarity(
@@ -64,7 +65,7 @@ class NaiveReorderer(ReordererStrategy):
 
 
 class GreedyReorderer(ReordererStrategy):
-    """貪欲法による並べ替えを試行する。"""
+    """Attempt a greedy sort."""
 
     def __init__(self, strategy: SimilarityStrategy):
         self.strategy = strategy
@@ -86,18 +87,18 @@ class GreedyReorderer(ReordererStrategy):
         return idx
 
     def find_optimal_order(self, words: Prompt) -> MutablePrompt:
-        # シャッフルしてランダムな初期要素を選ぶ
+        # shuffle and choose random initial elements
         words = list(words[:])
         random.shuffle(words)
         result = [words.pop()]
         visited = [False] * len(words)
 
-        # 貪欲法で最も似ている単語を選び続ける
+        # choose the most similar words
         while True:
             last_word = result[-1].name
             next_idx = self._find_max_idx(last_word, words, visited)
 
-            # 探索しても見つからない場合は全部探索しきったということなので
+            # if you can't find it after searching, you've already searched everything.
             if next_idx is None:
                 break
 
@@ -118,7 +119,7 @@ class KruskalMSTBuilder(MSTBuilder):
 
 
 class MSTReorderer(ReordererStrategy):
-    """最小全域木による並べ替え戦略"""
+    """Minimum spanning tree sorting strategy"""
 
     mst_builder: MSTBuilder
 
@@ -126,18 +127,18 @@ class MSTReorderer(ReordererStrategy):
         self.strategy = strategy
 
     def find_optimal_order(self, words: Prompt) -> MutablePrompt:
-        # 完全グラフのエッジリストを構築
+        # construct an edge list for a complete graph
         graph = nx.Graph()
 
         for (u, _p), (v, _q) in itertools.combinations(enumerate(words), 2):
             similarity = self.strategy.calculate_similarity(_p.name, _q.name)
-            # 類似度が高いほど重みは低くする
+            # The higher the similarity, the lower the weight
             graph.add_edge(u, v, weight=1 - similarity)
 
-        # MSTを構築
+        # construct a mst
         mst = self.mst_builder.build_mst(graph)
 
-        # 最小全域木をDFSで探索し、順序を決定
+        # search the minimum spanning tree using DFS and determine the order
         def mapper(node: int):
             token = words[node]
             return token

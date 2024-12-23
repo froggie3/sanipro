@@ -38,7 +38,7 @@ class SetCalculatorWrapper:
         return self._calcurator.do_math(set(a), set(b))
 
     @classmethod
-    def create_from(cls, key: str) -> Self:
+    def create_from(cls, key: str | None = "union") -> Self:
         """Creates the instance from the key"""
 
         calculator_classes = {
