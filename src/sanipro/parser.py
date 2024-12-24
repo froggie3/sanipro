@@ -8,15 +8,6 @@ from sanipro.compatible import Self
 logger = logging.getLogger(__name__)
 
 
-class Tokens:
-    PARENTHESIS_LEFT: str = "("
-    PARENTHESIS_RIGHT: str = ")"
-    COLON: str = ":"
-    COMMA: str = ","
-    SPACE: str = " "
-    BACKSLASH: str = "\\"
-
-
 class Token(TokenInterface):
     _delimiter: str
 
@@ -48,7 +39,7 @@ class Token(TokenInterface):
 
     def __repr__(self) -> str:
         items = (f"{v!r}" for v in (self.name, self.weight))
-        return "{}({})".format(type(self).__name__, f"{Tokens.COMMA} ".join(items))
+        return "{}({})".format(type(self).__name__, f", ".join(items))
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, self.__class__):
@@ -62,7 +53,7 @@ class Token(TokenInterface):
 class TokenInteractive(Token):
     def __init__(self, name: str, weight: float) -> None:
         Token.__init__(self, name, weight)
-        self._delimiter = Tokens.COLON
+        self._delimiter = ":"
 
     def __str__(self) -> str:
         if self.weight != 1.0:
@@ -79,6 +70,16 @@ class TokenNonInteractive(Token):
 
     def __str__(self) -> str:
         return f"{self.name}{self._delimiter}{self.weight}"
+
+
+class DummyParser(ParserInterface):
+    @staticmethod
+    def get_token(
+        token_cls: type[TokenInterface], sentence: str, delimiter: str | None = None
+    ) -> typing.Generator[TokenInterface, None, None]:
+        if delimiter is not None:
+            for element in sentence.strip().split(delimiter):
+                yield token_cls(element.strip(), 1.0)
 
 
 class ParserV1(ParserInterface):
@@ -102,63 +103,38 @@ class ParserV1(ParserInterface):
         >>> list(extract_token('1girl, (brown hair:1.2), school uniform, smile,'))
         ['1girl', 'brown hair:1.2', 'school uniform', 'smile']
         """
-        # final product
         product = []
-        parenthesis: list[int] = []
-        # consumed chararater will be accumurated before next ','
         partial = []
+        state = 00
 
-        index = 0
-        is_escaped = False
-
-        while index < len(sentence):
-            if sentence[index] == Tokens.BACKSLASH:
-                partial.append(sentence[index])
-                is_escaped = True
-
-            elif sentence[index] == Tokens.PARENTHESIS_LEFT:
-                if is_escaped:
-                    partial.append(sentence[index])
-                    is_escaped = False
-                elif parenthesis:
-                    parenthesis.append(index)
-                    # nested parentheses will be intact
-                    partial.append(sentence[index])
-                else:
-                    parenthesis.append(index)
-
-            elif sentence[index] == Tokens.PARENTHESIS_RIGHT:
-                if is_escaped:
-                    partial.append(sentence[index])
-                    is_escaped = False
-                elif len(parenthesis) > 1:
-                    partial.append(sentence[index])
-                    parenthesis.pop()
-                else:
-                    parenthesis.pop()
-
-            elif sentence[index] == delimiter:
-                if parenthesis:
-                    partial.append(sentence[index])
-                else:
-                    if is_escaped:
-                        is_escaped = False
+        for char in sentence:
+            if state == 00:  # default
+                if char == "\\":
+                    partial.append(char)
+                    state = 10
+                elif char == "(":
+                    state = 20
+                elif char == ")":
+                    state = 00
+                elif char == delimiter:
                     element = "".join(partial).strip()
                     partial.clear()
                     product.append(element)
-            else:
-                if is_escaped:
-                    is_escaped = False
-                partial.append(sentence[index])
+                    state = 00
+                else:
+                    partial.append(char)
+                    state = 00
 
-            index += 1
+            elif state == 10:  # in escaped
+                partial.append(char)
+                state = 00
 
-        if parenthesis:
-            first_parenthesis_index = parenthesis[0]
-            ok_partial = sentence[0:first_parenthesis_index]
-            raise ValueError(
-                f"first unclosed parenthesis was found after {ok_partial!r}"
-            )
+            elif state == 20:  # in parenthesis
+                if char == ")":
+                    state = 00
+                else:
+                    partial.append(char)
+                    state = 00
 
         return product
 
@@ -215,7 +191,9 @@ class ParserV1(ParserInterface):
                 new_weight = float(weight)
 
             return token_cls(new_name, new_weight)
-        raise Exception(f"no matched string for {token_combined!r}")
+
+        logger.error(f"no matched string for {token_combined!r}")
+        return token_cls(token_combined, 1.0)
 
     @classmethod
     def get_token(
@@ -225,7 +203,7 @@ class ParserV1(ParserInterface):
         delimiter: str | None = None,
     ) -> typing.Generator[TokenInterface, None, None]:
         if delimiter is not None:
-            for element in cls.extract_token(sentence, delimiter):
+            for element in cls.extract_token(sentence.strip(), delimiter):
                 token = cls.parse_line(element, token_cls)
                 yield token
 
@@ -352,7 +330,7 @@ class ParserV2(ParserInterface):
     ) -> typing.Generator[TokenInterface, None, None]:
         return (
             token_cls(text, weight)
-            for text, weight in cls.parse_prompt_attention(sentence)
+            for text, weight in cls.parse_prompt_attention(sentence.strip())
         )
 
 
