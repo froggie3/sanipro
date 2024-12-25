@@ -22,8 +22,9 @@ class PromptDifferenceDetector:
             f"number of tokens -> {self.a} => {self.b} ({self.judged_result} {self.percentage:.2f}%)"
         )
         lines.append(f"reduced -> {self.reduced_num}")
+        delimiter = ", "
         lines.append(
-            f"duplicated -> {", ".join(self.duplicated)}"
+            f"duplicated -> {delimiter.join(self.duplicated)}"
             if self.duplicated
             else "no duplicates detected"
         )
