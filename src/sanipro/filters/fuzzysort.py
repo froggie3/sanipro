@@ -1,5 +1,4 @@
 import itertools
-import logging
 import random
 from difflib import SequenceMatcher
 
@@ -12,9 +11,6 @@ from sanipro.filters.abc import (
     ReordererStrategy,
     SimilarityStrategy,
 )
-
-logger = logging.getLogger(__name__)
-
 
 try:
     import Levenshtein  # type: ignore

@@ -1,11 +1,8 @@
-import logging
 import random
 import typing
 
 from sanipro.abc import MutablePrompt, Prompt
 from sanipro.filters.abc import ExecutePrompt
-
-logger = logging.getLogger(__name__)
 
 
 class RandomCommand(ExecutePrompt):

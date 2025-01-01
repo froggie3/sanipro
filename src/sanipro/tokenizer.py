@@ -1,10 +1,7 @@
-import logging
 
 from sanipro.abc import IPromptTokenizer, MutablePrompt, TokenInterface
 from sanipro.delimiter import Delimiter
 from sanipro.parser import ParserInterface
-
-logger = logging.getLogger(__name__)
 
 
 class PromptTokenizer(IPromptTokenizer):

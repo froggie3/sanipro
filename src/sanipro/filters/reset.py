@@ -1,9 +1,5 @@
-import logging
-
 from sanipro.abc import MutablePrompt, Prompt
 from sanipro.filters.abc import ExecutePrompt
-
-logger = logging.getLogger(__name__)
 
 
 class ResetCommand(ExecutePrompt):

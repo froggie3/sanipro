@@ -1,11 +1,8 @@
-import logging
 from itertools import chain
 
 from sanipro.abc import MutablePrompt, Prompt
 from sanipro.filters.abc import ExecutePrompt
 from sanipro.filters.utils import collect_same_tokens_sorted
-
-logger = logging.getLogger(__name__)
 
 
 class SortCommand(ExecutePrompt):

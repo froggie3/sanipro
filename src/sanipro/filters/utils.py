@@ -1,11 +1,8 @@
 import collections
-import logging
 import typing
 from collections.abc import Mapping
 
 from sanipro.abc import MutablePrompt, Prompt, TokenInterface
-
-logger = logging.getLogger(__name__)
 
 
 def collect_same_tokens(prompts: Prompt) -> Mapping[str, MutablePrompt]:

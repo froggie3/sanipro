@@ -1,11 +1,9 @@
-import logging
 import re
 import typing
 
 from sanipro.abc import ParserInterface, TokenInterface
 from sanipro.compatible import Self
-
-logger = logging.getLogger(__name__)
+from sanipro.logger import logger
 
 
 class Token(TokenInterface):
@@ -330,7 +328,7 @@ class ParserV2(ParserInterface):
     ) -> typing.Generator[TokenInterface, None, None]:
         return (
             token_cls(text, weight)
-            for text, weight in cls.parse_prompt_attention(sentence.strip())
+            for text, weight in cls.parse_prompt_attention(sentence)
         )
 
 

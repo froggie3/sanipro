@@ -1,10 +1,7 @@
-import logging
 from abc import ABC, abstractmethod
 
 import networkx
 from sanipro.abc import MutablePrompt, Prompt
-
-logger = logging.getLogger(__name__)
 
 
 class ExecutePrompt(ABC):

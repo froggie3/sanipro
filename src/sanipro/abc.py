@@ -1,12 +1,9 @@
-import logging
 import typing
 from abc import ABC, abstractmethod
 from collections.abc import MutableSequence, Sequence
 
 from sanipro.compatible import Self
 from sanipro.delimiter import Delimiter
-
-logger = logging.getLogger(__name__)
 
 
 class TokenInterface(ABC):

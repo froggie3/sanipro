@@ -1,11 +1,8 @@
 import functools
-import logging
 from abc import ABC, abstractmethod
 
 from sanipro.abc import MutablePrompt, Prompt
 from sanipro.filters.abc import ExecutePrompt
-
-logger = logging.getLogger(__name__)
 
 
 class IFilterExecutor(ABC):

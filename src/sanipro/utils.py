@@ -1,8 +1,4 @@
-import logging
-
 from sanipro.abc import TokenInterface
-
-logger = logging.getLogger(__name__)
 
 
 def to_dict(obj) -> dict:

@@ -1,10 +1,7 @@
-import logging
 from functools import partial
 
 from sanipro.abc import MutablePrompt, Prompt
 from sanipro.filters.abc import ExecutePrompt
-
-logger = logging.getLogger(__name__)
 
 
 class SortAllCommand(ExecutePrompt):

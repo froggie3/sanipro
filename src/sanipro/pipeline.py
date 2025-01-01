@@ -1,10 +1,7 @@
-import logging
-
 from sanipro.abc import IPromptPipeline, IPromptTokenizer, MutablePrompt, TokenInterface
 from sanipro.delimiter import Delimiter
 from sanipro.filter_exec import IFilterExecutor
-
-logger = logging.getLogger(__name__)
+from sanipro.logger import logger
 
 
 class PromptPipeline(IPromptPipeline):
