@@ -1,3 +1,4 @@
+import re
 
 from sanipro.abc import IPromptTokenizer, MutablePrompt, TokenInterface
 from sanipro.delimiter import Delimiter
@@ -52,10 +53,34 @@ class PromptTokenizer(IPromptTokenizer):
 
 
 class PromptTokenizerV1(PromptTokenizer):
+
+    def _strip_last_break(self, prompt: str) -> str:
+        """Strip last line break."""
+
+        return prompt.strip()
+
+    def _escape_colons(self, prompt: str) -> str:
+        """Escape colons."""
+
+        sep = self.delimiter.sep_input
+        re_pattern = re.compile(r":(?!\d+(?:\.\d+)?)")
+        return sep.join(re.sub(re_pattern, "\:", token) for token in prompt.split(sep))
+
+    def _add_last_comma(self, prompt: str) -> str:
+        """Adds a comma to the prompt at the last."""
+
+        sep = self.delimiter.sep_input
+        if not prompt.endswith(sep):
+            prompt += sep
+        return prompt
+
     def _preprocess(self, prompt: str) -> str:
-        # Adding a comma in the last helps ease of implementation
-        if not prompt.endswith(self.delimiter.sep_input):
-            prompt += self.delimiter.sep_input
+        """Some preprocesses for ease of implementation."""
+
+        prompt = self._strip_last_break(prompt)
+        prompt = self._escape_colons(prompt)
+        prompt = self._add_last_comma(prompt)
+
         return prompt
 
 

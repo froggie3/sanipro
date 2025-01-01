@@ -3,7 +3,6 @@ import typing
 
 from sanipro.abc import ParserInterface, TokenInterface
 from sanipro.compatible import Self
-from sanipro.logger import logger
 
 
 class Token(TokenInterface):
@@ -80,66 +79,34 @@ class DummyParser(ParserInterface):
                 yield token_cls(element.strip(), 1.0)
 
 
+def find_last_paren(prompt: str, start: int, n_parens_start: int) -> int:
+    """Skip through the buffer until n_parens_last is at the same level
+    as the original n_parens, and returns the position of the last ')'."""
+
+    index_last_paren = start
+    n_parens_last = n_parens_start
+    i = start
+
+    while i < len(prompt):
+        char_in_paren = prompt[i]
+
+        if char_in_paren == "(":
+            n_parens_last += 1
+        elif char_in_paren == ")":
+            n_parens_last -= 1
+            index_last_paren = i
+            if n_parens_start == n_parens_last:
+                return i
+        i += 1
+
+    return i
+
+
 class ParserV1(ParserInterface):
     @staticmethod
-    def extract_token(sentence: str, delimiter: str) -> list[str]:
-        """
-        split `sentence` at commas and remove parentheses.
-
-        >>> list(extract_token('1girl,'))
-        ['1girl']
-
-        >>> list(extract_token('(brown hair:1.2),'))
-        ['brown hair:1.2']
-
-        >>> list(extract_token('\(foo\)'))
-        ['\\(foo\\)']
-
-        >>> list(extract_token('\, (foo:1.2)'))
-        ['\\, a:1.2']
-
-        >>> list(extract_token('1girl, (brown hair:1.2), school uniform, smile,'))
-        ['1girl', 'brown hair:1.2', 'school uniform', 'smile']
-        """
-        product = []
-        partial = []
-        state = 00
-
-        for char in sentence:
-            if state == 00:  # default
-                if char == "\\":
-                    partial.append(char)
-                    state = 10
-                elif char == "(":
-                    state = 20
-                elif char == ")":
-                    state = 00
-                elif char == delimiter:
-                    element = "".join(partial).strip()
-                    partial.clear()
-                    product.append(element)
-                    state = 00
-                else:
-                    partial.append(char)
-                    state = 00
-
-            elif state == 10:  # in escaped
-                partial.append(char)
-                state = 00
-
-            elif state == 20:  # in parenthesis
-                if char == ")":
-                    state = 00
-                else:
-                    partial.append(char)
-                    state = 00
-
-        return product
-
-    @staticmethod
-    def parse_line(
-        token_combined: str, token_cls: type[TokenInterface]
-    ) -> TokenInterface:
+    def parse_prompt(
+        prompt: str, token_cls: type[TokenInterface], delimiter: str
+    ) -> list[TokenInterface]:
         """
         split `token_combined` into left and right sides with `:`
         when there are three or more elements,
@@ -156,42 +123,91 @@ class ParserV1(ParserInterface):
         >>> parse_line(':3', PromptInteractive)
         PromptInteractive(':3', 1.2)
 
-        >>> parse_line('re:zero kara hajimeru isekai seikatsu:1.2', PromptInteractive)
+        >>> parse_line('(re:zero kara hajimeru isekai seikatsu:1.2)', PromptInteractive)
         PromptInteractive('re:zero kara hajimeru isekai seikatsu', 1.2)
 
-        >>> parse_line('re:zero kara hajimeru isekai seikatsu', PromptInteractive)
+        >>> parse_line('(re:zero kara hajimeru isekai seikatsu)', PromptInteractive)
         PromptInteractive('re:zero kara hajimeru isekai seikatsu', 1.0)
         """
 
-        name_pattern = r"(.*?)"
-        weight_pattern = r"(\d+(?:\.\d+)?)"
-        pattern = rf"^{name_pattern}(?::{weight_pattern})?$"
-        m = re.match(pattern, token_combined)
-        if m:
-            name = m.group(1)
+        tokens = []
+        prompt_name = []
+        prompt_weight = []
+        m_general = 00
+        n_parens = 0
+        i = 0
 
-            new_name = None
-            new_weight = None
-            weight = m.group(2)
+        while i < len(prompt):
+            char = prompt[i]
 
-            # edge cases
-            default = weight is None
-            regex_failed = name == ""  # such as ':3'
+            if m_general == 00:  # default
+                if char == "\\":
+                    prompt_name.append(char)
+                    m_general = 10
+                elif char == "(":
+                    m_general = 20
+                    n_parens += 1
+                elif char == ")":
+                    m_general = 00
+                elif char == delimiter:  # prompt was ended without emphasis.
+                    prompt_name_concat = "".join(prompt_name).strip()
+                    prompt_name.clear()
+                    tokens.append(token_cls(prompt_name_concat, 1.0))
+                    m_general = 00
+                else:
+                    prompt_name.append(char)
+                    m_general = 00
 
-            if default:
-                new_name = name
-                new_weight = 1.0
-            elif regex_failed:
-                new_name = token_combined
-                new_weight = 1.0
-            else:
-                new_name = name
-                new_weight = float(weight)
+            elif m_general == 10:  # in escaped
+                prompt_name.append(char)
+                m_general = 00
 
-            return token_cls(new_name, new_weight)
+            elif m_general == 11:  # in parenthesis, and escaped
+                prompt_name.append(char)
+                m_general = 20
 
-        logger.error(f"no matched string for {token_combined!r}")
-        return token_cls(token_combined, 1.0)
+            elif m_general == 20:  # in parenthesis
+                if char == "\\":
+                    m_general = 11
+                elif char == ":":
+                    m_general = 30
+                elif char == "(":
+                    index_last_paren = find_last_paren(prompt, i, n_parens)
+                    tmp_buffer = prompt[i : index_last_paren + 1]
+                    prompt_name.extend(tmp_buffer)
+
+                    i = index_last_paren
+                    m_general = 20
+                elif char == ")":
+                    raise ValueError(
+                        "the emphasis syntax in a1111 requires a value after a colon"
+                    )
+                else:
+                    prompt_name.append(char)
+                    m_general = 20
+
+            elif m_general == 30:  # after a colon
+                if char == ")":
+                    m_general = 50
+                    n_parens -= 1
+                else:
+                    prompt_weight.append(char)
+                    m_general = 30
+
+            elif m_general == 50:  # prompt was ended with emphasis.
+                if char == delimiter:
+                    prompt_name_concat = "".join(prompt_name).strip()
+                    prompt_weight_concat = "".join(prompt_weight).strip()
+                    prompt_name.clear()
+                    prompt_weight.clear()
+                    tokens.append(
+                        token_cls(prompt_name_concat, float(prompt_weight_concat))
+                    )
+                    m_general = 00
+
+            i += 1
+
+        return tokens
 
     @classmethod
     def get_token(
@@ -201,9 +217,7 @@ class ParserV1(ParserInterface):
         delimiter: str | None = None,
     ) -> typing.Generator[TokenInterface, None, None]:
         if delimiter is not None:
-            for element in cls.extract_token(sentence.strip(), delimiter):
-                token = cls.parse_line(element, token_cls)
-                yield token
+            return (token for token in cls.parse_prompt(sentence, token_cls, delimiter))
 
 
 class ParserV2(ParserInterface):
