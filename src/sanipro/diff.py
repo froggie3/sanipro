@@ -1,8 +1,8 @@
 from collections.abc import Set
 from functools import cached_property
 
+from sanipro.abc import MutablePrompt
 from sanipro.filters.utils import collect_same_tokens
-from sanipro.pipeline import MutablePrompt
 
 
 class PromptDifferenceDetector:

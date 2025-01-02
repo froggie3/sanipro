@@ -75,11 +75,18 @@ class IPromptTokenizer(ABC):
     def delimiter(self, value: Delimiter) -> None: ...
 
 
+class IPipelineResult(ABC):
+    """Interface for the result."""
+
+    @abstractmethod
+    def get_summary(self) -> list[str]: ...
+
+
 class IPromptPipeline(ABC):
     """Interface for the prompt pipeline."""
 
     @abstractmethod
-    def execute(self, prompt: str) -> MutablePrompt:
+    def execute(self, prompt: str) -> IPipelineResult:
         """Tokenize the prompt string using the parser interface."""
 
     @abstractmethod

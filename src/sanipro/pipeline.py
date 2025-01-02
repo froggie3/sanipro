@@ -1,7 +1,7 @@
 from sanipro.abc import IPromptPipeline, IPromptTokenizer, MutablePrompt, TokenInterface
 from sanipro.delimiter import Delimiter
 from sanipro.filter_exec import IFilterExecutor
-from sanipro.logger import logger
+from sanipro.pipelineresult import PipelineResult
 
 
 class PromptPipeline(IPromptPipeline):
@@ -17,15 +17,14 @@ class PromptPipeline(IPromptPipeline):
         self._tokens = []
         self._tokenizer = tokenizer
         self._filter_executor = filterexecutor
-        logger.debug(f"{type(self).__name__} initialized.")
 
     def tokenize(self, source: str) -> MutablePrompt:
         return self._tokenizer.tokenize_prompt(source)
 
-    def execute(self, prompt: str) -> MutablePrompt:
+    def execute(self, prompt: str) -> PipelineResult:
         tokenized = self._tokenizer.tokenize_prompt(prompt)
         self._tokens = self._filter_executor.execute_filter_all(tokenized)
-        return self._tokens
+        return PipelineResult(tokenized, self._tokens)
 
     def reset(self) -> None:
         self._tokens.clear()
