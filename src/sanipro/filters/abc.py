@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 import networkx
+
 from sanipro.abc import MutablePrompt, Prompt
 
 

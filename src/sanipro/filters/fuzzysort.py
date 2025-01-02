@@ -4,6 +4,7 @@ from difflib import SequenceMatcher
 
 import networkx as nx
 from networkx import traversal
+
 from sanipro.abc import MutablePrompt, Prompt, TokenInterface
 from sanipro.filters.abc import (
     ExecutePrompt,
