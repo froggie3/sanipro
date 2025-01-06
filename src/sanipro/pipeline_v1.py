@@ -40,23 +40,6 @@ class ParserV1(NormalParser):
         split `token_combined` into left and right sides with `:`
         when there are three or more elements,
         the right side separated by the last colon is adopted as the weight.
-
-        >>> from lib.common import PromptInteractive, PromptNonInteractive
-
-        >>> parse_line('brown hair:1.2', PromptInteractive)
-        PromptInteractive('brown hair', 1.2)
-
-        >>> parse_line('1girl', PromptInteractive)
-        PromptInteractive('1girl', 1.0)
-
-        >>> parse_line(':3', PromptInteractive)
-        PromptInteractive(':3', 1.2)
-
-        >>> parse_line('(re:zero kara hajimeru isekai seikatsu:1.2)', PromptInteractive)
-        PromptInteractive('re:zero kara hajimeru isekai seikatsu', 1.2)
-
-        >>> parse_line('(re:zero kara hajimeru isekai seikatsu)', PromptInteractive)
-        PromptInteractive('re:zero kara hajimeru isekai seikatsu', 1.0)
         """
 
         tokens = []
@@ -97,6 +80,7 @@ class ParserV1(NormalParser):
 
             elif m_general == 20:  # in parenthesis
                 if char == "\\":
+                    prompt_name.append(char)
                     m_general = 11
                 elif char == ":":
                     m_general = 30
@@ -160,11 +144,12 @@ class ParserV1(NormalParser):
 
     def delete_colon(self, s: str) -> str:
         re_pattern = re.compile(r"\\:")
-        return re.sub(re_pattern, "", s)
+        return re.sub(re_pattern, ":", s)
 
     def _postprocess(self, token: TokenInterface) -> TokenInterface:
         name_new = self.delete_colon(token.name)
-        return token.replace(new_name=name_new)
+        token = token.replace(new_name=name_new)
+        return token
 
     def get_token(
         self, token_cls: type[TokenInterface], sentence: str
