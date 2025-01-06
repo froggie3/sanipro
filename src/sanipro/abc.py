@@ -3,7 +3,9 @@ from abc import ABC, abstractmethod
 from collections.abc import MutableSequence, Sequence
 
 from sanipro.compatible import Self
-from sanipro.delimiter import Delimiter
+
+if typing.TYPE_CHECKING:
+    from sanipro.delimiter import Delimiter
 
 
 class TokenInterface(ABC):
@@ -40,13 +42,9 @@ class TokenInterface(ABC):
 class ParserInterface(ABC):
     """Interface for the parser."""
 
-    @classmethod
     @abstractmethod
     def get_token(
-        cls,
-        token_cls: type[TokenInterface],
-        sentence: str,
-        delimiter: str | None = None,
+        self, token_cls: type[TokenInterface], sentence: str
     ) -> typing.Generator[TokenInterface, None, None]:
         """Get the token from the sentence."""
 
@@ -66,14 +64,6 @@ class IPromptTokenizer(ABC):
     @property
     def token_cls(self) -> type[TokenInterface]: ...
 
-    @property
-    @abstractmethod
-    def delimiter(self) -> Delimiter: ...
-
-    @delimiter.setter
-    @abstractmethod
-    def delimiter(self, value: Delimiter) -> None: ...
-
 
 class IPipelineResult(ABC):
     """Interface for the result."""
@@ -82,14 +72,41 @@ class IPipelineResult(ABC):
     def get_summary(self) -> list[str]: ...
 
 
-class IPromptPipeline(ABC):
-    """Interface for the prompt pipeline."""
-
+class IPromptPipelineExecutable(ABC):
     @abstractmethod
     def execute(self, prompt: str) -> IPipelineResult:
         """Tokenize the prompt string using the parser interface."""
 
+
+class IPromptPipelineSelializable(ABC):
     @abstractmethod
     def __str__(self) -> str:
         """Stringify the pipeline."""
         ...
+
+
+class IPromptPipelineTokenizerGetter(ABC):
+    @property
+    @abstractmethod
+    def tokenizer(self) -> IPromptTokenizer: ...
+
+
+class IPromptPipelineDelimiterGetter(ABC):
+    @property
+    @abstractmethod
+    def delimiter(self) -> "Delimiter": ...
+
+
+class IPromptPipelineDelimiterNewable(ABC):
+    @abstractmethod
+    def new(self, prompt: MutablePrompt): ...
+
+
+class IPromptPipeline(
+    IPromptPipelineExecutable,
+    IPromptPipelineSelializable,
+    IPromptPipelineTokenizerGetter,
+    IPromptPipelineDelimiterGetter,
+    IPromptPipelineDelimiterNewable,
+):
+    pass
