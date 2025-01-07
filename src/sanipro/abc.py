@@ -44,7 +44,7 @@ class ParserInterface(ABC):
 
     @abstractmethod
     def get_token(
-        self, token_cls: type[TokenInterface], sentence: str
+        self, sentence: str, token_cls: type[TokenInterface]
     ) -> typing.Generator[TokenInterface, None, None]:
         """Get the token from the sentence."""
 

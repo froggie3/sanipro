@@ -10,4 +10,4 @@ class PipelineResult(IPipelineResult):
     output: MutablePrompt
 
     def get_summary(self) -> list[str]:
-        return PromptDifferenceDetector(self.input, self.input).get_summary()
+        return PromptDifferenceDetector(self.input, self.output).get_summary()

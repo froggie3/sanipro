@@ -16,19 +16,19 @@ from sanipro.pipelineresult import PipelineResult
 class ParserV2(ParserInterface):
     re_attention = re.compile(
         r"""
-    \\\(|
-    \\\)|
-    \\\[|
-    \\]|
-    \\\\|
-    \\|
-    \(|
-    \[|
-    :([+-]?[.\d]+)\)|
-    \)|
-    ]|
-    [^\\()\[\]:]+|
-    :
+\\\(|
+\\\)|
+\\\[|
+\\]|
+\\\\|
+\\|
+\(|
+\[|
+:([+-]?[.\d]+)\)|
+\)|
+]|
+[^\\()\[\]:]+|
+:
     """,
         re.X,
     )
@@ -126,7 +126,7 @@ class ParserV2(ParserInterface):
         return res
 
     def get_token(
-        self, token_cls: type[TokenInterface], sentence: str
+        self, sentence: str, token_cls: type[TokenInterface]
     ) -> typing.Generator[TokenInterface, None, None]:
         return (
             token_cls(text, weight)
@@ -140,7 +140,7 @@ class PromptTokenizerV2(IPromptTokenizer):
         self._token_cls = token_cls
 
     def tokenize_prompt(self, prompt: str) -> MutablePrompt:
-        return list(self._parser.get_token(self._token_cls, prompt))
+        return list(self._parser.get_token(prompt, self._token_cls))
 
 
 class PromptPipelineV2(IPromptPipeline):

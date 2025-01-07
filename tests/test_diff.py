@@ -5,8 +5,7 @@ from sanipro.token import TokenInteractive
 
 
 class TestPromptDifferenceDetector(unittest.TestCase):
-    def __init__(self, methodName: str = "runTest") -> None:
-        super().__init__(methodName)
+    def setUp(self) -> None:
         dec = PromptDifferenceDetector
         cls = TokenInteractive
         a = [cls("42", 1.0), cls("43", 1.0)]
