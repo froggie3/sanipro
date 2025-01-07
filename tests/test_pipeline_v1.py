@@ -55,8 +55,9 @@ class TestParserV1(unittest.TestCase):
         self.psr = ParserV1(Delimiter(",", ", "))
 
     def test_parse_prompt(self):
-        dlm_in = Delimiter(",", ", ").sep_input
-        f = ParserV1.parse_prompt
+        dlm = Delimiter(",", ", ")
+        dlm_in = dlm.sep_input
+        f = ParserV1(dlm).parse_prompt
         cls = TokenInteractive
 
         # not a bug, but it is impossible to distinguish literal ',' and just a ',' as a delimiter
@@ -100,9 +101,9 @@ class TestParserV1(unittest.TestCase):
         )
 
         # error if novelai
-        # with self.assertRaises(ValueError) as e:
-        #     f("(re:stage!),", cls, dlm_in)
-        #     self.assertEqual(e.__class__, ValueError)
+        with self.assertRaises(ValueError) as e:
+            f("(re:stage!),", cls, dlm_in)
+            self.assertEqual(e.__class__, ValueError)
 
         # test if backslash escaping works
         self.assertEqual(
@@ -128,7 +129,3 @@ class TestParserV1(unittest.TestCase):
             f(r"(bba:1.2) fate \\\(series\\\),", cls, dlm_in),
             [cls(r"(bba:1.2) fate \(series\)", 1.0)],
         )
-
-
-class TestPipelineV1(unittest.TestCase):
-    pass

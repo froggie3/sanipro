@@ -17,7 +17,7 @@ class NormalParser(ParserInterface, UseDelimiterMixin):
 
 class DummyParser(NormalParser):
     def get_token(
-        self, token_cls: type[TokenInterface], sentence: str
+        self, sentence: str, token_cls: type[TokenInterface]
     ) -> typing.Generator[TokenInterface, None, None]:
         return (
             token_cls(element.strip(), 1.0)

@@ -1,6 +1,8 @@
 import logging
 import re
 import typing
+from dataclasses import dataclass
+from enum import Enum, auto
 
 from sanipro.abc import IPromptPipeline, IPromptTokenizer, MutablePrompt, TokenInterface
 from sanipro.delimiter import Delimiter
@@ -9,11 +11,24 @@ from sanipro.parser import NormalParser
 from sanipro.pipelineresult import PipelineResult
 
 
+class ParserState(Enum):
+    DEFAULT = auto()
+    ESCAPED = auto()
+    IN_PARENTHESIS = auto()
+    ESCAPED_IN_PARENTHESIS = auto()
+    AFTER_COLON = auto()
+    EMPHASIS_END = auto()
+    FAILED_PARENTHESIS = auto()
+    AFTER_FAILED = auto()
+    PARTIAL_EMPHASIS = auto()
+    ESCAPED_PARTIAL = auto()
+
+
 def parse_bad_tuple(token: str, token_cls: type[TokenInterface]) -> TokenInterface:
     """
-    split `token_combined` into left and right sides with `:`
-    when there are three or more elements,
-    the right side separated by the last colon is adopted as the strength.
+    Split `token_combined` into left and right sides with `:`
+    when there are three or more elements.
+    The right side separated by the last colon is adopted as the strength.
     """
     name_pattern = r"(.*?)"
     weight_pattern = r"(\d+(?:\.\d+)?)"
@@ -24,212 +39,268 @@ def parse_bad_tuple(token: str, token_cls: type[TokenInterface]) -> TokenInterfa
     raise ValueError
 
 
+class ParenState(Enum):
+    DEFAULT = auto()
+    ESCAPED = auto()
+
+
+@dataclass
+class ParenContext:
+    """Context class for searching parentheses."""
+
+    prompt: str
+    start: int
+    n_parens_start: int
+    n_parens_last: int
+    current_index: int
+    state: ParenState
+
+
 def find_last_paren(prompt: str, start: int, n_parens_start: int) -> int | None:
-    """Skip through the buffer until n_parens_last is at the same level
-    as the original n_parens, and returns the position of the last ')'."""
+    """
+    Skip through the buffer until n_parens_last is at the same level
+    as the original n_parens, and returns the position of the last ')'.
+    """
+    ctx = ParenContext(
+        prompt=prompt,
+        start=start,
+        n_parens_start=n_parens_start,
+        n_parens_last=n_parens_start,
+        current_index=start,
+        state=ParenState.DEFAULT,
+    )
 
-    n_parens_last = n_parens_start
-    i = start
-    m_general = 00
+    def handle_default(char: str) -> ParenState | None:
+        if char == "\\":
+            return ParenState.ESCAPED
+        elif char == "(":
+            ctx.n_parens_last += 1
+        elif char == ")":
+            ctx.n_parens_last -= 1
+            if ctx.n_parens_start == ctx.n_parens_last:
+                return None  # found
+        return ParenState.DEFAULT
 
-    def debug_print():
-        print(f"{m_general:5d} {i:5d}  {char:s}")
+    def handle_escaped(char: str) -> ParenState:
+        if char in "()":
+            return ParenState.DEFAULT
+        return ParenState.ESCAPED
 
-    while i < len(prompt):
-        char = prompt[i]
-        # debug_print()
+    handlers = {ParenState.DEFAULT: handle_default, ParenState.ESCAPED: handle_escaped}
 
-        if m_general == 00:
-            if char == "\\":
-                m_general = 10
-            elif char == "(":
-                n_parens_last += 1
-            elif char == ")":
-                n_parens_last -= 1
-                if n_parens_start == n_parens_last:
-                    return i
+    while ctx.current_index < len(prompt):
+        char = prompt[ctx.current_index]
 
-        elif m_general == 10:
-            if char == "(":
-                m_general = 00
-            elif char == ")":
-                m_general = 00
+        handler = handlers[ctx.state]
+        next_state = handler(char)
 
-        i += 1
+        # found
+        if next_state is None:
+            return ctx.current_index
+
+        ctx.state = next_state
+        ctx.current_index += 1
 
     return None
 
 
+@dataclass
+class ParserContext:
+    """Context class that holds the parser state."""
+
+    prompt: str
+    token_cls: type[TokenInterface]
+    delimiter: str
+    tokens: list[TokenInterface]
+    prompt_name: list[str]
+    prompt_weight: list[str]
+    idx_last_delimiter: int
+    n_parens: int
+    current_index: int
+    state: ParserState
+
+
 class ParserV1(NormalParser):
-    @staticmethod
+    ctx: ParserContext
+
+    def is_special_char(self, char: str) -> bool:
+        return (
+            char == "\\"
+            or char == ":"
+            or char == "("
+            or char == ")"
+            or char == self.ctx.delimiter
+        )
+
+    def try_add_if_special_char_or_error(
+        self, char: str, return_state: ParserState
+    ) -> ParserState:
+        if not self.is_special_char(char):
+            raise ValueError("no special token was found after '\\'")
+        self.ctx.prompt_name.append(char)
+        return return_state
+
+    def _handle_default(self, char: str) -> ParserState:
+        if char == "\\":
+            return ParserState.ESCAPED
+        elif char == "(":
+            self.ctx.n_parens += 1
+            return ParserState.IN_PARENTHESIS
+        elif char == ")":
+            raise ValueError("could not find the start '('")
+        elif char == self.ctx.delimiter:
+            prompt_name_concat = "".join(self.ctx.prompt_name).strip()
+            self.ctx.prompt_name.clear()
+            self.ctx.tokens.append(self.ctx.token_cls(prompt_name_concat, 1.0))
+            self.ctx.idx_last_delimiter = self.ctx.current_index + 1
+            return ParserState.DEFAULT
+        else:
+            self.ctx.prompt_name.append(char)
+            return ParserState.DEFAULT
+
+    def _handle_escaped(self, char: str) -> ParserState:
+        return self.try_add_if_special_char_or_error(char, ParserState.DEFAULT)
+
+    def _handle_in_parenthesis(self, char: str) -> ParserState:
+        if char == "\\":
+            return ParserState.ESCAPED_IN_PARENTHESIS
+        elif char == ":":
+            return ParserState.AFTER_COLON
+        elif char == "(":
+            index_last_paren = find_last_paren(
+                self.ctx.prompt, self.ctx.current_index, self.ctx.n_parens
+            )
+            if index_last_paren is None:
+                raise ValueError("unclosed parensis detected")
+
+            tmp_buffer = self.ctx.prompt[self.ctx.current_index : index_last_paren + 1]
+            self.ctx.prompt_name.extend(tmp_buffer)
+            self.ctx.current_index = index_last_paren
+            return ParserState.IN_PARENTHESIS
+        elif char == ")":
+            raise ValueError(
+                "the emphasis syntax in a1111 requires a value after a colon"
+            )
+        else:
+            self.ctx.prompt_name.append(char)
+            return ParserState.IN_PARENTHESIS
+
+    def _handle_escaped_in_parenthesis(self, char: str) -> ParserState:
+        return self.try_add_if_special_char_or_error(char, ParserState.IN_PARENTHESIS)
+
+    def _handle_after_colon(self, char: str) -> ParserState:
+        if char == ")":
+            self.ctx.n_parens -= 1
+            return ParserState.EMPHASIS_END
+        else:
+            self.ctx.prompt_weight.append(char)
+            return ParserState.AFTER_COLON
+
+    def _handle_emphasis_end(self, char: str) -> ParserState:
+        if char == self.ctx.delimiter:
+            prompt_name_concat = "".join(self.ctx.prompt_name).strip()
+            prompt_weight_concat = "".join(self.ctx.prompt_weight).strip()
+
+            self.ctx.prompt_name.clear()
+            self.ctx.prompt_weight.clear()
+
+            try:
+                self.ctx.tokens.append(
+                    self.ctx.token_cls(prompt_name_concat, float(prompt_weight_concat))
+                )
+                return ParserState.DEFAULT
+            except ValueError:
+                self.ctx.current_index = self.ctx.idx_last_delimiter - 1
+                return ParserState.FAILED_PARENTHESIS
+        else:
+            self.ctx.prompt_name.clear()
+            self.ctx.prompt_weight.clear()
+            self.ctx.current_index = self.ctx.idx_last_delimiter - 1
+            return ParserState.PARTIAL_EMPHASIS
+
+    def _handle_failed_parenthesis(self, char: str) -> ParserState:
+        if char == "(":
+            index_last_paren = find_last_paren(
+                self.ctx.prompt, self.ctx.current_index, self.ctx.n_parens
+            )
+            if index_last_paren is None:
+                raise ValueError("unclosed parensis detected")
+
+            tmp_buffer = self.ctx.prompt[self.ctx.current_index : index_last_paren + 1]
+            self.ctx.prompt_name.extend(tmp_buffer)
+            self.ctx.current_index = index_last_paren
+            return ParserState.AFTER_FAILED
+        else:
+            raise ValueError("bad transition at FAILED_PARENTHESIS")
+
+    def _handle_after_failed(self, char: str) -> ParserState:
+        if char == self.ctx.delimiter:
+            p_concat = "".join(self.ctx.prompt_name[1 : len(self.ctx.prompt_name) - 1])
+            try:
+                self.ctx.tokens.append(parse_bad_tuple(p_concat, self.ctx.token_cls))
+                return ParserState.DEFAULT
+            except ValueError:
+                logging.exception(
+                    f"parsing was failed at {char!r} in {p_concat!r}, try backslash escaping"
+                )
+                raise
+        else:
+            raise ValueError("bad transition at AFTER_FAILED")
+
+    def _handle_partial_emphasis(self, char: str) -> ParserState:
+        if char == "\\":
+            return ParserState.ESCAPED_PARTIAL
+        elif char == self.ctx.delimiter:
+            prompt_name_concat = "".join(self.ctx.prompt_name).strip()
+            self.ctx.prompt_name.clear()
+            self.ctx.tokens.append(self.ctx.token_cls(prompt_name_concat, 1.0))
+            self.ctx.idx_last_delimiter = self.ctx.current_index + 1
+            return ParserState.DEFAULT
+        else:
+            self.ctx.prompt_name.append(char)
+            return ParserState.PARTIAL_EMPHASIS
+
+    def _handle_escaped_partial(self, char: str) -> ParserState:
+        return self.try_add_if_special_char_or_error(char, ParserState.PARTIAL_EMPHASIS)
+
     def parse_prompt(
-        prompt: str, token_cls: type[TokenInterface], delimiter: str
+        self, prompt: str, token_cls: type[TokenInterface], delimiter: str
     ) -> list[TokenInterface]:
-        """
-        split `token_combined` into left and right sides with `:`
-        when there are three or more elements,
-        the right side separated by the last colon is adopted as the weight.
-        """
+        self.ctx = ParserContext(
+            prompt=prompt,
+            token_cls=token_cls,
+            delimiter=delimiter,
+            tokens=[],
+            prompt_name=[],
+            prompt_weight=[],
+            idx_last_delimiter=0,
+            n_parens=0,
+            current_index=0,
+            state=ParserState.DEFAULT,
+        )
 
-        tokens = []
-        prompt_name = []
-        prompt_weight = []
-        idx_last_delimiter = 0
-        m_general = 00
-        n_parens = 0
-        i = 0
+        handlers = {
+            ParserState.DEFAULT: self._handle_default,
+            ParserState.ESCAPED: self._handle_escaped,
+            ParserState.IN_PARENTHESIS: self._handle_in_parenthesis,
+            ParserState.ESCAPED_IN_PARENTHESIS: self._handle_escaped_in_parenthesis,
+            ParserState.AFTER_COLON: self._handle_after_colon,
+            ParserState.EMPHASIS_END: self._handle_emphasis_end,
+            ParserState.FAILED_PARENTHESIS: self._handle_failed_parenthesis,
+            ParserState.AFTER_FAILED: self._handle_after_failed,
+            ParserState.PARTIAL_EMPHASIS: self._handle_partial_emphasis,
+            ParserState.ESCAPED_PARTIAL: self._handle_escaped_partial,
+        }
 
-        def debug_print():
-            print(
-                f"{m_general:3d} {i:3d}  {char:s}  {idx_last_delimiter:3d}  %s  %s"
-                % ("".join(prompt_name), "".join(prompt_weight))
-            )
+        while self.ctx.current_index < len(prompt):
+            char = prompt[self.ctx.current_index]
+            handler = handlers[self.ctx.state]
+            self.ctx.state = handler(char)
+            self.ctx.current_index += 1
 
-        def is_special_char(char: str) -> bool:
-            return (
-                char == "\\"
-                or char == ":"
-                or char == "("
-                or char == ")"
-                or char == delimiter
-            )
+        tokens = self.ctx.tokens
 
-        def try_add_if_special_char_or_error(
-            char: str, prpt_name_ref: list[str], return_state: int
-        ) -> int:
-            if not is_special_char(char):
-                raise ValueError(f"no special token was found after '\\'")
-            prpt_name_ref.append(char)
-            return return_state
-
-        while i < len(prompt):
-            char = prompt[i]
-
-            if m_general == 00:  # default
-                if char == "\\":
-                    m_general = 10
-                elif char == "(":
-                    m_general = 20
-                    n_parens += 1
-                elif char == ")":
-                    raise ValueError("could not find the start '('")
-                elif char == delimiter:  # prompt was ended without emphasis.
-                    prompt_name_concat = "".join(prompt_name).strip()
-                    prompt_name.clear()
-                    tokens.append(token_cls(prompt_name_concat, 1.0))
-                    idx_last_delimiter = i + 1
-                else:
-                    prompt_name.append(char)
-
-            elif m_general == 10:  # in escaped
-                m_general = try_add_if_special_char_or_error(char, prompt_name, 00)
-
-            elif m_general == 20:  # in parenthesis
-                if char == "\\":
-                    m_general = 21
-                elif char == ":":
-                    m_general = 30
-                elif char == "(":
-                    index_last_paren = find_last_paren(prompt, i, n_parens)
-                    if index_last_paren is None:
-                        raise ValueError("unclosed parensis detected")
-
-                    tmp_buffer = prompt[i : index_last_paren + 1]
-                    prompt_name.extend(tmp_buffer)
-
-                    i = index_last_paren
-                elif char == ")":
-                    raise ValueError(
-                        "the emphasis syntax in a1111 requires a value after a colon"
-                    )
-                else:
-                    prompt_name.append(char)
-
-            elif m_general == 21:  # in parenthesis + escaped
-                m_general = try_add_if_special_char_or_error(char, prompt_name, 20)
-
-            elif m_general == 30:  # after a colon
-                if char == ")":
-                    m_general = 50
-                    n_parens -= 1
-                else:
-                    prompt_weight.append(char)
-
-            elif m_general == 50:  # prompt was ended with emphasis.
-                if char == delimiter:
-                    prompt_name_concat = "".join(prompt_name).strip()
-                    prompt_weight_concat = "".join(prompt_weight).strip()
-
-                    prompt_name.clear()
-                    prompt_weight.clear()
-
-                    failed = False
-                    try:
-                        tokens.append(
-                            token_cls(prompt_name_concat, float(prompt_weight_concat))
-                        )
-                    except ValueError:
-                        failed = True
-                    finally:
-                        if failed:
-                            i = idx_last_delimiter - 1
-                            m_general = 60
-                        else:
-                            m_general = 00
-
-                else:
-                    prompt_name.clear()
-                    prompt_weight.clear()
-                    i = idx_last_delimiter - 1
-                    m_general = 200
-
-            elif m_general == 60:
-                # while parsing parensis, parsing was failed.
-                # now index was returned to the position that last delimiter was.
-
-                if char == "(":
-                    index_last_paren = find_last_paren(prompt, i, n_parens)
-                    if index_last_paren is None:
-                        raise ValueError("unclosed parensis detected")
-
-                    tmp_buffer = prompt[i : index_last_paren + 1]
-                    prompt_name.extend(tmp_buffer)
-                    i = index_last_paren
-                    m_general = 70
-                else:
-                    raise ValueError("bad transition at 60")
-
-            elif m_general == 70:
-                if char == delimiter:
-                    p_concat = "".join(prompt_name[1 : len(prompt_name) - 1])
-                    try:
-                        tokens.append(parse_bad_tuple(p_concat, token_cls))
-                    except ValueError:
-                        logging.exception(
-                            f"parsing was failed at {char!r} in {p_concat!r}, try backslash escaping"
-                        )
-                        raise
-                    m_general = 00
-                else:
-                    raise ValueError("bad transition at 70")
-
-            elif m_general == 200:  # token contains partial emphasis
-                if char == "\\":
-                    m_general = 210
-                elif char == delimiter:  # prompt was ended without emphasis.
-                    prompt_name_concat = "".join(prompt_name).strip()
-                    prompt_name.clear()
-                    tokens.append(token_cls(prompt_name_concat, 1.0))
-                    idx_last_delimiter = i + 1
-                    m_general = 00
-                else:
-                    prompt_name.append(char)
-
-            elif m_general == 210:  # in escaped
-                m_general = try_add_if_special_char_or_error(char, prompt_name, 200)
-
-            i += 1
-
+        del self.ctx
         return tokens
 
     def get_token(
