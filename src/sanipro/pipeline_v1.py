@@ -81,7 +81,8 @@ class ParserV1(NormalParser):
 
         def debug_print():
             print(
-                f"{m_general:3d} {i:3d}  {char:s}  {idx_last_delimiter:3d}  '{"".join(prompt_name)}' '{"".join(prompt_weight)}'"
+                f"{m_general:3d} {i:3d}  {char:s}  {idx_last_delimiter:3d}  %s  %s"
+                % ("".join(prompt_name), "".join(prompt_weight))
             )
 
         def is_special_char(char: str) -> bool:
