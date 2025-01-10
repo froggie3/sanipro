@@ -1,13 +1,8 @@
 import unittest
 
 from sanipro.delimiter import Delimiter
-from sanipro.pipeline_v1 import (
-    InvalidSyntaxError,
-    ParserV1,
-    PromptTokenizerV1,
-    find_last_paren,
-    parse_bad_tuple,
-)
+from sanipro.parser import InvalidSyntaxError, PairedParenthesesFinder, parse_bad_tuple
+from sanipro.pipeline_v1 import ParserV1, PromptTokenizerV1
 from sanipro.token import TokenInteractive as Token
 
 
@@ -42,7 +37,10 @@ class Testfind_last_paren(unittest.TestCase):
 
         for input_text, expected in test_cases:
             with self.subTest(input_text=input_text):
-                self.assertEqual(find_last_paren(input_text, 0, 0), expected)
+                self.assertEqual(
+                    PairedParenthesesFinder(input_text, 0, 0).find_last_paren(),
+                    expected,
+                )
 
 
 class TestPromptTokenizerV1(unittest.TestCase):

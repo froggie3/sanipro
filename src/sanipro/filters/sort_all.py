@@ -1,13 +1,13 @@
-from functools import partial
+from collections.abc import Callable
 
 from sanipro.abc import MutablePrompt, Prompt
 from sanipro.filters.abc import ExecutePrompt
 
 
 class SortAllCommand(ExecutePrompt):
-    def __init__(self, sorted_partial: partial, reverse: bool = False):
-        self.sorted_partial = sorted_partial
+    def __init__(self, key: Callable, reverse: bool = False):
+        self.key = key
         self.reverse = reverse
 
     def execute_prompt(self, prompt: Prompt) -> MutablePrompt:
-        return self.sorted_partial(prompt, reverse=self.reverse)
+        return sorted(prompt, key=self.key, reverse=self.reverse)
