@@ -2,36 +2,47 @@ import unittest
 
 from sanipro.delimiter import Delimiter
 from sanipro.pipeline_v1 import (
+    InvalidSyntaxError,
     ParserV1,
     PromptTokenizerV1,
     find_last_paren,
     parse_bad_tuple,
 )
-from sanipro.token import TokenInteractive
+from sanipro.token import TokenInteractive as Token
 
 
 class Testparse_bad_tuple(unittest.TestCase):
-    def test_parse_bad_tuple(self):
-        cls = TokenInteractive
-        f = parse_bad_tuple
+    def test_emphasis(self):
+        test_cases = [
+            ("(white dress:1.2)", Token("white dress", 1.2)),
+            ("(re:stage!:1.2)", Token("re:stage!", 1.2)),
+            (
+                "(aaa, (sailor:1.2) (hat:1.2):1.3)",
+                Token("aaa, (sailor:1.2) (hat:1.2)", 1.3),
+            ),
+            ("(::1.2)", Token(":", 1.2)),
+        ]
 
-        self.assertEqual(f("brown hair:1.2", cls), cls("brown hair", 1.2))
-        self.assertEqual(f("1girl", cls), cls("1girl", 1.0))
-        self.assertEqual(f("brown:hair:1.2", cls), cls("brown:hair", 1.2))
-        self.assertEqual(f("brown:hair", cls), cls("brown:hair", 1.0))
+        for input_text, expected in test_cases:
+            with self.subTest(input_text=input_text):
+                self.assertEqual(parse_bad_tuple(input_text, Token), expected)
 
 
 class Testfind_last_paren(unittest.TestCase):
     def test_find_last_paren(self):
-        f = find_last_paren
+        test_cases = [
+            (r"(\),", None),
+            # a
+            ("((aba:0.9), abb:1.2),", 19),
+            ("(ab, ((aba:0.9), baa:1.1):1.1),", 29),
+            # b
+            (r"(fate \(series\):0.9),", 20),
+            (r"((fate \(series\):0.9), abb:1.2),", 31),
+        ]
 
-        self.assertEqual(f(r"(\),", 0, 0), None)
-
-        self.assertEqual(f("((aba:0.9), abb:1.2),", 0, 0), 19)
-        self.assertEqual(f("(ab, ((aba:0.9), baa:1.1):1.1),", 0, 0), 29)
-
-        self.assertEqual(f(r"(fate \(series\):0.9),", 0, 0), 20)
-        self.assertEqual(f(r"((fate \(series\):0.9), abb:1.2),", 0, 0), 31)
+        for input_text, expected in test_cases:
+            with self.subTest(input_text=input_text):
+                self.assertEqual(find_last_paren(input_text, 0, 0), expected)
 
 
 class TestPromptTokenizerV1(unittest.TestCase):
@@ -39,8 +50,7 @@ class TestPromptTokenizerV1(unittest.TestCase):
         self.dlm = Delimiter(",", ", ")
         self.dlm_in = self.dlm.sep_input
         self.psr = ParserV1(self.dlm)
-        self.token_cls = TokenInteractive
-        self.tk = PromptTokenizerV1(self.psr, self.token_cls)
+        self.tk = PromptTokenizerV1(self.psr, Token)
 
     def test_add_last_comma(self):
         self.assertEqual(self.tk._add_last_comma("42", self.dlm_in), "42,")
@@ -53,79 +63,119 @@ class TestPromptTokenizerV1(unittest.TestCase):
 class TestParserV1(unittest.TestCase):
     def setUp(self) -> None:
         self.psr = ParserV1(Delimiter(",", ", "))
-
-    def test_parse_prompt(self):
         dlm = Delimiter(",", ", ")
-        dlm_in = dlm.sep_input
-        f = ParserV1(dlm).parse_prompt
-        cls = TokenInteractive
+        self.parser = ParserV1(dlm)
+        self.delimiter = dlm.sep_input
 
-        # not a bug, but it is impossible to distinguish literal ',' and just a ',' as a delimiter
-        self.assertEqual(f(",", cls, dlm_in), [cls("", 1.0)])
-        self.assertEqual(f(",,", cls, dlm_in), [cls("", 1.0), cls("", 1.0)])
-        self.assertEqual(
-            f(",,,", cls, dlm_in), [cls("", 1.0), cls("", 1.0), cls("", 1.0)]
-        )
+    def test_basic_parsing(self):
+        test_cases = [
+            # test if normal emphasis works
+            ("1girl,", [Token("1girl", 1.0)]),
+            ("(black hair:.7),", [Token("black hair", 0.7)]),
+            ("(black hair:1.1),", [Token("black hair", 1.1)]),
+            # not a bug, but it is impossible to distinguish literal ',' and just a ',' as a delimiter
+            (",", [Token("", 1.0)]),
+            (",,", [Token("", 1.0), Token("", 1.0)]),
+            (",,,", [Token("", 1.0), Token("", 1.0), Token("", 1.0)]),
+            # not a bug
+            ("(,:1.1),", [Token(",", 1.1)]),
+        ]
 
-        # not a bug
-        self.assertEqual(f("(,:1.1),", cls, dlm_in), [cls(",", 1.1)])
+        for input_text, expected in test_cases:
+            with self.subTest(input_text=input_text):
+                result = self.parser.parse_prompt(input_text, Token, self.delimiter)
+                self.assertEqual(result, expected)
 
-        # using escape for parser to parse literal "delimiter"
-        self.assertEqual(f(r"\,,", cls, dlm_in), [cls(r",", 1.0)])
-        self.assertEqual(f(r"\,\,,", cls, dlm_in), [cls(",,", 1.0)])
+    def test_handling_colon(self):
+        test_cases = [
+            (r":,", [Token(":", 1.0)]),
+            (r"(::1.1),", [Token(":", 1.1)]),
+            (r"(::1.1), aaa,", [Token(":", 1.1), Token("aaa", 1.0)]),
+            (r"(::1.1), (::1.2),", [Token(":", 1.1), Token(":", 1.2)]),
+            (r":d,", [Token(":d", 1.0)]),
+            (r"(:3:1.2),", [Token(":3", 1.2)]),
+            (r"(re:stage!:1.2),", [Token("re:stage!", 1.2)]),
+        ]
 
-        # test if normal emphasis works
-        self.assertEqual(f("1girl,", cls, dlm_in), [cls("1girl", 1.0)])
-        self.assertEqual(f("(black hair:1.1),", cls, dlm_in), [cls("black hair", 1.1)])
+        for input_text, expected in test_cases:
+            with self.subTest(input_text=input_text):
+                result = self.parser.parse_prompt(input_text, Token, self.delimiter)
+                self.assertEqual(result, expected)
 
-        # wicked characters
-        self.assertEqual(f(r"\:d,", cls, dlm_in), [cls(":d", 1.0)])
-        self.assertEqual(f(r"(\:3:1.2),", cls, dlm_in), [cls(":3", 1.2)])
+    def test_escape_characters(self):
+        test_cases = [
+            # using escape for parser to parse literal "delimiter"
+            (r"\,,", [Token(r",", 1.0)]),
+            (r"\,\,,", [Token(",,", 1.0)]),
+        ]
 
-        # raise error if normal character was found after a backslash
-        with self.assertRaises(ValueError) as e:
-            f(r"\a,", cls, dlm_in)
-            self.assertEqual(e.__class__, ValueError)
+        for input_text, expected in test_cases:
+            with self.subTest(input_text=input_text):
+                result = self.parser.parse_prompt(input_text, Token, self.delimiter)
+                self.assertEqual(result, expected)
 
-        # bashslash itself
-        self.assertEqual(f(r"\\,", cls, dlm_in), [cls("\\", 1.0)])
+    def test_escaping_backslashes(self):
+        test_cases = [
+            # bashslash itself
+            (r"\\,", [Token("\\", 1.0)]),
+            # note: "\(series\)" will be escaped as \\, \(, series, \\, and \).
+            (r"\\\(series\\\),", [Token(r"\(series\)", 1.0)]),
+            (r"fate \\\(series\\\),", [Token(r"fate \(series\)", 1.0)]),
+            (r"(fate \\\(series\\\):1.1),", [Token(r"fate \(series\)", 1.1)]),
+        ]
 
-        # escaped paren -> "\(aiueo\)" -> for parser to read, should be "\\(aiueo\\)"
-        self.assertEqual(f(r"\\\(series\\\),", cls, dlm_in), [cls(r"\(series\)", 1.0)])
+        for input_text, expected in test_cases:
+            with self.subTest(input_text=input_text):
+                result = self.parser.parse_prompt(input_text, Token, self.delimiter)
+                self.assertEqual(result, expected)
 
-        # wicked characters + emphasis
-        self.assertEqual(f(r"(re\:stage!:1.2),", cls, dlm_in), [cls("re:stage!", 1.2)])
-        self.assertEqual(
-            f(r"(fate \\\(series\\\):1.2),", cls, dlm_in),
-            [cls(r"fate \(series\)", 1.2)],
-        )
+    def test_nested_parentheses(self):
+        test_cases = [
+            # test if meta paren block works
+            (
+                "aaa, (sailor:1.2) (hat:1.2),",
+                [Token("aaa", 1.0), Token("(sailor:1.2) (hat:1.2)", 1.0)],
+            ),
+            (
+                "(aaa, (sailor:1.2) (hat:1.2):1.3),",
+                [Token("aaa, (sailor:1.2) (hat:1.2)", 1.3)],
+            ),
+            # test if escaping works
+            (
+                r"(bba:1.2) fate \\\(series\\\),",
+                [Token(r"(bba:1.2) fate \(series\)", 1.0)],
+            ),
+        ]
 
-        # error if novelai
-        with self.assertRaises(ValueError) as e:
-            f("(re:stage!),", cls, dlm_in)
-            self.assertEqual(e.__class__, ValueError)
+        for input_text, expected in test_cases:
+            with self.subTest(input_text=input_text):
+                result = self.parser.parse_prompt(input_text, Token, self.delimiter)
+                self.assertEqual(result, expected)
 
-        # test if backslash escaping works
-        self.assertEqual(
-            f(r"fate \\\(series\\\),", cls, dlm_in), [cls(r"fate \(series\)", 1.0)]
-        )
-        self.assertEqual(
-            f(r"(fate \\\(series\\\):1.1),", cls, dlm_in),
-            [cls(r"fate \(series\)", 1.1)],
-        )
+    def test_error(self):
+        error_cases = [
+            # raise error if normal character was found after a backslash
+            (r"\a,", InvalidSyntaxError),
+            # must be escaped
+            ("(,", InvalidSyntaxError),
+            ("),", InvalidSyntaxError),
+            ("(),", InvalidSyntaxError),
+            # don't escape me
+            (r"\:d,", InvalidSyntaxError),
+            (r"(\:3:1.2),", InvalidSyntaxError),
+            (r"(re\:stage!:1.2),", InvalidSyntaxError),
+            # emphasizing empty character
+            ("(:1.2),", InvalidSyntaxError),
+            # unfinished
+            ("(aaa:1.),", InvalidSyntaxError),
+            # emphasized token does not have numetical emphasis
+            ("(white dress),", InvalidSyntaxError),
+            ("(re:stage!),", InvalidSyntaxError),
+        ]
 
-        # test if meta paren block works
-        self.assertEqual(
-            f("aaa, (sailor:1.2) (hat:1.2),", cls, dlm_in),
-            [cls("aaa", 1.0), cls("(sailor:1.2) (hat:1.2)", 1.0)],
-        )
-        self.assertEqual(
-            f("(aaa, (sailor:1.2) (hat:1.2):1.3),", cls, dlm_in),
-            [cls("aaa, (sailor:1.2) (hat:1.2)", 1.3)],
-        )
-
-        # test if escaping works
-        self.assertEqual(
-            f(r"(bba:1.2) fate \\\(series\\\),", cls, dlm_in),
-            [cls(r"(bba:1.2) fate \(series\)", 1.0)],
-        )
+        for input_text, error_type in error_cases:
+            with self.subTest(input_text=input_text):
+                try:
+                    self.parser.parse_prompt(input_text, Token, self.delimiter)
+                except Exception as err:
+                    self.assertTrue(type(err), error_type)
