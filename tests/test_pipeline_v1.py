@@ -15,6 +15,8 @@ class Testparse_bad_tuple(unittest.TestCase):
     def test_emphasis(self):
         test_cases = [
             ("(white dress:1.2)", Token("white dress", 1.2)),
+            ("(white dress:+1.2)", Token("white dress", 1.2)),
+            ("(white dress:-1.2)", Token("white dress", -1.2)),
             ("(re:stage!:1.2)", Token("re:stage!", 1.2)),
             (
                 "(aaa, (sailor:1.2) (hat:1.2):1.3)",
@@ -71,8 +73,12 @@ class TestParserV1(unittest.TestCase):
         test_cases = [
             # test if normal emphasis works
             ("1girl,", [Token("1girl", 1.0)]),
-            ("(black hair:.7),", [Token("black hair", 0.7)]),
             ("(black hair:1.1),", [Token("black hair", 1.1)]),
+            # abbribiating left side of decimal point
+            ("(black hair:.7),", [Token("black hair", 0.7)]),
+            # weight as signed number
+            ("(black hair:-.7),", [Token("black hair", -0.7)]),
+            ("(black hair:-1.1),", [Token("black hair", -1.1)]),
             # not a bug, but it is impossible to distinguish literal ',' and just a ',' as a delimiter
             (",", [Token("", 1.0)]),
             (",,", [Token("", 1.0), Token("", 1.0)]),

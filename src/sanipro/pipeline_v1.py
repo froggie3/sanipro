@@ -43,7 +43,7 @@ def parse_bad_tuple(token: str, token_cls: type[TokenInterface]) -> TokenInterfa
     even when there are three or more elements.
     """
 
-    pattern = r"\((.*):(\d+(?:\.\d+)?)\)"
+    pattern = r"\((.*):([+-]?\d+(?:\.\d+)?)\)"
     m = re.match(pattern, token)
     if m:
         prompt_name = m.group(1)
