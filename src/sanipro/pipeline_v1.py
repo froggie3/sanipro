@@ -1,12 +1,18 @@
 import logging
 import re
 import typing
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum, auto
 
 from sanipro.abc import IPromptPipeline, IPromptTokenizer, MutablePrompt, TokenInterface
 from sanipro.delimiter import Delimiter
 from sanipro.filter_exec import IFilterExecutor
+from sanipro.mixins import (
+    ParserPropertyMixins,
+    PromptPipelinePropertyMixins,
+    TokenizerPropertyMixins,
+)
 from sanipro.parser import NormalParser
 from sanipro.pipelineresult import PipelineResult
 
@@ -131,7 +137,7 @@ class _PromptWeight(_CharStack):
 
 
 @dataclass
-class ParserContext:
+class _A1111ParserContext:
     """Context class that holds the parser state."""
 
     prompt: str
@@ -160,8 +166,8 @@ class ParserContext:
         print(self.__repr__())
 
 
-class ParserV1(NormalParser):
-    ctx: ParserContext
+class A1111Parser(NormalParser, ParserPropertyMixins):
+    ctx: _A1111ParserContext
 
     def is_special_char(self, char: str) -> bool:
         return char in f"\\(){self.ctx.delimiter}"
@@ -323,7 +329,7 @@ class ParserV1(NormalParser):
     def parse_prompt(
         self, prompt: str, token_cls: type[TokenInterface], delimiter: str
     ) -> list[TokenInterface]:
-        self.ctx = ParserContext(
+        self.ctx = _A1111ParserContext(
             prompt=prompt,
             token_cls=token_cls,
             delimiter=delimiter,
@@ -369,7 +375,7 @@ class ParserV1(NormalParser):
             yield token
 
 
-class PromptTokenizerV1(IPromptTokenizer):
+class A1111Tokenizer(IPromptTokenizer, TokenizerPropertyMixins):
     def __init__(self, parser: NormalParser, token_cls: type[TokenInterface]) -> None:
         self._parser = parser
         self._token_cls = token_cls
@@ -390,44 +396,40 @@ class PromptTokenizerV1(IPromptTokenizer):
         prompt = self._preprocess(prompt)
         return list(self._parser.get_token(prompt, self._token_cls))
 
-    @property
-    def token_cls(self) -> type[TokenInterface]:
-        return self._token_cls
-
     def _preprocess(self, prompt: str) -> str:
         """Some preprocesses for ease of implementation."""
 
-        delim = self._parser._delimiter.sep_input
+        delim = self._parser.delimiter.sep_input
         prompt = self._strip_last_break(prompt)
         prompt = self._add_last_comma(prompt, delim)
 
         return prompt
 
 
-class PromptPipelineV1(IPromptPipeline):
+class PromptPipelineV1(IPromptPipeline, PromptPipelinePropertyMixins):
     """Automated interface."""
-
-    _tokens: MutablePrompt
-    _tokenizer: PromptTokenizerV1
-    _filter_executor: IFilterExecutor
 
     def __init__(
         self,
-        tokenizer: PromptTokenizerV1,
-        filterexecutor: IFilterExecutor,
+        tokenizer: IPromptTokenizer,
+        filter_executor: IFilterExecutor,
+        token_formatter: Callable,
         tokens: MutablePrompt | None = None,
     ) -> None:
+        self._tokens: MutablePrompt
         if tokens is None:
             self._tokens = []
         else:
             self._tokens = tokens
 
         self._tokenizer = tokenizer
-        self._filter_executor = filterexecutor
+        self._filter_executor = filter_executor
+        self._token_formatter = token_formatter
 
     def __str__(self) -> str:
-        delim = self._tokenizer._parser._delimiter.sep_output
-        return delim.join(str(token) for token in self._tokens)
+        delim = self._tokenizer.parser.delimiter.sep_output
+        formatter = self._token_formatter
+        return delim.join(formatter(token) for token in self._tokens)
 
     def tokenize(self, source: str) -> MutablePrompt:
         return self._tokenizer.tokenize_prompt(source)
@@ -438,27 +440,25 @@ class PromptPipelineV1(IPromptPipeline):
         return PipelineResult(tokenized, self._tokens)
 
     def new(self, prompt: MutablePrompt):
-        return type(self).__init__(self, self._tokenizer, self._filter_executor, prompt)
-
-    @property
-    def tokenizer(self) -> IPromptTokenizer:
-        return self._tokenizer
-
-    @property
-    def delimiter(self) -> Delimiter:
-        return self._tokenizer._parser._delimiter
-
-    @property
-    def filter_executor(self) -> IFilterExecutor:
-        return self._filter_executor
+        return type(self).__init__(
+            self, self._tokenizer, self._filter_executor, self._token_formatter, prompt
+        )
 
 
 def create_pipeline(
-    sepin: str, sepout: str, token_cls: type[TokenInterface], filt: IFilterExecutor
+    sepin: str,
+    sepout: str,
+    token_cls: type[TokenInterface],
+    filt: IFilterExecutor,
+    token_formatter: Callable,
 ) -> PromptPipelineV1:
+    """Handy funtion to create a pipeline."""
+
     delimiter = Delimiter(sepin, sepout)
-    parser = ParserV1(delimiter=delimiter)
-    tokenizer = PromptTokenizerV1(parser=parser, token_cls=token_cls)
-    pipeline = PromptPipelineV1(tokenizer=tokenizer, filterexecutor=filt)
+    parser = A1111Parser(delimiter=delimiter)
+    tokenizer = A1111Tokenizer(parser=parser, token_cls=token_cls)
+    pipeline = PromptPipelineV1(
+        tokenizer=tokenizer, filter_executor=filt, token_formatter=token_formatter
+    )
 
     return pipeline

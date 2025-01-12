@@ -15,9 +15,17 @@ class PromptDifferenceDetector:
     def get_summary(self) -> list[str]:
         """Get the summary of the difference"""
         lines = []
-        lines.append(
-            f"number of tokens -> {self.a} => {self.b} ({self.judged_result} {self.percentage:.2f}%)"
-        )
+
+        try:
+            lines.append(
+                f"number of tokens -> {self.a} => {self.b} ({self.judged_result} {self.percentage:.2f}%)"
+            )
+        except ZeroDivisionError:
+            # possibly nothing was input
+            lines.append(
+                f"number of tokens -> {self.a} => {self.b} ({self.judged_result})"
+            )
+
         lines.append(f"reduced -> {self.reduced_num}")
         delimiter = ", "
         lines.append(

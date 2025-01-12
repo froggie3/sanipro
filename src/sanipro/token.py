@@ -44,23 +44,11 @@ class Token(TokenInterface):
         return hash((self._name, self._weight))
 
 
-class TokenInteractive(Token):
+class A1111Token(Token):
     def __init__(self, name: str, weight: float) -> None:
         Token.__init__(self, name, weight)
-        self._delimiter = ":"
-
-    def __str__(self) -> str:
-        if self.weight != 1.0:
-            return f"({self.name}{self._delimiter}{self.weight})"
-        return self.name
 
 
-class TokenNonInteractive(Token):
+class CSVToken(Token):
     def __init__(self, name: str, weight: float) -> None:
         Token.__init__(self, name, weight)
-        # defining 'delimiter' between token and weight helps to
-        # pass the result of this command to like `column -t -s"\t"`
-        self._delimiter = "\t"
-
-    def __str__(self) -> str:
-        return f"{self.name}{self._delimiter}{self.weight}"

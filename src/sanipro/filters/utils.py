@@ -36,9 +36,3 @@ def collect_same_tokens_sorted(
         sorted(token, key=f, reverse=reverse)
         for token in collect_same_tokens(prompt).values()
     )
-
-
-if __name__ == "__main__":
-    import doctest
-
-    doctest.testmod()

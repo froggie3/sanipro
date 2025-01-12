@@ -17,36 +17,27 @@ class TokenInterface(ABC):
 
     @property
     @abstractmethod
-    def name(self) -> str: ...
+    def name(self) -> str:
+        """Token."""
 
     @property
     @abstractmethod
-    def weight(self) -> float: ...
+    def weight(self) -> float:
+        """Weight."""
 
     @property
     @abstractmethod
-    def length(self) -> int: ...
+    def length(self) -> int:
+        """The length of the token."""
 
     @abstractmethod
     def replace(
         self, *, new_name: str | None = None, new_weight: float | None = None
-    ) -> Self: ...
+    ) -> Self:
+        """Replace a specific property of the token."""
 
     @abstractmethod
     def __repr__(self) -> str: ...
-
-    @abstractmethod
-    def __str__(self) -> str: ...
-
-
-class ParserInterface(ABC):
-    """Interface for the parser."""
-
-    @abstractmethod
-    def get_token(
-        self, sentence: str, token_cls: type[TokenInterface]
-    ) -> typing.Generator[TokenInterface, None, None]:
-        """Get the token from the sentence."""
 
 
 Prompt = Sequence[TokenInterface]
@@ -54,59 +45,98 @@ Prompt = Sequence[TokenInterface]
 MutablePrompt = MutableSequence[TokenInterface]
 
 
-class IPromptTokenizer(ABC):
-    """Interface for the prompt tokenizer."""
+class TokenGettableMixin(ABC):
+    @abstractmethod
+    def get_token(
+        self, sentence: str, token_cls: type[TokenInterface]
+    ) -> typing.Generator[TokenInterface, None, None]:
+        """Get the token from the sentence."""
 
+
+class DelimiterGetterMixin(ABC):
+    @property
+    @abstractmethod
+    def delimiter(self) -> "Delimiter":
+        """Get delimiter."""
+
+
+class ParserInterface(TokenGettableMixin, DelimiterGetterMixin, ABC):
+    """Interface for the parser."""
+
+
+class TokenClassGetterMixin(ABC):
+    @property
+    @abstractmethod
+    def token_cls(self) -> type[TokenInterface]:
+        """Get token class."""
+
+
+class ParserGetterMixin(ABC):
+    @property
+    @abstractmethod
+    def parser(self) -> ParserInterface:
+        """Get parser."""
+
+
+class IPromptTokenizerTokenizableMixin(ABC):
     @abstractmethod
     def tokenize_prompt(self, prompt: str) -> MutablePrompt:
         """Tokenize the prompt string using the parser."""
 
-    @property
-    def token_cls(self) -> type[TokenInterface]: ...
+
+class IPromptTokenizer(
+    IPromptTokenizerTokenizableMixin,
+    ParserGetterMixin,
+    DelimiterGetterMixin,
+    TokenClassGetterMixin,
+    ABC,
+):
+    """Interface for the prompt tokenizer."""
+
+    @abstractmethod
+    def __init__(
+        self, parser: ParserInterface, token_cls: type[TokenInterface]
+    ) -> None: ...
 
 
 class IPipelineResult(ABC):
     """Interface for the result."""
 
     @abstractmethod
-    def get_summary(self) -> list[str]: ...
+    def get_summary(self) -> list[str]:
+        """Get the result of the pipeline."""
 
 
-class IPromptPipelineExecutable(ABC):
+class IPromptPipelineExecutableMixin(ABC):
     @abstractmethod
     def execute(self, prompt: str) -> IPipelineResult:
         """Tokenize the prompt string using the parser interface."""
 
 
-class IPromptPipelineSelializable(ABC):
+class IPromptPipelineSelializableMixin(ABC):
     @abstractmethod
     def __str__(self) -> str:
         """Stringify the pipeline."""
-        ...
 
 
-class IPromptPipelineTokenizerGetter(ABC):
+class TokenizerGetterMixin(ABC):
     @property
     @abstractmethod
-    def tokenizer(self) -> IPromptTokenizer: ...
+    def tokenizer(self) -> IPromptTokenizer:
+        """Get tokenizer."""
 
 
-class IPromptPipelineDelimiterGetter(ABC):
-    @property
+class IPromptPipelineDelimiterNewableMixin(ABC):
     @abstractmethod
-    def delimiter(self) -> "Delimiter": ...
-
-
-class IPromptPipelineDelimiterNewable(ABC):
-    @abstractmethod
-    def new(self, prompt: MutablePrompt): ...
+    def new(self, prompt: MutablePrompt):
+        """Creates a new instance of the pipeline, importing new prompt."""
 
 
 class IPromptPipeline(
-    IPromptPipelineExecutable,
-    IPromptPipelineSelializable,
-    IPromptPipelineTokenizerGetter,
-    IPromptPipelineDelimiterGetter,
-    IPromptPipelineDelimiterNewable,
+    IPromptPipelineExecutableMixin,
+    IPromptPipelineDelimiterNewableMixin,
+    IPromptPipelineSelializableMixin,
+    TokenizerGetterMixin,
+    DelimiterGetterMixin,
 ):
-    pass
+    """PromptPipeline interface."""

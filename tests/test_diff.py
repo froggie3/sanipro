@@ -1,13 +1,13 @@
 import unittest
 
 from sanipro.diff import PromptDifferenceDetector
-from sanipro.token import TokenInteractive
+from sanipro.token import A1111Token
 
 
 class TestPromptDifferenceDetector(unittest.TestCase):
     def setUp(self) -> None:
         dec = PromptDifferenceDetector
-        cls = TokenInteractive
+        cls = A1111Token
         a = [cls("42", 1.0), cls("43", 1.0)]
         b = [cls("42", 1.0), cls("43", 1.0)]
         self.dec = dec(a, b)  # BUG
