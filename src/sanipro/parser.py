@@ -22,7 +22,7 @@ class DummyParser(NormalParser):
     ) -> typing.Generator[TokenInterface, None, None]:
         return (
             token_cls(element.strip(), 1.0)
-            for element in sentence.strip().split(self._delimiter.sep_input)
+            for element in sentence.split(self._delimiter.sep_input)
         )
 
 

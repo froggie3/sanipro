@@ -11,6 +11,7 @@ from sanipro.filter_exec import IFilterExecutor
 from sanipro.mixins import (
     ParserPropertyMixins,
     PromptPipelinePropertyMixins,
+    StripLastBreakMixin,
     TokenizerPropertyMixins,
 )
 from sanipro.parser import NormalParser
@@ -375,15 +376,10 @@ class A1111Parser(NormalParser, ParserPropertyMixins):
             yield token
 
 
-class A1111Tokenizer(IPromptTokenizer, TokenizerPropertyMixins):
+class A1111Tokenizer(IPromptTokenizer, TokenizerPropertyMixins, StripLastBreakMixin):
     def __init__(self, parser: NormalParser, token_cls: type[TokenInterface]) -> None:
         self._parser = parser
         self._token_cls = token_cls
-
-    def _strip_last_break(self, prompt: str) -> str:
-        """Strip last line break."""
-
-        return prompt.strip()
 
     def _add_last_comma(self, prompt: str, sep: str) -> str:
         """Adds a comma to the prompt at the last."""

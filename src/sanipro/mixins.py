@@ -56,3 +56,9 @@ class ParserPropertyMixins(DelimiterGetterMixin):
     @property
     def delimiter(self) -> Delimiter:
         return self._delimiter
+
+
+class StripLastBreakMixin:
+    def _strip_last_break(self, prompt: str) -> str:
+        """Strip last line break."""
+        return prompt.strip()
