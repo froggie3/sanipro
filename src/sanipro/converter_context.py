@@ -1,5 +1,6 @@
 import typing
 from dataclasses import dataclass
+from enum import Enum
 from typing import Callable, Optional
 
 import yaml
@@ -9,6 +10,26 @@ from sanipro.parser import CSVParser, NormalParser
 from sanipro.pipeline_v1 import A1111Parser, A1111Tokenizer
 from sanipro.token import A1111Token, CSVToken
 from sanipro.tokenizer import SimpleTokenizer
+
+
+class ConfigError(Exception):
+    """Raises this error when the property of the config is unrecognizable,
+    missing, not found, and so on."""
+
+    def __init__(self, path: str | None = None, *args: object) -> None:
+        super().__init__(*args)
+        self.path = path
+
+
+class SupportedTokenType(Enum):
+    """Supported token types."""
+
+    A1111 = "a1111"
+    CSV = "csv"
+
+    @staticmethod
+    def choises() -> list[str]:
+        return [item.value for item in SupportedTokenType]
 
 
 @dataclass
@@ -67,52 +88,55 @@ class Config:
 
         try:
             return getattr(self, key)
-        except AttributeError:
-            raise AttributeError(f"failed to retrieve the config")
+        except AttributeError as e:
+            raise type(e)(self._error_bad_keyname(key))
 
     def get_input_token_separator(self, key: str) -> str:
         """The input token separator from the name of corresponded key type."""
-        _config = self
 
-        return _config.get(key).input.token_separator
+        return self.get(key).input.token_separator
 
     def get_output_token_separator(self, key: str) -> str:
         """The output token separator from the name of corresponded key type."""
-        _config = self
 
-        return _config.get(key).output.token_separator
+        return self.get(key).output.token_separator
 
     def _get_input_field_separator(self, key: str) -> str:
         """The input field separator from the name of corresponded key type."""
-        _config = self
 
-        return _config.get(key).input.field_separator
+        return self.get(key).input.field_separator
 
     def _get_output_field_separator(self, key: str) -> str:
         """The output field separator from the name of corresponded key type."""
-        _config = self
 
-        return _config.get(key).output.field_separator
+        return self.get(key).output.field_separator
 
     def _get_token_map_mixin(self, field_separator: str) -> dict[str, TokenMap]:
+        """Generate a template of token map from field separator."""
+
         return {
             "a1111": TokenMap(
-                type_name="a1111",
-                token_type=A1111Token,
-                field_separator=field_separator,
-                formatter=format_a1111_token,
-                tokenizer=A1111Tokenizer,
-                parser=A1111Parser,
+                SupportedTokenType.A1111.value,
+                A1111Token,
+                field_separator,
+                format_a1111_token,
+                A1111Tokenizer,
+                A1111Parser,
             ),
             "csv": TokenMap(
-                type_name="csv",
-                token_type=CSVToken,
-                field_separator=field_separator,
-                formatter=format_csv_token,
-                tokenizer=SimpleTokenizer,
-                parser=CSVParser,
+                SupportedTokenType.CSV.value,
+                CSVToken,
+                field_separator,
+                format_csv_token,
+                SimpleTokenizer,
+                CSVParser,
             ),
         }
+
+    def _error_bad_keyname(self, bad_key_name: str) -> str:
+        """Error message template."""
+
+        return f"unsupported token type was supplied: {bad_key_name}"
 
     def get_input_token_class(self, key: str) -> TokenMap:
         """Get the input token type from the name of corresponded key type."""
@@ -120,7 +144,10 @@ class Config:
         field_separator = self._get_input_field_separator(key)
         token_map = self._get_token_map_mixin(field_separator)
 
-        return token_map[key]
+        try:
+            return token_map[key]
+        except KeyError as e:
+            raise type(e)(self._error_bad_keyname(key))
 
     def get_output_token_class(self, key: str) -> TokenMap:
         """Get the output token type from the name of corresponded key type."""
@@ -128,7 +155,10 @@ class Config:
         field_separator = self._get_output_field_separator(key)
         token_map = self._get_token_map_mixin(field_separator)
 
-        return token_map[key]
+        try:
+            return token_map[key]
+        except KeyError as e:
+            raise type(e)(self._error_bad_keyname(key))
 
 
 def config_load_from_yaml(yaml_data: typing.Any) -> Config:
@@ -148,36 +178,40 @@ def config_load_from_yaml(yaml_data: typing.Any) -> Config:
             yaml_data["csv"]["output"]["field_separator"],
         ),
     )
-
     return Config(a1111, csv)
 
 
-def config_from_file(file_path: str) -> Config:
+def config_from_file(path: str) -> Config:
     """Read config from a file path."""
 
-    with open(file_path, "r") as stream:
-        data_loaded = yaml.safe_load(stream)
-        return config_load_from_yaml(data_loaded)
+    try:
+        with open(path, "r") as stream:
+            data_loaded = yaml.safe_load(stream)
+            return config_load_from_yaml(data_loaded)
+    except Exception:
+        raise ConfigError(path=path)
 
 
 def config_from_str(data: str) -> Config:
     """Read config directly from the string."""
 
     data_loaded = yaml.safe_load(data)
-    return config_load_from_yaml(data_loaded)
+    try:
+        return config_load_from_yaml(data_loaded)
+    except Exception:
+        raise ConfigError
 
 
-def get_config(file_path: str | None = None) -> Config:
+def get_config(path: str | None = None) -> Config:
     """Get a config from filepath. The default config is returned
     if None is specified."""
 
-    if file_path is None:
-        return Config(
-            A1111Config(InputConfig(","), OutputConfig(", ")),
-            CSVConfig(InputConfig("\n", "@"), OutputConfig("\n", " ")),
-        )
-    else:
-        return config_from_file(file_path)
+    if path is None:
+        a1111 = A1111Config(InputConfig(","), OutputConfig(", "))
+        csv = CSVConfig(InputConfig("\n", "\t"), OutputConfig("\n", "\t"))
+        return Config(a1111, csv)
+
+    return config_from_file(path)
 
 
 def format_a1111_token(token: A1111Token) -> str:

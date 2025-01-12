@@ -8,9 +8,9 @@ package-mode = true
 
 [tool.poetry.dependencies]
 python = "^3.10"
+pyyaml = "^6.0.2"
 typing-extensions = "^4.12.2"
 networkx = "^3.4.2"
-pyyaml = "^6.0.2"
 
 [build-system]
 requires = ["poetry-core"]
