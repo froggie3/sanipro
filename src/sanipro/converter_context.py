@@ -7,9 +7,15 @@ import yaml
 
 from sanipro.abc import IPromptTokenizer, TokenInterface
 from sanipro.parser import CSVParser, NormalParser
-from sanipro.parser_a1111 import A1111CompatParser, A1111Parser
+from sanipro.parser_a1111 import A1111Parser
 from sanipro.pipeline_v1 import A1111Tokenizer
-from sanipro.token import A1111Token, CSVToken
+from sanipro.token import (
+    A1111Token,
+    CSVToken,
+    format_a1111_compat_token,
+    format_a1111_token,
+    format_csv_token,
+)
 from sanipro.tokenizer import SimpleTokenizer
 
 
@@ -26,7 +32,7 @@ class SupportedInTokenType(Enum):
     """Supported token types."""
 
     # used in option
-    A1111 = "a1111"
+    A1111 = "a1111compat"
     CSV = "csv"
 
     @staticmethod
@@ -149,7 +155,7 @@ class Config:
                 field_separator,
                 format_a1111_token,
                 A1111Tokenizer,
-                A1111CompatParser,
+                A1111Parser,
             ),
             "csv": TokenMap(
                 "csv",
@@ -183,9 +189,9 @@ class Config:
                 "a1111_compat",
                 A1111Token,
                 field_separator,
-                format_a1111_token,
+                format_a1111_compat_token,
                 A1111Tokenizer,
-                A1111CompatParser,
+                A1111Parser,
             ),
             "csv": TokenMap(
                 "csv",
@@ -259,21 +265,3 @@ def get_config(path: str | None = None) -> Config:
         return Config(a1111, a1111_compat, csv)
 
     return config_from_file(path)
-
-
-def format_a1111_token(token: A1111Token) -> str:
-    """Callback function to format a A1111Token."""
-
-    if token.weight != 1.0:
-        return f"({token.name}:{token.weight})"
-
-    return token.name
-
-
-def format_csv_token(field_separator: str) -> Callable:
-    """Callback function to format a CSVToken."""
-
-    def f(token: CSVToken) -> str:
-        return f"{token.name}{field_separator}{token.weight}"
-
-    return f

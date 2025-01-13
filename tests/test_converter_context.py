@@ -15,7 +15,7 @@ from sanipro.converter_context import (
 
 class TestSupportedInTokenType(unittest.TestCase):
     def test_choises(self):
-        self.assertEqual(SupportedInTokenType.choises(), ["a1111", "csv"])
+        self.assertEqual(SupportedInTokenType.choises(), ["a1111compat", "csv"])
 
 
 class TestSupportedOutTokenType(unittest.TestCase):

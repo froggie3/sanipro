@@ -2,65 +2,8 @@ import unittest
 
 from sanipro.delimiter import Delimiter
 from sanipro.parser import InvalidSyntaxError
-from sanipro.parser_a1111 import A1111CompatParser, A1111Parser
+from sanipro.parser_a1111 import A1111Parser
 from sanipro.token import A1111Token as Token
-
-
-class TestA1111CompatParser(unittest.TestCase):
-    def setUp(self) -> None:
-        dlm = Delimiter(",", ", ")
-        self.parser = A1111CompatParser(dlm)
-        self.delimiter = dlm.sep_input
-
-    def test_escape_characters(self):
-        test_cases = [
-            # using escape for parser to parse literal "delimiter"
-            (r"\,,", [Token(r"\,", 1.0)]),
-            (r"\,\,,", [Token(r"\,\,", 1.0)]),
-        ]
-
-        for input_text, expected in test_cases:
-            with self.subTest(input_text=input_text):
-                result = self.parser.parse_prompt(input_text, Token, self.delimiter)
-                self.assertEqual(result, expected)
-
-    def test_escaping_backslashes(self):
-        test_cases = [
-            # bashslash itself
-            (r"\\,", [Token(r"\\", 1.0)]),
-            # note: "\(series\)" will be escaped as \\, \(, series, \\, and \).
-            (r"\\\(series\\\),", [Token(r"\\\(series\\\)", 1.0)]),
-            (r"fate \\\(series\\\),", [Token(r"fate \\\(series\\\)", 1.0)]),
-            (r"(fate \\\(series\\\):1.1),", [Token(r"fate \\\(series\\\)", 1.1)]),
-        ]
-
-        for input_text, expected in test_cases:
-            with self.subTest(input_text=input_text):
-                result = self.parser.parse_prompt(input_text, Token, self.delimiter)
-                self.assertEqual(result, expected)
-
-    def test_nested_parentheses(self):
-        test_cases = [
-            # test if meta paren block works
-            (
-                "aaa, (sailor:1.2) (hat:1.2),",
-                [Token("aaa", 1.0), Token("(sailor:1.2) (hat:1.2)", 1.0)],
-            ),
-            (
-                "(aaa, (sailor:1.2) (hat:1.2):1.3),",
-                [Token("aaa, (sailor:1.2) (hat:1.2)", 1.3)],
-            ),
-            # test if escaping works
-            (
-                r"(bba:1.2) fate \\\(series\\\),",
-                [Token(r"(bba:1.2) fate \\\(series\\\)", 1.0)],
-            ),
-        ]
-
-        for input_text, expected in test_cases:
-            with self.subTest(input_text=input_text):
-                result = self.parser.parse_prompt(input_text, Token, self.delimiter)
-                self.assertEqual(result, expected)
 
 
 class TestA1111Parser(unittest.TestCase):
