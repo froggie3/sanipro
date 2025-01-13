@@ -29,3 +29,7 @@ class CSVParser(NormalParser):
         for token in prompt:
             token_name, token_weight = token.split(separator)
             yield token_cls(token_name, float(token_weight))
+
+
+class InvalidSyntaxError(Exception):
+    pass

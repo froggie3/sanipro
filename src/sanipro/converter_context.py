@@ -7,7 +7,8 @@ import yaml
 
 from sanipro.abc import IPromptTokenizer, TokenInterface
 from sanipro.parser import CSVParser, NormalParser
-from sanipro.pipeline_v1 import A1111Parser, A1111Tokenizer
+from sanipro.parser_a1111 import A1111CompatParser, A1111Parser
+from sanipro.pipeline_v1 import A1111Tokenizer
 from sanipro.token import A1111Token, CSVToken
 from sanipro.tokenizer import SimpleTokenizer
 
@@ -21,15 +22,29 @@ class ConfigError(Exception):
         self.path = path
 
 
-class SupportedTokenType(Enum):
+class SupportedInTokenType(Enum):
     """Supported token types."""
 
+    # used in option
     A1111 = "a1111"
     CSV = "csv"
 
     @staticmethod
     def choises() -> list[str]:
-        return [item.value for item in SupportedTokenType]
+        return [item.value for item in SupportedInTokenType]
+
+
+class SupportedOutTokenType(Enum):
+    """Supported token types."""
+
+    # used in option
+    A1111 = "a1111"
+    A1111_compat = "a1111compat"
+    CSV = "csv"
+
+    @staticmethod
+    def choises() -> list[str]:
+        return [item.value for item in SupportedOutTokenType]
 
 
 @dataclass
@@ -81,15 +96,20 @@ class Config:
     """Represents config file specification."""
 
     a1111: A1111Config
+    a1111_compat: A1111Config
     csv: CSVConfig
 
     def get(self, key: str):
         """Returns the section corresponded to key parameter."""
 
+        name_conv = {"a1111": "a1111", "a1111compat": "a1111_compat", "csv": "csv"}
+
         try:
-            return getattr(self, key)
-        except AttributeError as e:
+            resolved = name_conv[key]
+        except KeyError as e:
             raise type(e)(self._error_bad_keyname(key))
+
+        return getattr(self, resolved)
 
     def get_input_token_separator(self, key: str) -> str:
         """The input token separator from the name of corresponded key type."""
@@ -111,28 +131,6 @@ class Config:
 
         return self.get(key).output.field_separator
 
-    def _get_token_map_mixin(self, field_separator: str) -> dict[str, TokenMap]:
-        """Generate a template of token map from field separator."""
-
-        return {
-            "a1111": TokenMap(
-                SupportedTokenType.A1111.value,
-                A1111Token,
-                field_separator,
-                format_a1111_token,
-                A1111Tokenizer,
-                A1111Parser,
-            ),
-            "csv": TokenMap(
-                SupportedTokenType.CSV.value,
-                CSVToken,
-                field_separator,
-                format_csv_token,
-                SimpleTokenizer,
-                CSVParser,
-            ),
-        }
-
     def _error_bad_keyname(self, bad_key_name: str) -> str:
         """Error message template."""
 
@@ -142,7 +140,26 @@ class Config:
         """Get the input token type from the name of corresponded key type."""
 
         field_separator = self._get_input_field_separator(key)
-        token_map = self._get_token_map_mixin(field_separator)
+        # dict_key = option value (=which is defined in enum)
+        # dict_value = key name of the config
+        token_map = {
+            "a1111compat": TokenMap(
+                "a1111_compat",
+                A1111Token,
+                field_separator,
+                format_a1111_token,
+                A1111Tokenizer,
+                A1111CompatParser,
+            ),
+            "csv": TokenMap(
+                "csv",
+                CSVToken,
+                field_separator,
+                format_csv_token,
+                SimpleTokenizer,
+                CSVParser,
+            ),
+        }
 
         try:
             return token_map[key]
@@ -153,7 +170,32 @@ class Config:
         """Get the output token type from the name of corresponded key type."""
 
         field_separator = self._get_output_field_separator(key)
-        token_map = self._get_token_map_mixin(field_separator)
+        token_map = {
+            "a1111": TokenMap(
+                "a1111",
+                A1111Token,
+                field_separator,
+                format_a1111_token,
+                A1111Tokenizer,
+                A1111Parser,
+            ),
+            "a1111compat": TokenMap(
+                "a1111_compat",
+                A1111Token,
+                field_separator,
+                format_a1111_token,
+                A1111Tokenizer,
+                A1111CompatParser,
+            ),
+            "csv": TokenMap(
+                "csv",
+                CSVToken,
+                field_separator,
+                format_csv_token,
+                SimpleTokenizer,
+                CSVParser,
+            ),
+        }
 
         try:
             return token_map[key]
@@ -168,6 +210,10 @@ def config_load_from_yaml(yaml_data: typing.Any) -> Config:
         InputConfig(yaml_data["a1111"]["input"]["token_separator"]),
         OutputConfig(yaml_data["a1111"]["output"]["token_separator"]),
     )
+    a1111_compat = A1111Config(
+        InputConfig(yaml_data["a1111_compat"]["input"]["token_separator"]),
+        OutputConfig(yaml_data["a1111_compat"]["output"]["token_separator"]),
+    )
     csv = CSVConfig(
         InputConfig(
             yaml_data["csv"]["input"]["token_separator"],
@@ -178,7 +224,7 @@ def config_load_from_yaml(yaml_data: typing.Any) -> Config:
             yaml_data["csv"]["output"]["field_separator"],
         ),
     )
-    return Config(a1111, csv)
+    return Config(a1111, a1111_compat, csv)
 
 
 def config_from_file(path: str) -> Config:
@@ -208,8 +254,9 @@ def get_config(path: str | None = None) -> Config:
 
     if path is None:
         a1111 = A1111Config(InputConfig(","), OutputConfig(", "))
+        a1111_compat = A1111Config(InputConfig(","), OutputConfig(", "))
         csv = CSVConfig(InputConfig("\n", "\t"), OutputConfig("\n", "\t"))
-        return Config(a1111, csv)
+        return Config(a1111, a1111_compat, csv)
 
     return config_from_file(path)
 

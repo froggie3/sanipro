@@ -7,14 +7,22 @@ from sanipro.converter_context import (
     CSVConfig,
     InputConfig,
     OutputConfig,
-    SupportedTokenType,
+    SupportedInTokenType,
+    SupportedOutTokenType,
     config_from_str,
 )
 
 
-class TestSupportedTokenType(unittest.TestCase):
+class TestSupportedInTokenType(unittest.TestCase):
     def test_choises(self):
-        self.assertEqual(SupportedTokenType.choises(), ["a1111", "csv"])
+        self.assertEqual(SupportedInTokenType.choises(), ["a1111", "csv"])
+
+
+class TestSupportedOutTokenType(unittest.TestCase):
+    def test_choises(self):
+        self.assertEqual(
+            SupportedOutTokenType.choises(), ["a1111", "a1111compat", "csv"]
+        )
 
 
 class Testconfig_load_from_yaml(unittest.TestCase):
@@ -23,6 +31,12 @@ class Testconfig_load_from_yaml(unittest.TestCase):
             (
                 r"""
 a1111:
+  input:
+    token_separator: ","
+  output:
+    token_separator: "\n, "
+
+a1111_compat:
   input:
     token_separator: ","
   output:
@@ -37,6 +51,7 @@ csv:
     field_separator: "@"
 """,
                 Config(
+                    A1111Config(InputConfig(","), OutputConfig("\n, ")),
                     A1111Config(InputConfig(","), OutputConfig("\n, ")),
                     CSVConfig(InputConfig("\n", "\t"), OutputConfig("\n", "@")),
                 ),
@@ -67,6 +82,12 @@ a1111:
   output:
     token_separator: "\n, "
 
+a1111_compat:
+  input:
+    token_separator: ","
+  output:
+    token_separator: "\n, "
+
 csv:
   input:
     token_separator: "\n"
@@ -87,6 +108,7 @@ class TestConfig(unittest.TestCase):
     def setUp(self) -> None:
         self.config = Config(
             A1111Config(InputConfig(","), OutputConfig(", ")),
+            A1111Config(InputConfig(","), OutputConfig(", ")),
             CSVConfig(InputConfig("\n", "\t"), OutputConfig("\n", "\t")),
         )
         super().setUp()
@@ -95,7 +117,7 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(
             self.config.get("a1111"), A1111Config(InputConfig(","), OutputConfig(", "))
         )
-        with self.assertRaises(AttributeError):
+        with self.assertRaises(KeyError):
             self.config.get("key")
 
     def test_get_input_token_separator(self):
