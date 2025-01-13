@@ -16,16 +16,6 @@ class NormalParser(ParserInterface, UseDelimiterMixin, ParserPropertyMixins):
     """Uses a delimiter to split the prompt."""
 
 
-class DummyParser(NormalParser):
-    def get_token(
-        self, sentence: str, token_cls: type[TokenInterface]
-    ) -> typing.Generator[TokenInterface, None, None]:
-        return (
-            token_cls(element.strip(), 1.0)
-            for element in sentence.split(self._delimiter.sep_input)
-        )
-
-
 class CSVParser(NormalParser):
     """CSV Parser."""
 
