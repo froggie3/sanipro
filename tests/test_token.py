@@ -35,7 +35,6 @@ class Testformat_csv_token(unittest.TestCase):
 
 
 class Testformat_a1111compat_token(unittest.TestCase):
-
     def test_regexp_backslashes(self):
         test_cases = [("\\", r"\\"), (r"\(", r"\\("), (r"\(\)", r"\\(\\)")]
 

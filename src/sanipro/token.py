@@ -71,32 +71,29 @@ class Escaper:
     backslash_before_escaped_parentheses = re.compile(r"(\\[\(\)])")
 
     @staticmethod
-    def escape_backslashes(prompt_name: str):
-        """Escapes a backslash which possibly allows another backslash
-        comes after it.
+    def escape_backslashes(text: str):
+        """Escapes a parentheses.
 
         e.g. `\\( \\) ===> \\\\( \\\\)`"""
 
-        return re.sub(Escaper.backslashes, r"\\\g<1>", prompt_name)
+        return re.sub(Escaper.backslashes, r"\\\g<1>", text)
 
     @staticmethod
-    def escape_backslash_before_escaped_parentheses(prompt_name: str):
+    def escape_backslash_before_escaped_parentheses(text: str):
         """Escapes another backslash before the escaped parentheses.
 
         e.g. `\\\\( \\\\) ===> \\\\\\( \\\\\\)`"""
 
-        return re.sub(
-            Escaper.backslash_before_escaped_parentheses, r"\\\g<1>", prompt_name
-        )
+        return re.sub(Escaper.backslash_before_escaped_parentheses, r"\\\g<1>", text)
 
     @staticmethod
-    def escape(prompt_name: str) -> str:
+    def escape(text: str) -> str:
         """Escape prompt."""
 
-        prompt_name = Escaper.escape_backslashes(prompt_name)
-        prompt_name = Escaper.escape_backslash_before_escaped_parentheses(prompt_name)
+        text = Escaper.escape_backslashes(text)
+        text = Escaper.escape_backslash_before_escaped_parentheses(text)
 
-        return prompt_name
+        return text
 
 
 def format_a1111_compat_token(token: A1111Token) -> str:
