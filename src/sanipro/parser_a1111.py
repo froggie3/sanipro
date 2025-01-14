@@ -14,7 +14,7 @@ class _CharStack(list):
         return "".join(self)
 
     def join(self) -> str:
-        return self.__str__().strip()
+        return self.__str__()
 
 
 class ParenState(Enum):
@@ -74,13 +74,22 @@ class _A1111ParserContext:
     def __repr__(self) -> str:
         args = [
             f"{self.current_index:<5d}",
-            f"{self.prompt[self.current_index]:5s}",
+            f"{self.__debug_char():5s}",
             f"{self.state:30s}",
             f"{self.idx_last_delimiter:<5d}",
             f"{self.prompt_name.join():5s}",
             f"{self.prompt_weight.join():5s}",
         ]
         return "  ".join(args)
+
+    @property
+    def char(self):
+        return self.prompt[self.current_index]
+
+    def __debug_char(self) -> str:
+        if self.char.isprintable():
+            return self.char
+        return "<%s>" % (ord(self.char),)
 
     def _debug(self) -> None:
         print(self.__repr__())
@@ -171,6 +180,8 @@ class A1111Parser(NormalParser, ParserPropertyMixins):
     def _handle_default(self, char: str) -> ParserState:
         if char == "\\":
             return ParserState.ESCAPED
+        elif not char.isprintable():
+            return ParserState.DEFAULT
         elif char == "(":
             self.ctx.n_parens += 1
             return ParserState.IN_PARENTHESIS
@@ -187,7 +198,7 @@ class A1111Parser(NormalParser, ParserPropertyMixins):
             return ParserState.DEFAULT
 
     def _handle_after_delimiter(self, char: str) -> ParserState:
-        if char == " ":
+        if char.isspace():
             self.ctx.idx_last_delimiter = self.ctx.current_index
             return ParserState.AFTER_DELIMITER
         elif char == "\\":
@@ -260,6 +271,8 @@ class A1111Parser(NormalParser, ParserPropertyMixins):
             except ValueError:
                 self.ctx.current_index = self.ctx.idx_last_delimiter
                 return ParserState.FAILED_PARENTHESIS
+        elif char.isspace():
+            return ParserState.EMPHASIS_END
         else:
             self.ctx.prompt_name.clear()
             self.ctx.prompt_weight.clear()

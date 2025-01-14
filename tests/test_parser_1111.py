@@ -82,13 +82,14 @@ class TestA1111Parser(unittest.TestCase):
         test_cases = [
             # test if meta paren block works
             (
-                "aaa, (sailor:1.2) (hat:1.2),",
-                [Token("aaa", 1.0), Token("(sailor:1.2) (hat:1.2)", 1.0)],
+                "cat, (bow:1.2) (hat:1.2),",
+                [Token("cat", 1.0), Token("(bow:1.2) (hat:1.2)", 1.0)],
             ),
             (
-                "(aaa, (sailor:1.2) (hat:1.2):1.3),",
-                [Token("aaa, (sailor:1.2) (hat:1.2)", 1.3)],
+                "(cat, (bow:1.2) (hat:1.2):1.3),",
+                [Token("cat, (bow:1.2) (hat:1.2)", 1.3)],
             ),
+            ("(cat, bow:1.2)\n, hat,", [Token("cat, bow", 1.2), Token("hat", 1.0)]),
             # test if escaping works
             (
                 r"(bba:1.2) fate \\\(series\\\),",
