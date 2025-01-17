@@ -1,9 +1,6 @@
 import typing
 from dataclasses import dataclass
-from enum import Enum
 from typing import Callable, Optional
-
-import yaml
 
 from sanipro.abc import IPromptTokenizer, TokenInterface
 from sanipro.parser import CSVParser, NormalParser
@@ -26,31 +23,6 @@ class ConfigError(Exception):
     def __init__(self, path: str | None = None, *args: object) -> None:
         super().__init__(*args)
         self.path = path
-
-
-class SupportedInTokenType(Enum):
-    """Supported token types."""
-
-    # used in option
-    A1111 = "a1111compat"
-    CSV = "csv"
-
-    @staticmethod
-    def choises() -> list[str]:
-        return [item.value for item in SupportedInTokenType]
-
-
-class SupportedOutTokenType(Enum):
-    """Supported token types."""
-
-    # used in option
-    A1111 = "a1111"
-    A1111_compat = "a1111compat"
-    CSV = "csv"
-
-    @staticmethod
-    def choises() -> list[str]:
-        return [item.value for item in SupportedOutTokenType]
 
 
 @dataclass
@@ -236,6 +208,8 @@ def config_load_from_yaml(yaml_data: typing.Any) -> Config:
 def config_from_file(path: str) -> Config:
     """Read config from a file path."""
 
+    import yaml
+
     try:
         with open(path, "r") as stream:
             data_loaded = yaml.safe_load(stream)
@@ -246,6 +220,8 @@ def config_from_file(path: str) -> Config:
 
 def config_from_str(data: str) -> Config:
     """Read config directly from the string."""
+
+    import yaml
 
     data_loaded = yaml.safe_load(data)
     try:

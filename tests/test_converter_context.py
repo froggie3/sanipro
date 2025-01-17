@@ -7,10 +7,9 @@ from sanipro.converter_context import (
     CSVConfig,
     InputConfig,
     OutputConfig,
-    SupportedInTokenType,
-    SupportedOutTokenType,
     config_from_str,
 )
+from sanipro.token_types import SupportedInTokenType, SupportedOutTokenType
 
 
 class TestSupportedInTokenType(unittest.TestCase):

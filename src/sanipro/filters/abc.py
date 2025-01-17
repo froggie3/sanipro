@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
 
-import networkx
+if TYPE_CHECKING:
+    from networkx import Graph
 
 from sanipro.abc import MutablePrompt, Prompt
 
@@ -35,5 +37,5 @@ class MSTBuilder(ABC):
     """MSTを構築する戦略のインターフェース"""
 
     @abstractmethod
-    def build_mst(self, graph: networkx.Graph) -> networkx.Graph:
+    def build_mst(self, graph: "Graph") -> "Graph":
         pass

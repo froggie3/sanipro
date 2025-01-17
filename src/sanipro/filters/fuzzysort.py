@@ -1,9 +1,6 @@
 import itertools
 import random
-from difflib import SequenceMatcher
-
-import networkx as nx
-from networkx import traversal
+from typing import TYPE_CHECKING
 
 from sanipro.abc import MutablePrompt, Prompt, TokenInterface
 from sanipro.filters.abc import (
@@ -27,11 +24,16 @@ try:
 except ImportError:
     pass
 
+if TYPE_CHECKING:
+    from networkx import Graph
+
 
 class SequenceMatcherSimilarity(SimilarityStrategy):
     """Similarity calculation using Python built-in SequenceMatcher"""
 
     def calculate_similarity(self, word1: str, word2: str) -> float:
+        from difflib import SequenceMatcher
+
         return SequenceMatcher(None, word1, word2).ratio()
 
 
@@ -106,13 +108,17 @@ class GreedyReorderer(ReordererStrategy):
 
 
 class PrimMSTBuilder(MSTBuilder):
-    def build_mst(self, graph: nx.Graph) -> nx.Graph:
-        return nx.minimum_spanning_tree(graph, algorithm="prim")
+    def build_mst(self, graph: "Graph") -> "Graph":
+        from networkx import minimum_spanning_tree
+
+        return minimum_spanning_tree(graph, algorithm="prim")
 
 
 class KruskalMSTBuilder(MSTBuilder):
-    def build_mst(self, graph: nx.Graph) -> nx.Graph:
-        return nx.minimum_spanning_tree(graph)
+    def build_mst(self, graph: "Graph") -> "Graph":
+        from networkx import minimum_spanning_tree
+
+        return minimum_spanning_tree(graph)
 
 
 class MSTReorderer(ReordererStrategy):
@@ -124,8 +130,10 @@ class MSTReorderer(ReordererStrategy):
         self.strategy = strategy
 
     def find_optimal_order(self, words: Prompt) -> MutablePrompt:
+        from networkx import dfs_preorder_nodes
+
         # construct an edge list for a complete graph
-        graph = nx.Graph()
+        graph = Graph()
 
         for (u, _p), (v, _q) in itertools.combinations(enumerate(words), 2):
             similarity = self.strategy.calculate_similarity(_p.name, _q.name)
@@ -140,7 +148,7 @@ class MSTReorderer(ReordererStrategy):
             token = words[node]
             return token
 
-        order = map(mapper, traversal.dfs_preorder_nodes(mst))
+        order = map(mapper, dfs_preorder_nodes(mst))
 
         return list(order)
 
