@@ -130,7 +130,7 @@ class MSTReorderer(ReordererStrategy):
         self.strategy = strategy
 
     def find_optimal_order(self, words: Prompt) -> MutablePrompt:
-        from networkx import dfs_preorder_nodes
+        from networkx import Graph, dfs_preorder_nodes
 
         # construct an edge list for a complete graph
         graph = Graph()
