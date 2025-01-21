@@ -4,6 +4,7 @@ from sanipro.filters.exclude import ExcludeCommand
 from sanipro.filters.mask import MaskCommand
 from sanipro.filters.reset import ResetCommand
 from sanipro.filters.roundup import RoundUpCommand
+from sanipro.filters.sort import SortCommand
 from sanipro.filters.sort_all import SortAllCommand
 from sanipro.filters.translate import TranslateTokenTypeCommand
 from sanipro.filters.utils import (
@@ -126,6 +127,30 @@ class TestSortAllCommand(unittest.TestCase):
             with self.subTest(funcname=func.__name__, reversed=False):
                 f = SortAllCommand(func).execute_prompt
                 self.assertEqual(expected, f(FIXED_PROMPT))
+
+
+class TestSortCommand(unittest.TestCase):
+    def test_execute_prompt(self):
+        tests = (
+            (
+                [
+                    Token("shirt", 1.3),
+                    Token("shirt", 1.0),
+                    Token("shirt", 1.2),
+                    Token("happy", 1.1),
+                ],
+                [
+                    Token("shirt", 1.0),
+                    Token("shirt", 1.2),
+                    Token("shirt", 1.3),
+                    Token("happy", 1.1),
+                ],
+            ),
+        )
+
+        for test, expected in tests:
+            f = SortCommand(reverse=False).execute_prompt
+            self.assertEqual(expected, f(test))
 
 
 class TestTranslateTokenCommand(unittest.TestCase):
