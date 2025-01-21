@@ -7,6 +7,7 @@ from sanipro.filters.roundup import RoundUpCommand
 from sanipro.filters.sort import SortCommand
 from sanipro.filters.sort_all import SortAllCommand
 from sanipro.filters.translate import TranslateTokenTypeCommand
+from sanipro.filters.unique import UniqueCommand
 from sanipro.filters.utils import (
     sort_by_length,
     sort_by_ord_sum,
@@ -151,6 +152,37 @@ class TestSortCommand(unittest.TestCase):
         for test, expected in tests:
             f = SortCommand(reverse=False).execute_prompt
             self.assertEqual(expected, f(test))
+
+
+class TestUniqueCommand(unittest.TestCase):
+    def test_execute_prompt(self):
+        tests = (
+            (
+                False,
+                [
+                    Token("shirt", 1.3),
+                    Token("shirt", 1.0),
+                    Token("shirt", 1.2),
+                    Token("happy", 1.1),
+                ],
+                [Token("shirt", 1.0), Token("happy", 1.1)],
+            ),
+            (
+                True,
+                [
+                    Token("shirt", 1.3),
+                    Token("shirt", 1.0),
+                    Token("shirt", 1.2),
+                    Token("happy", 1.1),
+                ],
+                [Token("shirt", 1.3), Token("happy", 1.1)],
+            ),
+        )
+
+        for is_reversed, test, expected in tests:
+            with self.subTest(reverse=is_reversed):
+                f = UniqueCommand(reverse=is_reversed).execute_prompt
+                self.assertEqual(expected, f(test))
 
 
 class TestTranslateTokenCommand(unittest.TestCase):
