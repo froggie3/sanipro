@@ -25,10 +25,6 @@ class ReordererStrategy(ABC):
     """並べ替えの戦略インターフェース"""
 
     @abstractmethod
-    def __init__(self, strategy: SimilarityStrategy):
-        pass
-
-    @abstractmethod
     def find_optimal_order(self, words: Prompt) -> MutablePrompt:
         """2つの文字列の類似度を計算する"""
 

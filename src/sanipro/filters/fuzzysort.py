@@ -66,8 +66,9 @@ class NaiveReorderer(ReordererStrategy):
 class GreedyReorderer(ReordererStrategy):
     """Attempt a greedy sort."""
 
-    def __init__(self, strategy: SimilarityStrategy):
+    def __init__(self, strategy: SimilarityStrategy, shuffle=True):
         self.strategy = strategy
+        self.shuffle = shuffle
 
     def _find_max_idx(
         self, last_word: str, words: list[TokenInterface], visited: list[bool]
@@ -86,9 +87,12 @@ class GreedyReorderer(ReordererStrategy):
         return idx
 
     def find_optimal_order(self, words: Prompt) -> MutablePrompt:
-        # shuffle and choose random initial elements
         words = list(words[:])
-        random.shuffle(words)
+
+        if self.shuffle:
+            # shuffling helps to choose random initial elements
+            random.shuffle(words)
+
         result = [words.pop()]
         visited = [False] * len(words)
 
