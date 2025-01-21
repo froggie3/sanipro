@@ -59,7 +59,7 @@ class TestRoundUpCommand(unittest.TestCase):
         self.assertIn(Token(":d", 1.26), f(prompt))
 
 
-class TestTranslateTokenCOmmand(unittest.TestCase):
+class TestTranslateTokenCommand(unittest.TestCase):
     def test_execute_prompt(self):
         token_type = CSVToken
         self.inst = TranslateTokenTypeCommand(token_type)
