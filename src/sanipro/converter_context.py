@@ -118,7 +118,7 @@ class Config:
         """Get the input token type from the name of corresponded key type."""
 
         field_separator = self._get_input_field_separator(key)
-        # dict_key = option value (=which is defined in enum)
+        # dict_key = option value
         # dict_value = key name of the config
         token_map = {
             "a1111compat": TokenMap(
@@ -228,16 +228,3 @@ def config_from_str(data: str) -> Config:
         return config_load_from_yaml(data_loaded)
     except Exception:
         raise ConfigError
-
-
-def get_config(path: str | None = None) -> Config:
-    """Get a config from filepath. The default config is returned
-    if None is specified."""
-
-    if path is None:
-        a1111 = A1111Config(InputConfig(","), OutputConfig(", "))
-        a1111_compat = A1111Config(InputConfig(","), OutputConfig(", "))
-        csv = CSVConfig(InputConfig("\n", "\t"), OutputConfig("\n", "\t"))
-        return Config(a1111, a1111_compat, csv)
-
-    return config_from_file(path)

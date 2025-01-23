@@ -9,19 +9,6 @@ from sanipro.converter_context import (
     OutputConfig,
     config_from_str,
 )
-from sanipro.token_types import SupportedInTokenType, SupportedOutTokenType
-
-
-class TestSupportedInTokenType(unittest.TestCase):
-    def test_choises(self):
-        self.assertEqual(SupportedInTokenType.choises(), ["a1111compat", "csv"])
-
-
-class TestSupportedOutTokenType(unittest.TestCase):
-    def test_choises(self):
-        self.assertEqual(
-            SupportedOutTokenType.choises(), ["a1111", "a1111compat", "csv"]
-        )
 
 
 class Testconfig_load_from_yaml(unittest.TestCase):
