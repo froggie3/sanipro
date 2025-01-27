@@ -2,7 +2,7 @@ import unittest
 
 from sanipro.delimiter import Delimiter
 from sanipro.parser_a1111 import A1111Parser, find_last_paren, parse_bad_tuple
-from sanipro.pipeline_v1 import A1111Tokenizer
+from sanipro.pipeline_v1 import A1111Tokenizer, create_pipeline
 from sanipro.token import A1111Token as Token
 
 
@@ -55,3 +55,8 @@ class TestPromptTokenizerV1(unittest.TestCase):
     def test_strip_last_break(self):
         self.assertEqual(self.tk._strip_last_break("42\n"), "42")
         self.assertEqual(self.tk._strip_last_break("42\n \n"), "42")
+
+
+class TestPromptPipelineV1(unittest.TestCase):
+    def setUp(self) -> None:
+        self.pipeline = create_pipeline()

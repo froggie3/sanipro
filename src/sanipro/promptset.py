@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Set
 
-from sanipro.abc import MutablePrompt, TokenInterface
+from sanipro.abc import Prompt, TokenInterface
 from sanipro.compatible import Self
 
 PromptSet = Set[TokenInterface]
@@ -12,7 +12,8 @@ class SetCalculator(ABC):
     where it allows user to the set operation."""
 
     @abstractmethod
-    def do_math(self, a: PromptSet, b: PromptSet) -> PromptSet: ...
+    def do_math(self, a: Prompt, b: Prompt) -> Prompt:
+        """Do the set operation."""
 
 
 class SetCalculatorWrapper:
@@ -20,61 +21,53 @@ class SetCalculatorWrapper:
     Executes a set operation to the two prompt,
     having two prompt instances."""
 
-    # calculator symbols
-    union = "union"
-    intersection = "inter"
-    difference = "diff"
-    symmetric_difference = "symdiff"
-
     def __init__(self, calcurator: SetCalculator) -> None:
         self._calcurator = calcurator
 
-    def do_math(
-        self, a: PromptSet | MutablePrompt, b: PromptSet | MutablePrompt
-    ) -> PromptSet:
-        return self._calcurator.do_math(set(a), set(b))
+    def do_math(self, a: Prompt, b: Prompt) -> Prompt:
+        return self._calcurator.do_math(a, b)
 
     @classmethod
     def create_from(cls, key: str | None = "union") -> Self:
         """Creates the instance from the key"""
 
-        calculator_classes = {
-            cls.union: UnionCalculator,
-            cls.intersection: IntersectionCalculator,
-            cls.difference: DifferenceCalculator,
-            cls.symmetric_difference: SymmetricDifferenceCalculator,
-        }
-        try:
-            calculator_cls = calculator_classes[key]
-            return cls(calculator_cls())
-        except KeyError:
-            # TODO
-            raise
+        if key == "union":
+            return cls(UnionCalculator())
+        elif key == "inter":
+            return cls(IntersectionCalculator())
+        elif key == "diff":
+            return cls(DifferenceCalculator())
+        elif key == "symdiff":
+            return cls(SymmetricDifferenceCalculator())
+
+        return cls(UnionCalculator())
 
 
 class UnionCalculator(SetCalculator):
     """Calculate the union of two prompts."""
 
-    def do_math(self, a: PromptSet, b: PromptSet) -> PromptSet:
-        return a | b
+    def do_math(self, a: Prompt, b: Prompt) -> Prompt:
+        return tuple(set(a) | set(b))
 
 
 class IntersectionCalculator(SetCalculator):
     """Calculate the intersection of to prompts."""
 
-    def do_math(self, a: PromptSet, b: PromptSet) -> PromptSet:
-        return a & b
+    def do_math(self, a: Prompt, b: Prompt) -> Prompt:
+        return tuple(set(a) & set(b))
 
 
 class SymmetricDifferenceCalculator(SetCalculator):
     """Calculate the symmetric difference of two prompts."""
 
-    def do_math(self, a: PromptSet, b: PromptSet) -> PromptSet:
-        return a ^ b
+    def do_math(self, a: Prompt, b: Prompt) -> Prompt:
+        return tuple(set(a) ^ set(b))
 
 
 class DifferenceCalculator(SetCalculator):
     """Calculate the difference of two prompts."""
 
-    def do_math(self, a: PromptSet, b: PromptSet) -> PromptSet:
-        return a - b
+    def do_math(self, a: Prompt, b: Prompt, reverse=False) -> Prompt:
+        if not reverse:
+            return tuple(set(a) - set(b))
+        return tuple(set(b) - set(a))
