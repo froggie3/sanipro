@@ -34,7 +34,7 @@ PROMPT = (
 
 
 class TestExcludeCommand(unittest.TestCase):
-    def test_execute_prompt(self):
+    def test_execute_prompt(self) -> None:
         f = ExcludeCommand(["background"]).execute_prompt
 
         self.assertNotIn(Token("simple background", 1.0), f(PROMPT))
@@ -43,12 +43,12 @@ class TestExcludeCommand(unittest.TestCase):
 
 @unittest.skip("test later")
 class TestSimilarCommand(unittest.TestCase):
-    def test_execute_prompt(self):
+    def test_execute_prompt(self) -> None:
         pass
 
 
 class TestMaskCommand(unittest.TestCase):
-    def test_execute_prompt(self):
+    def test_execute_prompt(self) -> None:
         f = MaskCommand(["background"], "__REPLACE__").execute_prompt
 
         self.assertNotIn(Token("simple background", 1.0), f(PROMPT))
@@ -59,7 +59,7 @@ class TestMaskCommand(unittest.TestCase):
 
 
 class TestResetCommand(unittest.TestCase):
-    def test_execute_prompt(self):
+    def test_execute_prompt(self) -> None:
         tests = [
             (None, [Token("shift", 1.0)], [Token("shift", 1.0)]),
             (1.1, [Token("solo", 0.876)], [Token("solo", 1.1)]),
@@ -71,14 +71,14 @@ class TestResetCommand(unittest.TestCase):
 
 
 class TestRoundUpCommand(unittest.TestCase):
-    def test_execute_prompt(self):
+    def test_execute_prompt(self) -> None:
         f = RoundUpCommand(2).execute_prompt
 
         self.assertIn(Token(":d", 1.26), f(PROMPT))
 
 
 class TestSortAllCommand(unittest.TestCase):
-    def test_execute_prompt(self):
+    def test_execute_prompt(self) -> None:
         FIXED_PROMPT = [
             Token("shirt", 1.3),
             Token("one side up", 1.0),
@@ -131,7 +131,7 @@ class TestSortAllCommand(unittest.TestCase):
 
 
 class TestSortCommand(unittest.TestCase):
-    def test_execute_prompt(self):
+    def test_execute_prompt(self) -> None:
         tests = (
             (
                 [
@@ -155,7 +155,7 @@ class TestSortCommand(unittest.TestCase):
 
 
 class TestUniqueCommand(unittest.TestCase):
-    def test_execute_prompt(self):
+    def test_execute_prompt(self) -> None:
         tests = (
             (
                 False,
@@ -186,7 +186,7 @@ class TestUniqueCommand(unittest.TestCase):
 
 
 class TestTranslateTokenCommand(unittest.TestCase):
-    def test_execute_prompt(self):
+    def test_execute_prompt(self) -> None:
         token_type = CSVToken
         f = TranslateTokenTypeCommand(token_type).execute_prompt
 

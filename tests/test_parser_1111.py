@@ -12,7 +12,7 @@ class TestA1111Parser(unittest.TestCase):
         self.parser = A1111Parser(dlm)
         self.delimiter = dlm.sep_input
 
-    def test_basic_parsing(self):
+    def test_basic_parsing(self) -> None:
         test_cases = [
             # test if normal emphasis works
             ("1girl,", [Token("1girl", 1.0)]),
@@ -35,7 +35,7 @@ class TestA1111Parser(unittest.TestCase):
                 result = self.parser.parse_prompt(input_text, Token, self.delimiter)
                 self.assertEqual(result, expected)
 
-    def test_handling_colon(self):
+    def test_handling_colon(self) -> None:
         test_cases = [
             (r":,", [Token(":", 1.0)]),
             (r"(::1.1),", [Token(":", 1.1)]),
@@ -51,7 +51,7 @@ class TestA1111Parser(unittest.TestCase):
                 result = self.parser.parse_prompt(input_text, Token, self.delimiter)
                 self.assertEqual(result, expected)
 
-    def test_escape_characters(self):
+    def test_escape_characters(self) -> None:
         test_cases = [
             # using escape for parser to parse literal "delimiter"
             (r"\,,", [Token(r",", 1.0)]),
@@ -63,7 +63,7 @@ class TestA1111Parser(unittest.TestCase):
                 result = self.parser.parse_prompt(input_text, Token, self.delimiter)
                 self.assertEqual(result, expected)
 
-    def test_escaping_backslashes(self):
+    def test_escaping_backslashes(self) -> None:
         test_cases = [
             # bashslash itself
             (r"\\,", [Token("\\", 1.0)]),
@@ -78,7 +78,7 @@ class TestA1111Parser(unittest.TestCase):
                 result = self.parser.parse_prompt(input_text, Token, self.delimiter)
                 self.assertEqual(result, expected)
 
-    def test_nested_parentheses(self):
+    def test_nested_parentheses(self) -> None:
         test_cases = [
             # test if meta paren block works
             (
@@ -102,7 +102,7 @@ class TestA1111Parser(unittest.TestCase):
                 result = self.parser.parse_prompt(input_text, Token, self.delimiter)
                 self.assertEqual(result, expected)
 
-    def test_error(self):
+    def test_error(self) -> None:
         error_cases = [
             # raise error if normal character was found after a backslash
             (r"\a,", InvalidSyntaxError),

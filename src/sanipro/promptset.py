@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from collections.abc import Set
 
 from sanipro.abc import Prompt, TokenInterface
-from sanipro.compatible import Self
 
 PromptSet = Set[TokenInterface]
 

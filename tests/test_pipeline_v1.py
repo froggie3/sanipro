@@ -7,7 +7,7 @@ from sanipro.token import A1111Token as Token
 
 
 class Testparse_bad_tuple(unittest.TestCase):
-    def test_emphasis(self):
+    def test_emphasis(self) -> None:
         test_cases = [
             ("(white dress:1.2)", Token("white dress", 1.2)),
             ("(white dress:+1.2)", Token("white dress", 1.2)),
@@ -26,7 +26,7 @@ class Testparse_bad_tuple(unittest.TestCase):
 
 
 class Testfind_last_paren(unittest.TestCase):
-    def test_find_last_paren(self):
+    def test_find_last_paren(self) -> None:
         test_cases = [
             (r"(\),", None),
             # a
@@ -49,10 +49,10 @@ class TestPromptTokenizerV1(unittest.TestCase):
         self.psr = A1111Parser(self.dlm)
         self.tk = A1111Tokenizer(self.psr, Token)
 
-    def test_add_last_comma(self):
+    def test_add_last_comma(self) -> None:
         self.assertEqual(self.tk._add_last_comma("42", self.dlm_in), "42,")
 
-    def test_strip_last_break(self):
+    def test_strip_last_break(self) -> None:
         self.assertEqual(self.tk._strip_last_break("42\n"), "42")
         self.assertEqual(self.tk._strip_last_break("42\n \n"), "42")
 

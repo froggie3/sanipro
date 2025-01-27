@@ -12,14 +12,14 @@ class TestPromptDifferenceDetector(unittest.TestCase):
         b = [cls("42", 1.0), cls("43", 1.0)]
         self.dec = dec(a, b)  # BUG
 
-    def test_duplicated(self):
+    def test_duplicated(self) -> None:
         pass
 
-    def test_compare(self):
+    def test_compare(self) -> None:
         pass
 
-    def test_judged_result(self):
+    def test_judged_result(self) -> None:
         pass
 
-    def test_parcentage(self):
+    def test_parcentage(self) -> None:
         pass
