@@ -18,27 +18,29 @@ from sanipro.token import A1111Token, CSVToken
 
 Token = A1111Token
 
-PROMPT = (
-    Token("white background", 1.0),
-    Token("red hair", 1.0),
-    Token("jacket", 1.0),
-    Token("1girl", 1.0),
-    Token("simple background", 1.0),
-    Token("looking at viewer", 1.0),
-    Token("yellow eyes", 1.0),
-    Token("smile", 1.0),
-    Token(":d", 1.25892541179),
-    Token("bow", 1.0),
-    Token("hair between eyes", 1.0),
-)
-
 
 class TestExcludeCommand(unittest.TestCase):
-    def test_execute_prompt(self) -> None:
-        f = ExcludeCommand(["background"]).execute_prompt
+    def setUp(self) -> None:
+        self.command = ExcludeCommand(["background"])
 
-        self.assertNotIn(Token("simple background", 1.0), f(PROMPT))
-        self.assertNotIn(Token("white background", 1.0), f(PROMPT))
+    def test_execute_prompt(self) -> None:
+        f = self.command.execute_prompt
+        prompt = (
+            Token("white background", 1.0),
+            Token("red hair", 1.0),
+            Token("jacket", 1.0),
+            Token("1girl", 1.0),
+            Token("simple background", 1.0),
+            Token("looking at viewer", 1.0),
+            Token("yellow eyes", 1.0),
+            Token("smile", 1.0),
+            Token(":d", 1.25892541179),
+            Token("bow", 1.0),
+            Token("hair between eyes", 1.0),
+        )
+
+        self.assertNotIn(Token("simple background", 1.0), f(prompt))
+        self.assertNotIn(Token("white background", 1.0), f(prompt))
 
 
 @unittest.skip("test later")
@@ -48,17 +50,36 @@ class TestSimilarCommand(unittest.TestCase):
 
 
 class TestMaskCommand(unittest.TestCase):
+    def setUp(self) -> None:
+        self.command = MaskCommand(["background"], "__REPLACE__")
+
     def test_execute_prompt(self) -> None:
-        f = MaskCommand(["background"], "__REPLACE__").execute_prompt
+        f = self.command.execute_prompt
+        prompt = (
+            Token("white background", 1.0),
+            Token("red hair", 1.0),
+            Token("jacket", 1.0),
+            Token("1girl", 1.0),
+            Token("simple background", 1.0),
+            Token("looking at viewer", 1.0),
+            Token("yellow eyes", 1.0),
+            Token("smile", 1.0),
+            Token(":d", 1.25892541179),
+            Token("bow", 1.0),
+            Token("hair between eyes", 1.0),
+        )
 
-        self.assertNotIn(Token("simple background", 1.0), f(PROMPT))
-        self.assertNotIn(Token("white background", 1.0), f(PROMPT))
+        self.assertNotIn(Token("simple background", 1.0), f(prompt))
+        self.assertNotIn(Token("white background", 1.0), f(prompt))
 
-        count = sum(1 for token in f(PROMPT) if "__REPLACE__" in token.name)
+        count = sum(1 for token in f(prompt) if "__REPLACE__" in token.name)
         self.assertEqual(count, 2)
 
 
 class TestResetCommand(unittest.TestCase):
+    def setUp(self) -> None:
+        self.ResetCommand = ResetCommand
+
     def test_execute_prompt(self) -> None:
         tests = [
             (None, [Token("shift", 1.0)], [Token("shift", 1.0)]),
@@ -66,18 +87,37 @@ class TestResetCommand(unittest.TestCase):
         ]
 
         for new_value, token, expected in tests:
-            f = ResetCommand(new_value).execute_prompt
+            f = self.ResetCommand(new_value).execute_prompt
             self.assertEqual(expected, f(token))
 
 
 class TestRoundUpCommand(unittest.TestCase):
-    def test_execute_prompt(self) -> None:
-        f = RoundUpCommand(2).execute_prompt
+    def setUp(self) -> None:
+        self.command = RoundUpCommand(2)
 
-        self.assertIn(Token(":d", 1.26), f(PROMPT))
+    def test_execute_prompt(self) -> None:
+        f = self.command.execute_prompt
+        prompt = (
+            Token("white background", 1.0),
+            Token("red hair", 1.0),
+            Token("jacket", 1.0),
+            Token("1girl", 1.0),
+            Token("simple background", 1.0),
+            Token("looking at viewer", 1.0),
+            Token("yellow eyes", 1.0),
+            Token("smile", 1.0),
+            Token(":d", 1.25892541179),
+            Token("bow", 1.0),
+            Token("hair between eyes", 1.0),
+        )
+
+        self.assertIn(Token(":d", 1.26), f(prompt))
 
 
 class TestSortAllCommand(unittest.TestCase):
+    def setUp(self) -> None:
+        self.SortAllCommand = SortAllCommand
+
     def test_execute_prompt(self) -> None:
         FIXED_PROMPT = [
             Token("shirt", 1.3),
@@ -126,11 +166,14 @@ class TestSortAllCommand(unittest.TestCase):
 
         for func, expected in tests:
             with self.subTest(funcname=func.__name__, reversed=False):
-                f = SortAllCommand(func).execute_prompt
+                f = self.SortAllCommand(func).execute_prompt
                 self.assertEqual(expected, f(FIXED_PROMPT))
 
 
 class TestSortCommand(unittest.TestCase):
+    def setUp(self) -> None:
+        self.SortCommand = SortCommand
+
     def test_execute_prompt(self) -> None:
         tests = (
             (
@@ -150,11 +193,14 @@ class TestSortCommand(unittest.TestCase):
         )
 
         for test, expected in tests:
-            f = SortCommand(reverse=False).execute_prompt
+            f = self.SortCommand(reverse=False).execute_prompt
             self.assertEqual(expected, f(test))
 
 
 class TestUniqueCommand(unittest.TestCase):
+    def setUp(self) -> None:
+        self.UniqueCommand = UniqueCommand
+
     def test_execute_prompt(self) -> None:
         tests = (
             (
@@ -181,13 +227,17 @@ class TestUniqueCommand(unittest.TestCase):
 
         for is_reversed, test, expected in tests:
             with self.subTest(reverse=is_reversed):
-                f = UniqueCommand(reverse=is_reversed).execute_prompt
+                f = self.UniqueCommand(reverse=is_reversed).execute_prompt
                 self.assertEqual(expected, f(test))
 
 
 class TestTranslateTokenCommand(unittest.TestCase):
-    def test_execute_prompt(self) -> None:
-        token_type = CSVToken
-        f = TranslateTokenTypeCommand(token_type).execute_prompt
+    def setUp(self) -> None:
+        self.NewToken = CSVToken
+        self.command = TranslateTokenTypeCommand(self.NewToken)
 
-        self.assertTrue(token_type("1girl", 1.0), f([Token("1girl", 1.0)]))
+    def test_execute_prompt(self) -> None:
+        NewToken = self.NewToken
+        f = self.command.execute_prompt
+
+        self.assertTrue(NewToken("1girl", 1.0), f([Token("1girl", 1.0)]))

@@ -6,11 +6,10 @@ from sanipro.utils import round_token_weight
 
 class Testround_token_weight(unittest.TestCase):
     def test_round_token_weight(self) -> None:
+        Token = A1111Token
         self.assertEqual(
-            round_token_weight(A1111Token("aaaa", 3.14159265), 2),
-            A1111Token("aaaa", 3.14),
+            round_token_weight(Token("aaaa", 3.14159265), 2), Token("aaaa", 3.14)
         )
         self.assertEqual(
-            round_token_weight(A1111Token("aaaa", 3.14159265), 5),
-            A1111Token("aaaa", 3.14159),
+            round_token_weight(Token("aaaa", 3.14159265), 5), Token("aaaa", 3.14159)
         )

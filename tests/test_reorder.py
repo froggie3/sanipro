@@ -11,19 +11,22 @@ from sanipro.token import A1111Token
 
 Token = A1111Token
 
-ORIGINAL_TOKENS = [
-    Token("nanaco", 1.0),
-    Token("apple", 1.0),
-    Token("kiwi", 1.0),
-    Token("banana", 1.0),
-    Token("maple", 1.0),
-]
-STRATEGY = SequenceMatcherSimilarity()
-
 
 class TestNaiveReorderer(unittest.TestCase):
-    def test_find_optimal_order(self):
-        f = NaiveReorderer(STRATEGY).find_optimal_order
+    def setUp(self) -> None:
+        self.strategy = SequenceMatcherSimilarity()
+        self.reorderer = NaiveReorderer(self.strategy)
+
+    def test_find_optimal_order(self) -> None:
+        f = self.reorderer.find_optimal_order
+        original_tokens = [
+            Token("nanaco", 1.0),
+            Token("apple", 1.0),
+            Token("kiwi", 1.0),
+            Token("banana", 1.0),
+            Token("maple", 1.0),
+        ]
+
         prompt = [
             Token("nanaco", 1.0),
             Token("banana", 1.0),
@@ -31,13 +34,26 @@ class TestNaiveReorderer(unittest.TestCase):
             Token("maple", 1.0),
             Token("kiwi", 1.0),
         ]
-        result = f(ORIGINAL_TOKENS)
+
+        result = f(original_tokens)
         self.assertEqual(prompt, result)
 
 
-class TestGreedyMSTReorderer(unittest.TestCase):
-    def test_find_optimal_order(self):
-        f = GreedyReorderer(STRATEGY, shuffle=False).find_optimal_order
+class TestGreedyReorderer(unittest.TestCase):
+    def setUp(self) -> None:
+        self.strategy = SequenceMatcherSimilarity()
+        self.reorderer = GreedyReorderer(self.strategy, shuffle=False)
+
+    def test_find_optimal_order(self) -> None:
+        f = self.reorderer.find_optimal_order
+        original_tokens = [
+            Token("nanaco", 1.0),
+            Token("apple", 1.0),
+            Token("kiwi", 1.0),
+            Token("banana", 1.0),
+            Token("maple", 1.0),
+        ]
+
         prompt = [
             Token("maple", 1.0),
             Token("apple", 1.0),
@@ -45,13 +61,26 @@ class TestGreedyMSTReorderer(unittest.TestCase):
             Token("banana", 1.0),
             Token("kiwi", 1.0),
         ]
-        result = f(ORIGINAL_TOKENS)
+
+        result = f(original_tokens)
         self.assertEqual(prompt, result)
 
 
 class TestKruskalMSTReorderer(unittest.TestCase):
-    def test_find_optimal_order(self):
-        f = KruskalMSTReorderer(STRATEGY).find_optimal_order
+    def setUp(self) -> None:
+        self.strategy = SequenceMatcherSimilarity()
+        self.reorderer = KruskalMSTReorderer(self.strategy)
+
+    def test_find_optimal_order(self) -> None:
+        f = self.reorderer.find_optimal_order
+        original_tokens = [
+            Token("nanaco", 1.0),
+            Token("apple", 1.0),
+            Token("kiwi", 1.0),
+            Token("banana", 1.0),
+            Token("maple", 1.0),
+        ]
+
         prompt = [
             Token("nanaco", 1.0),
             Token("banana", 1.0),
@@ -59,13 +88,26 @@ class TestKruskalMSTReorderer(unittest.TestCase):
             Token("maple", 1.0),
             Token("kiwi", 1.0),
         ]
-        result = f(ORIGINAL_TOKENS)
+
+        result = f(original_tokens)
         self.assertEqual(prompt, result)
 
 
 class TestPrimMSTReorderer(unittest.TestCase):
-    def test_find_optimal_order(self):
-        f = PrimMSTReorderer(STRATEGY).find_optimal_order
+    def setUp(self) -> None:
+        self.strategy = SequenceMatcherSimilarity()
+        self.reorderer = PrimMSTReorderer(self.strategy)
+
+    def test_find_optimal_order(self) -> None:
+        f = self.reorderer.find_optimal_order
+        original_tokens = [
+            Token("nanaco", 1.0),
+            Token("apple", 1.0),
+            Token("kiwi", 1.0),
+            Token("banana", 1.0),
+            Token("maple", 1.0),
+        ]
+
         prompt = [
             Token("nanaco", 1.0),
             Token("banana", 1.0),
@@ -73,5 +115,6 @@ class TestPrimMSTReorderer(unittest.TestCase):
             Token("maple", 1.0),
             Token("kiwi", 1.0),
         ]
-        result = f(ORIGINAL_TOKENS)
+
+        result = f(original_tokens)
         self.assertEqual(prompt, result)

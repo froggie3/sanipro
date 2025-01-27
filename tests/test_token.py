@@ -11,11 +11,12 @@ from sanipro.token import (
 
 class Testformat_a1111_token(unittest.TestCase):
     def test_token(self) -> None:
+        Token = A1111Token
         test_cases = [
-            (A1111Token("42", 1.0), "42"),
-            (A1111Token("42", 1.1), "(42:1.1)"),
-            (A1111Token("42", 1.04), "(42:1.04)"),
-            (A1111Token("42", 1.05), "(42:1.05)"),
+            (Token("42", 1.0), "42"),
+            (Token("42", 1.1), "(42:1.1)"),
+            (Token("42", 1.04), "(42:1.04)"),
+            (Token("42", 1.05), "(42:1.05)"),
         ]
 
         for token, expected in test_cases:
@@ -24,11 +25,9 @@ class Testformat_a1111_token(unittest.TestCase):
 
 class Testformat_csv_token(unittest.TestCase):
     def test_token(self) -> None:
+        Token = CSVToken
         delimiter = "\t"
-        test_cases = [
-            (CSVToken("42", 1.0), "42\t1.0"),
-            (CSVToken("42", 1.1), "42\t1.1"),
-        ]
+        test_cases = [(Token("42", 1.0), "42\t1.0"), (Token("42", 1.1), "42\t1.1")]
 
         for token, expected in test_cases:
             self.assertEqual(format_csv_token(delimiter)(token), expected)
