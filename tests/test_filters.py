@@ -14,7 +14,7 @@ from sanipro.filters.utils import (
     sort_by_weight,
     sort_lexicographically,
 )
-from sanipro.token import A1111Token, CSVToken
+from sanipro.token_prompt import A1111Token, CSVToken
 
 Token = A1111Token
 

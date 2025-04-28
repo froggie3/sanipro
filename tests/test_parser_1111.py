@@ -2,14 +2,14 @@ import unittest
 
 from sanipro.delimiter import Delimiter
 from sanipro.parser import InvalidSyntaxError
-from sanipro.parser_a1111 import A1111Parser
-from sanipro.token import A1111Token as Token
+from sanipro.parser_a1111 import A1111ParserUngrouped
+from sanipro.token_prompt import A1111Token as Token
 
 
 class TestA1111Parser(unittest.TestCase):
     def setUp(self) -> None:
         dlm = Delimiter(",", ", ")
-        self.parser = A1111Parser(dlm)
+        self.parser = A1111ParserUngrouped(dlm)
         self.delimiter = dlm.sep_input
 
     def test_basic_parsing(self) -> None:

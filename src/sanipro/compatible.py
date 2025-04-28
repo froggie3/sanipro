@@ -1,6 +1,4 @@
 try:
-    from typing import Self
+    from typing import Self  # NOQA
 except ImportError:
-    from typing_extensions import Self
-
-Self = Self
+    from typing_extensions import Self  # NOQA

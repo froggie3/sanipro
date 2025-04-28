@@ -6,7 +6,7 @@ from sanipro.promptset import (
     SymmetricDifferenceCalculator,
     UnionCalculator,
 )
-from sanipro.token import A1111Token
+from sanipro.token_prompt import A1111Token
 
 T = A1111Token
 

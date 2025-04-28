@@ -9,7 +9,7 @@ from sanipro.mixins import (
     TokenizerPropertyMixins,
 )
 from sanipro.parser import NormalParser
-from sanipro.parser_a1111 import A1111Parser
+from sanipro.parser_a1111 import A1111ParserUngrouped
 from sanipro.pipelineresult import PipelineResult
 
 
@@ -88,7 +88,7 @@ def create_pipeline(
     """Handy funtion to create a pipeline."""
 
     delimiter = Delimiter(sepin, sepout)
-    parser = A1111Parser(delimiter=delimiter)
+    parser = A1111ParserUngrouped(delimiter=delimiter)
     tokenizer = A1111Tokenizer(parser=parser, token_cls=token_cls)
     pipeline = PromptPipelineV1(
         tokenizer=tokenizer, filter_executor=filt, token_formatter=token_formatter

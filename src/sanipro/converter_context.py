@@ -1,12 +1,13 @@
 import typing
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Callable, Optional
 
 from sanipro.abc import IPromptTokenizer, TokenInterface
 from sanipro.parser import CSVParser, NormalParser
-from sanipro.parser_a1111 import A1111Parser
+from sanipro.parser_a1111 import A1111ParserUngrouped
 from sanipro.pipeline_v1 import A1111Tokenizer
-from sanipro.token import (
+from sanipro.token_prompt import (
     A1111Token,
     CSVToken,
     format_a1111_compat_token,
@@ -69,24 +70,27 @@ class TokenMap:
     parser: type[NormalParser]
 
 
+class IConfig(ABC):
+    @abstractmethod
+    def get(self, key: str) -> typing.Any:
+        """Todo: element reference by dot notation"""
+
+
 @dataclass
-class Config:
+class Config(IConfig):
     """Represents config file specification."""
 
     a1111: A1111Config
     a1111_compat: A1111Config
     csv: CSVConfig
+    _name_conv = {"a1111": "a1111", "a1111compat": "a1111_compat", "csv": "csv"}
 
     def get(self, key: str):
         """Returns the section corresponded to key parameter."""
-
-        name_conv = {"a1111": "a1111", "a1111compat": "a1111_compat", "csv": "csv"}
-
         try:
-            resolved = name_conv[key]
+            resolved = self._name_conv[key]
         except KeyError as e:
             raise type(e)(self._error_bad_keyname(key))
-
         return getattr(self, resolved)
 
     def get_input_token_separator(self, key: str) -> str:
@@ -110,8 +114,7 @@ class Config:
         return self.get(key).output.field_separator
 
     def _error_bad_keyname(self, bad_key_name: str) -> str:
-        """Error message template."""
-
+        """Error on bad key name was specified."""
         return f"unsupported token type was supplied: {bad_key_name}"
 
     def get_input_token_class(self, key: str) -> TokenMap:
@@ -127,7 +130,7 @@ class Config:
                 field_separator,
                 format_a1111_token,
                 A1111Tokenizer,
-                A1111Parser,
+                A1111ParserUngrouped,
             ),
             "csv": TokenMap(
                 "csv",
@@ -155,7 +158,7 @@ class Config:
                 field_separator,
                 format_a1111_token,
                 A1111Tokenizer,
-                A1111Parser,
+                A1111ParserUngrouped,
             ),
             "a1111compat": TokenMap(
                 "a1111_compat",
@@ -163,7 +166,7 @@ class Config:
                 field_separator,
                 format_a1111_compat_token,
                 A1111Tokenizer,
-                A1111Parser,
+                A1111ParserUngrouped,
             ),
             "csv": TokenMap(
                 "csv",
@@ -182,8 +185,6 @@ class Config:
 
 
 def config_load_from_yaml(yaml_data: typing.Any) -> Config:
-    """Load config from the read YAML data."""
-
     a1111 = A1111Config(
         InputConfig(yaml_data["a1111"]["input"]["token_separator"]),
         OutputConfig(yaml_data["a1111"]["output"]["token_separator"]),

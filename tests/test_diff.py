@@ -1,7 +1,7 @@
 import unittest
 
 from sanipro.diff import PromptDifferenceDetector
-from sanipro.token import A1111Token
+from sanipro.token_prompt import A1111Token
 
 
 class TestPromptDifferenceDetector(unittest.TestCase):

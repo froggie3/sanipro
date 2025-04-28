@@ -7,7 +7,7 @@ from sanipro.filters.fuzzysort import (
     PrimMSTReorderer,
     SequenceMatcherSimilarity,
 )
-from sanipro.token import A1111Token
+from sanipro.token_prompt import A1111Token
 
 Token = A1111Token
 

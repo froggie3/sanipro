@@ -1,6 +1,6 @@
 import unittest
 
-from sanipro.token import (
+from sanipro.token_prompt import (
     A1111Token,
     CSVToken,
     Escaper,

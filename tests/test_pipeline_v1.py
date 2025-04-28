@@ -1,9 +1,10 @@
 import unittest
 
 from sanipro.delimiter import Delimiter
-from sanipro.parser_a1111 import A1111Parser, find_last_paren, parse_bad_tuple
+from sanipro.parser_a1111 import A1111ParserUngrouped
+from sanipro.parser_a1111_utils import find_last_paren, parse_bad_tuple
 from sanipro.pipeline_v1 import A1111Tokenizer, create_pipeline
-from sanipro.token import A1111Token as Token
+from sanipro.token_prompt import A1111Token as Token
 
 
 class Testparse_bad_tuple(unittest.TestCase):
@@ -46,7 +47,7 @@ class TestPromptTokenizerV1(unittest.TestCase):
     def setUp(self) -> None:
         self.dlm = Delimiter(",", ", ")
         self.dlm_in = self.dlm.sep_input
-        self.psr = A1111Parser(self.dlm)
+        self.psr = A1111ParserUngrouped(self.dlm)
         self.tk = A1111Tokenizer(self.psr, Token)
 
     def test_add_last_comma(self) -> None:
